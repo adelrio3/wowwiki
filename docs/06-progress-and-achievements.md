@@ -113,34 +113,32 @@ flight path), "Bookworm" (read every lore text in a zone), "Tour Guide" (visit e
 subzone of a zone). These replace nothing; they are extra and marked as Compendium
 originals.
 
+### The Era list is authored content (D-0032)
+
+Era has no achievements in the client. The team writes the Era list as versioned
+content in `packages/achievements/catalogs/era/`, modeled on Wrath's achievements,
+and the owner reviews it in chat before release. Once released, criteria never
+change; new achievements may be added. Every quest, area, creature, faction, or
+instance a criterion names gets a wiki page at once, carrying only that name and a
+"named by achievement, not yet observed" label until a player observes it. Nothing
+is ever measured against a moving target and no administrator freezes anything.
+
 ### Loremaster design
 
-Wrath's Loremaster used fixed quest counts per continent (Eastern Kingdoms 550,
-Kalimdor 700 as of 3.x, before Cataclysm reworked it into per-zone counts). We do both:
-
-- **Continent achievements** with fixed thresholds (initial: Eastern Kingdoms 550,
-  Kalimdor 700; owner can tune in `game-meta`), counting quests whose wiki zone is on
-  that continent. Quest zone = the zone of the quest giver's observed position (first
-  confirmed), falling back to the quest log header.
-- **Per-zone progress** as "N of M known quests" where M is the number of confirmed
-  quests the wiki knows for that zone. Because M grows as the wiki grows, the zone
-  achievement threshold is **frozen by an admin** when the zone's catalog is judged
-  complete; until then the zone shows progress with a "catalog growing" marker and
-  cannot be earned. This keeps achievements honest without needing outside data.
-- Quests that are faction-exclusive, class-exclusive, or mutually exclusive are
-  handled by counting "available to this character" when the wiki has observed the
-  requirement (class/race/faction restriction observed from quest giver faction and
-  from the quest's observed acceptors); otherwise they count toward M and the admin
-  adjusts at freeze time.
+Wrath's Loremaster used fixed quest counts per continent. We do the same: Loremaster
+of Eastern Kingdoms at 550 quests, Loremaster of Kalimdor at 700, and the Loremaster
+meta. Quest-to-continent attribution uses the quest's observed zone (quest giver's
+position, falling back to the quest log header); quests without an observed zone
+count toward neither until observed. No per-zone quest achievements exist in the Era
+list, matching Wrath.
 
 ### Exploration design
 
-"Explore <zone>" = every subzone (area) the game awards discovery for. The set of
-discoverable areas per zone comes from the wiki's observed `area_discovered` events
-across contributors. Same freeze rule as Loremaster: progress shows immediately,
-earning requires a frozen list. Where
-`C_MapExplorationInfo.GetExploredMapTextures` is available, overlay completeness is
-used as the authoritative check (`VERIFY`).
+"Explore <zone>" lists the subzones of that zone explicitly in the authored catalog,
+as Wrath's did. Progress is the count of listed subzones the character has
+discovered (`area_discovered` events, matched by name per locale, with
+`C_MapExplorationInfo` overlay data as a second signal where available). World
+Explorer and the continent metas are metas over the zone achievements.
 
 ## Evaluation engine (`packages/achievements`)
 
@@ -180,9 +178,9 @@ class, or Hardcore:
 - Boss first kills by date (realm-first style, based on server time of the encounter
   end).
 
-Boards are recomputed on a schedule, show character name and realm by default with an
-option to show the account display name instead (D-0027), and exclude accounts with
-trust below threshold.
+Boards are recomputed on a schedule, identify players by BattleTag (D-0031) with the
+character's name and class as detail on character-scoped boards, and exclude accounts
+with trust below threshold.
 
 ## Cosmetics and titles (deferred, schema only)
 

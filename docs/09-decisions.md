@@ -277,8 +277,9 @@ pipeline; an admin view of disagreements, which may also surface real API errors
 Date: 2026-10-03  Status: accepted
 Context: Code signing without warnings costs money (an Apple developer account
 yearly, a Windows code-signing certificate yearly). The owner is opposed to paying.
-Decision: The Windows helper ships unsigned; the install page shows the exact
-SmartScreen steps ("More info", then "Run anyway"). The macOS helper is deferred:
+Decision: The Windows helper ships unsigned. We add no warning of our own; Windows
+itself shows its SmartScreen prompt, and the download page carries one line of
+instructions for it ("More info", then "Run anyway"). The macOS helper is deferred:
 unsigned, un-notarized apps are blocked by default on current macOS and the bypass is
 awkward; macOS users use the browser path, which works fully. Update integrity uses
 Tauri's own signing keys, which are free and independent of OS signing. If the
@@ -300,13 +301,9 @@ privacy gain since sign-up is open).
 Consequences: Public profile pages are cacheable like wiki pages. Search engines may
 index them; the profile settings page says so.
 
-## D-0027: Leaderboards show character names by default
-Date: 2026-10-03  Status: accepted
-Context: Leaderboards are opt-in; the question was what to show once opted in.
-Decision: Character name and realm by default, with an option to show the account's
-display name instead.
-Alternatives: display name by default (less recognizable to other players).
-Consequences: None beyond the setting.
+## D-0027: Leaderboards show character names
+Status: superseded by D-0031. Rejected because a leaderboard identifies a player, and
+the player's identity across characters is the BattleTag.
 
 ## D-0028: Helper is offered at every login where it applies
 Date: 2026-10-03  Status: accepted
@@ -334,3 +331,45 @@ mention; silent otherwise). Stack per D-0013 is final. CurseForge and Wago
 distribution stays deferred.
 Alternatives: none raised.
 Consequences: None.
+
+## D-0031: Leaderboards identify players by BattleTag
+Date: 2026-10-03  Status: accepted
+Context: Supersedes D-0027. A leaderboard ranks players, and a player's identity
+across all their characters is the BattleTag.
+Decision: Opting into leaderboards shows the account's BattleTag as the identity on
+every board. Boards whose metric belongs to one character (for example Hardcore
+level reached) show that character's name and class as detail next to the BattleTag.
+Opting into leaderboards therefore implies showing the BattleTag; the settings page
+says so in one line.
+Alternatives: character names (rejected: not a player identity); display name
+(rejected: not recognizable in game).
+Consequences: The add-on records the BattleTag (`BNGetInfo()`), stored privately
+until the leaderboard opt-in.
+
+## D-0032: The Classic Era achievement list is authored by the team
+Date: 2026-10-03  Status: accepted
+Context: Era has no achievements in the client, so no tool can read them. The owner
+does not want to wait and does not want to write anything by hand.
+Decision: The team writes the Era achievement list as versioned content in the
+repository, modeled on the Wrath of the Lich King achievements for this content, and
+presents it to the owner in chat for review. It is fixed once released; later
+additions are new achievements, never changes to existing criteria. Named things in
+criteria (subzones, bosses, factions, dungeons) get wiki pages at once, empty of
+facts until observed, labeled as such. Loremaster uses fixed per-continent quest
+counts (550 Eastern Kingdoms, 700 Kalimdor, tunable before release only).
+Alternatives: read from a client that has Wrath achievements (none exists today;
+Anniversary will, years out); derive lists from observations (moving target,
+rejected by owner); owner writes by hand (rejected by owner).
+Consequences: The names inside the Era list come from the team's knowledge of the
+game, not from a client. They are achievement design, not wiki facts, and are
+labeled accordingly on the pages they create.
+
+## D-0033: Player comments ship in the first release, tightly scoped
+Date: 2026-10-03  Status: accepted
+Context: Owner weighed the moderation cost against the value of player notes.
+Decision: Comments on wiki pages: signed-in users only, plain text, no links or
+images, report button, administrator delete and ban, rate limits, visually separate
+from observed facts.
+Alternatives: no comments in the first release (rejected: adding later means
+redesigning every page); rich comments with links and images (more abuse surface).
+Consequences: Moderation queue gains comment reports. Terms cover user content.

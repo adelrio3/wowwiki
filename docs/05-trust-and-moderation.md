@@ -92,7 +92,7 @@ Roles: `user`, `moderator` (can hide and flag, cannot correct), `admin` (all),
 
 Admin UI lists: failed ingests, flagged uploads, disputed facts ordered by reader
 traffic, provisional realms, accounts near the trust threshold, duplicate character
-claims, unknown builds awaiting classification. Each item has the minimal actions
+claims, unknown builds awaiting classification, reported comments (D-0033). Each item has the minimal actions
 above.
 
 ## Reprocessing
@@ -105,5 +105,5 @@ Reprocessing is an admin action with an audit entry and runs as background jobs.
 
 ## Reporting
 
-Any logged-in user can report a wiki page or fact with a reason. Reports land in the
-queue. There is no public comment system in the first release.
+Any logged-in user can report a wiki page, fact, or comment with a reason. Reports
+land in the queue. Comments are scoped per D-0033.

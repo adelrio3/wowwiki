@@ -155,8 +155,8 @@ a native file adapter. Behavior:
 - **Status**: tray icon state (idle, syncing, error, paused), menu with last sync per
   client and character, pause, open site, quit. No other UI.
 - **Updater**: Tauri's built-in updater against our release feed, verified with the
-  project's updater keys. The installer itself is unsigned; the download page shows
-  the SmartScreen steps.
+  project's updater keys. The installer itself is unsigned. We show no warning of our
+  own; the download page has one line of instructions for the prompt Windows shows.
 - **Coexistence**: if both the browser and the helper are active, uploads dedupe by
   hash and acks are idempotent, so nothing conflicts.
 

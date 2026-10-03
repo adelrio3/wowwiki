@@ -42,3 +42,11 @@ reprocessing. Account deletion removes the user's raw uploads but tombstones, no
 deletes, derived observations.
 Consequences: Terms must say wiki contributions are irrevocable and anonymous after
 deletion.
+
+## D-0027: Leaderboards show character names by default
+Date: 2026-10-03  Status: superseded by D-0031
+Context: Leaderboards are opt-in; the question was what to show once opted in.
+Decision: Character name and realm by default, with an option to show the account's
+display name instead.
+Alternatives: display name by default (less recognizable to other players).
+Consequences: None beyond the setting.

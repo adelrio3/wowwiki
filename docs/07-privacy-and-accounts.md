@@ -20,7 +20,7 @@ later upload of the same identity by a different account is held for review (`05
 |------|-------------|-------------------|-------|
 | Email, auth metadata | Supabase Auth | Owner only | Never displayed. |
 | Display name | `accounts` | Public | Chosen by user. |
-| BattleTag | `accounts.battletag` (from `BNGetInfo()`) | Private, opt-in to show | Stored so the user can see it on their own profile; shared only when opted in. |
+| BattleTag | `accounts.battletag` (from `BNGetInfo()`) | Private; shown by leaderboard opt-in or profile opt-in | Stored so the user can see it on their own profile. Leaderboards identify players by BattleTag (D-0031), so opting into leaderboards shows it. |
 | WoW account folder name | Nowhere | n/a | Never read beyond path enumeration in the browser; never sent. |
 | Addon identity UUID | `addon_identities` | Private | Random, no link to Blizzard identity. |
 | Characters (name, realm, class, level, guild, etc.) | `characters` | Private, opt-in public | |
@@ -45,12 +45,18 @@ Per account, each off by default:
 - Public sections: timeline, achievements, statistics, kills and deaths, loot, social.
 - Leaderboard participation (requires public profile).
 - Show BattleTag on profile.
-- Show the account's display name on leaderboards instead of character names
-  (character names are the default, D-0027).
+- (Leaderboard participation shows the BattleTag; there is no separate toggle.)
 
 Settings apply immediately to rendering; leaderboards update on their next
 recomputation (minutes, not days). Anything opted in is visible to anyone with the
 link, signed in or not (D-0026).
+
+## Comments (D-0033)
+
+Wiki pages accept comments from signed-in users: plain text only, no links or
+images, rate limited, with a report button. Administrators can delete comments and
+ban accounts from commenting. Comments are styled as player notes, visibly separate
+from observed facts, and are deleted with the account.
 
 ## Deletion and export
 
