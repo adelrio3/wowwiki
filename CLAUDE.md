@@ -13,7 +13,8 @@ AI-generated churn.
 
 1. Read `docs/00-vision-and-scope.md` in full. It defines the two products (World Wiki
    and Journal), the principles, and the glossary. Use the glossary's words.
-2. Read the document(s) covering the area you are touching (index below).
+2. Read the document(s) covering the area you are touching (index below), and the
+   README of each package you touch once code exists.
 3. Read `docs/09-decisions.md`. Do not re-open a decided question unless the owner does.
    Before proposing any change of approach, check the `Alternatives` lines: if your
    idea is already there with a reason it lost, say so and stop unless the owner
@@ -37,6 +38,9 @@ in separate lists.
   using the format in that file, in the same commit as the change.
 - Update the affected design document in the same commit as the code.
 - Code and docs must never disagree. If they must for a moment, add an open question.
+- Every non-obvious solution (a client quirk, a workaround, a reason the code is
+  shaped unusually) gets an entry in `docs/11-engineering-notes.md` in the same
+  commit. Before solving a problem, search that file; the solution may exist.
 - Do not invent names. If a concept is not in the glossary, add it there first.
 
 ## Document index
@@ -54,6 +58,7 @@ in separate lists.
 | `docs/08-roadmap.md` | Phases with exit criteria |
 | `docs/09-decisions.md` | Decision log (ADRs) |
 | `docs/10-open-questions.md` | Unresolved questions with owner |
+| `docs/11-engineering-notes.md` | Solved problems: exact solutions, why, how verified |
 
 ## Hard rules
 

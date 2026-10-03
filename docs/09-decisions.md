@@ -362,7 +362,10 @@ Anniversary will, years out); derive lists from observations (moving target,
 rejected by owner); owner writes by hand (rejected by owner).
 Consequences: The names inside the Era list come from the team's knowledge of the
 game, not from a client. They are achievement design, not wiki facts, and are
-labeled accordingly on the pages they create.
+labeled accordingly on the pages they create. If an entry is later found not to
+match the real game, it is corrected through the override and audit path, and the
+wiki pages it created are corrected or archived; a correction to criteria is the one
+exception to "criteria never change" and is logged with its reason.
 
 ## D-0033: Player comments ship in the first release, tightly scoped
 Date: 2026-10-03  Status: accepted
