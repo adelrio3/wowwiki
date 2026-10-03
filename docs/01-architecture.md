@@ -163,7 +163,8 @@ status polling, ack and link writing) is shared and tested once.
 - `dev`: local Supabase (Docker) via Supabase CLI, local SvelteKit dev server. The
   sync module works against `localhost` because Chrome treats it as a secure context.
 - `preview`: Netlify deploy previews per PR against a shared `staging` Supabase project.
-- `prod`: Netlify production against the `prod` Supabase project.
+- `prod`: Netlify production at `https://wow-wiki.netlify.app` against the `prod`
+  Supabase project. A custom domain can be attached later without code changes.
 
 Secrets live in Netlify and Supabase, never in the repo.
 
