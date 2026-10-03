@@ -98,6 +98,10 @@ either:
   counts (for drop rates, the counts are "times loot window seen" and "times item
   present").
 - **position** (creature seen at map X,Y), aggregated into clustered spawn points.
+  Positions carry both the map-relative pair (`map_id`, `pos_x`, `pos_y` from
+  `C_Map.GetPlayerMapPosition`) and world coordinates (`instance_id`, `world_x`,
+  `world_y` from `UnitPosition`), so clustering can be done in world space and
+  rendered on any map.
 
 ## Versioning
 
@@ -154,7 +158,8 @@ uploads(id, account_id, addon_identity, flavor, build, locale, region,
 observations(id, upload_id, account_id, character_id, session_id,
              flavor, build, locale, region, realm_id, server_time,
              entity_type, entity_id, field, value_kind, value_num,
-             value_text, value_json, map_id, pos_x, pos_y)
+             value_text, value_json, map_id, pos_x, pos_y,
+             instance_id, world_x, world_y)
 
 sessions(id, character_id, upload_id, seq, started_at, ended_at,
          flavor, build, phase)
@@ -170,7 +175,8 @@ relations(flavor, from_type, from_id, rel, to_type, to_id,
           contributor_count, status)      -- drop rates use numerator/denominator
 
 positions(flavor, entity_type, entity_id, map_id, cluster_x, cluster_y,
-          radius, observation_count, first_build, last_build)
+          instance_id, world_x, world_y, radius, observation_count,
+          first_build, last_build)
 
 -- L3
 overrides(id, flavor, entity_type, entity_id, field, locale,

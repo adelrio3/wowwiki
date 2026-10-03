@@ -37,8 +37,12 @@ some setters error on uncached items, in which case retry on
 `GET_ITEM_INFO_RECEIVED` / `ITEM_DATA_LOAD_RESULT`.
 Why: The only text source on era. The frame must be hidden and separately named so it
 never interferes with the player's real tooltip.
-Verified: probe run 1 shows every `C_TooltipInfo.*` path as nil on era 1.15.9; probe
-v2 exercises the hidden scan (pending).
+Verified: probe run 1 shows every `C_TooltipInfo.*` path as nil on era 1.15.9. Probe
+run 3 (v2) confirms the hidden scan returns full lines for units (name, level or
+subtitle, faction, PvP), items via `SetHyperlink("item:6948")` and `SetItemByID`,
+spells via `SetHyperlink("spell:8690")` and `SetSpellByID` (which also shows the
+player's remaining cooldown, so prefer the hyperlink form for wiki text), and
+`SetInventoryItem` (damage, speed, durability).
 
 ## N-0002: Trainer service list is empty at TRAINER_SHOW
 Area: addon
@@ -62,18 +66,18 @@ Why: There is no other signal on era.
 Verified: probe run 1, quest 781 "Attack on Camp Narache": `questitemGUID =
 Item-5149-0-400000032551FC36`, `npcGUID = nil`, `questStartItemID = 0`.
 
-## N-0004: LEARNED_SPELL_IN_TAB does not exist on Classic Era
+## N-0004: Spell learning on Classic Era uses LEARNED_SPELL_IN_SKILL_LINE
 Area: addon
 Problem: Registering `LEARNED_SPELL_IN_TAB` throws "unknown event" on era 1.15.9.
-Solution: Keep a set of known spell IDs from the spellbook (`GetNumSpellTabs`,
-`GetSpellTabInfo`, `GetSpellBookItemInfo`). On `SPELLS_CHANGED` (throttled), diff
-against the set; new IDs are `spell_learned` events. Attribute the source by the
-most recent of: `TRAINER_UPDATE` with a purchase, `QUEST_TURNED_IN`, or a level-up in
-the same second. Probe v2 also tests `LEARNED_SPELL_IN_SKILL_LINE` as a possible
-replacement name.
+Solution: Register `LEARNED_SPELL_IN_SKILL_LINE` (args: spellID, skillLineIndex,
+isGuildPerk) on every flavor; it is the current name. Keep a spellbook diff on
+`SPELLS_CHANGED` as a fallback for any flavor where the event is missing. The system
+chat line "You have learned a new spell: Arcane Shot (Rank 1)." carries the rank text
+that the event does not. Attribute the source by the most recent of: `TRAINER_UPDATE`
+with a purchase, `QUEST_TURNED_IN`, or a level-up in the same second.
 Why: Event-name differences between flavors; the diff approach works everywhere.
-Verified: probe run 1 `events["LEARNED_SPELL_IN_TAB"] = "unknown"`; `SPELLS_CHANGED`
-fired 7 times in a session with two level-ups.
+Verified: probe run 1 `events["LEARNED_SPELL_IN_TAB"] = "unknown"`; probe run 3
+`LEARNED_SPELL_IN_SKILL_LINE` fired with (3044, 3, false) for Arcane Shot.
 
 ## N-0005: Monster emote has no sender GUID on Classic Era
 Area: addon
@@ -98,3 +102,53 @@ table immediately at `PLAYER_LOGIN`, before any delayed snapshot.
 Why: Essentials must never compete with optional detail for a size budget.
 Verified: run 1 `login["..."] = true` with the essentials missing; fixed in probe v2.
 
+
+## N-0007: GetLootSlotInfo returns are shifted by one on Classic Era
+Area: addon
+Problem: The documented order is texture, name, quantity, currencyID, quality,
+locked, isQuestItem, questID, isActive. On era 1.15.9 the values observed were:
+1 texture, 2 name, 3 quantity, 4 nil, 5 nil, 6 quality (0 for Rabbit's Foot, 1 for
+Stringy Wolf Meat), 7 locked, 8 isQuestItem (true for Ambercorn).
+Solution: Do not depend on positional returns for quality or quest flags. Take the
+item ID and quality from `GetLootSlotLink(i)` (the link color encodes quality and
+`GetItemInfo` gives it exactly), and read isQuestItem as the first boolean after the
+quality number by scanning returns 6 through 10. Keep the probe's raw sample as the
+regression fixture.
+Why: Positional APIs drift between flavors; links do not.
+Verified: probe run 3, `loot` samples 1 through 5.
+
+## N-0008: Flight node catalog is available without opening the flight map
+Area: addon
+Problem: Capturing flight paths only when the player opens a flight master would take
+months to cover the world.
+Solution: Call `C_TaxiMap.GetTaxiNodesForMap(C_Map.GetBestMapForUnit("player"))` at
+login and on `ZONE_CHANGED_NEW_AREA`. On era it returns the whole continent's nodes
+(35 from Mulgore): nodeID, name ("Thunder Bluff, Mulgore"), position (map fraction),
+faction, isUndiscovered, atlasName. Record nodes as a client catalog observation and
+`isUndiscovered = false` as the Journal's discovered state. Routes and costs still
+need the map open (`TAXIMAP_OPENED`, `GetNumRoutes`, `TaxiNodeCost`).
+`C_TaxiMap.GetAllTaxiNodes` returns 0 when the map is closed.
+Why: Full node coverage on day one; the catalog is client data (D-0006).
+Verified: probe run 3 login snapshot.
+
+## N-0009: World coordinates come from UnitPosition
+Area: addon
+Problem: Map-relative positions from `C_Map.GetPlayerMapPosition` depend on which map
+the client picks, which changes at zone borders and in subzones with their own maps.
+Solution: Record `UnitPosition("player")` (y, x, z, instanceID) alongside the map
+pair for every positioned observation. Cluster spawn points in world space on the
+server; convert to any map with `C_Map.GetMapPosFromWorldPos` when needed.
+Why: One coordinate system per continent; no border artifacts.
+Verified: probe run 3, `unitPosition = {-2357, -351.8, 0, 1}` in Bloodhoof Village.
+
+## N-0010: Explored area IDs resolve to subzone names on Classic Era
+Area: addon
+Problem: Exploration achievements need a stable identity per subzone; zone text is
+localized and not unique.
+Solution: `C_MapExplorationInfo.GetExploredAreaIDsAtPosition(mapID, pos)` returns
+area IDs at the player's position (222 at Bloodhoof Village); `C_Map.GetAreaInfo(id)`
+returns the localized name. Record area IDs on every `ZONE_CHANGED` and at login; the
+Journal's explored set is a set of area IDs, and the wiki's area entity is keyed by
+area ID with names per locale.
+Why: Area IDs are the same across locales and flavors where the area exists.
+Verified: probe run 3, login and `zoneChanged` samples.

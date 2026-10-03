@@ -69,13 +69,14 @@ Captured once at `PLAYER_LOGIN` (and refreshed if any value could change):
 
 | Field | Source |
 |-------|--------|
-| flavor | `WOW_PROJECT_ID` → `era`/`anniversary`/`mists`/`retail`/`forever`. Anniversary detection: `VERIFY` (likely project ID plus realm list or `C_Seasons`). |
-| build, patch | `GetBuildInfo()` → version string, build number, interface version |
-| locale | `GetLocale()` |
-| region | `GetCurrentRegion()` (1 US, 2 KR, 3 EU, 4 TW, 5 CN) and `GetCurrentRegionName()` |
-| realm | `GetRealmName()`, `GetNormalizedRealmName()`, connected realms via `GetAutoCompleteRealms()` |
+| flavor | `WOW_PROJECT_ID` → `era`/`anniversary`/`mists`/`retail`/`forever`. `VERIFIED` era = 2; constants mainline 1, tbc 5, wrath 11, cata 14, mists 19. Anniversary detection: `VERIFY` (probably project 5 on the `_anniversary_` client). |
+| build, patch | `GetBuildInfo()` `VERIFIED` → "1.15.9", "70003", "Sep 23 2026", 11509, "", "Release", 11509 |
+| toc | `C_AddOns.GetAddOnMetadata(name, "X-Toc")`; `VERIFIED` era loads the `_Vanilla` TOC (`GetAddOnMetadata` global is absent) |
+| locale | `GetLocale()` `VERIFIED` "enUS" |
+| region | `GetCurrentRegion()` (1 US, 2 KR, 3 EU, 4 TW, 5 CN) and `GetCurrentRegionName()` `VERIFIED` 1, "US" |
+| realm | `GetRealmName()`, `GetNormalizedRealmName()`, `GetRealmID()` `VERIFIED` 5149 for Mankrik; connected realms via `GetAutoCompleteRealms()` `VERIFIED` {Mankrik, Westfall, Ashkandi, Windseeker, Pagle} |
 | hardcore | `C_GameRules.IsHardcoreActive()` `VERIFIED` on era (returned false on a normal realm) |
-| season | `C_Seasons.HasActiveSeason()`, `C_Seasons.GetActiveSeason()` `VERIFIED` present on era; values pending |
+| season | `C_Seasons.HasActiveSeason()`, `C_Seasons.GetActiveSeason()` `VERIFIED` false / nil on a normal era realm |
 | character | `UnitGUID("player")`, name, class, race, faction, level, sex |
 | addon identity | UUID stored in account-wide SV, generated once |
 | link | account token from `Compendium_Link.lua` if present |
@@ -108,14 +109,18 @@ For each unit with a `Creature`/`Vehicle`/`Pet` GUID:
   Plainstrider level 2 = 55), `UnitSex`, `UnitIsCivilian` (`VERIFIED` present),
   `UnitIsPVP`.
 - Subtitle (`<Weaponsmith>`, `<Flight Master>`): second tooltip line. `VERIFIED`:
-  `C_TooltipInfo` does not exist on era 1.15, nor does `TooltipDataProcessor`. Use a
-  hidden `GameTooltip` frame with `SetUnit` and read `<name>TextLeftN` (N-0001).
+  `C_TooltipInfo` does not exist on era 1.15, nor does `TooltipDataProcessor`. A
+  hidden `GameTooltip` frame with `SetUnit` works for any unit (N-0001): lines are
+  name, "Level N" or the subtitle ("Warrior Trainer", "Innkeeper", "Kodo Mounts"),
+  faction ("Thunder Bluff"), "PvP". Players read "Level 10 Tauren Warrior (Player)".
 - Roles: flags set by other modules when the same npcID is observed as vendor, trainer,
   quest giver, quest ender, flight master, innkeeper, banker, auctioneer, repairer,
   stable master, battlemaster, guild master, tabard vendor. Gossip options reveal many
   of these (`C_GossipInfo.GetOptions()` icon/type).
 - Position: `C_Map.GetBestMapForUnit("player")` and
-  `C_Map.GetPlayerMapPosition(mapID, "player")` at the time of interaction or when the
+  `C_Map.GetPlayerMapPosition(mapID, "player")` (`VERIFIED` map 1412 Mulgore, x/y as
+  fractions), plus `UnitPosition("player")` (`VERIFIED` world coordinates
+  y, x, z, instanceID, e.g. -2357, -351.8, 0, 1) at the time of interaction or when the
   unit is within melee/interaction range (target distance checks via
   `CheckInteractDistance`, `VERIFIED` on era: false at range, true at a looted corpse;
   restricted in some flavors). Nameplate
@@ -142,7 +147,10 @@ Game objects have no unit token. We observe them via:
 - Loot source GUIDs (`GetLootSourceInfo`) of type `GameObject` → objectID, with the
   tooltip name captured at `LOOT_OPENED` if the object was moused over immediately
   before (`GameTooltip:GetUnit()` is nil for objects; take `GameTooltipTextLeft1` text
-  on `UPDATE_MOUSEOVER_UNIT` when no unit exists; `VERIFY`, probe v2 records it).
+  on `UPDATE_MOUSEOVER_UNIT` when no unit exists; `VERIFY` for true objects, since
+  the probe only caught units that way). `VERIFIED`: loot from a quest object came
+  with source GUID `GameObject-0-5162-1-56-2912-...` (objectID 2912), so game objects
+  are identified at loot time.
 - Mining/herbalism/skinning/fishing: loot source type and the active spell cast
   (`UNIT_SPELLCAST_SUCCEEDED` for the player with gathering spell IDs) determine the
   gathering kind.
@@ -179,9 +187,10 @@ Game objects have no unit token. We observe them via:
 - Completion: `QUEST_COMPLETE` → `GetRewardText()`, reward choices; npc GUID → quest
   **ends at** creature. `QUEST_TURNED_IN` (questID, xp, money) seals it.
 - Greeting with multiple quests: `QUEST_GREETING` → `GetNumAvailableQuests`,
-  `GetAvailableTitle(i)`, `GetAvailableQuestInfo(i)` (`VERIFIED` present; returns
-  `VERIFY` in probe v2), `GetNumActiveQuests`, `GetActiveTitle(i)` (`GetActiveQuestID`
-  `VERIFIED` absent). Gossip variant `VERIFIED` on era: `C_GossipInfo.GetAvailableQuests()`
+  `GetAvailableTitle(i)`, `GetAvailableQuestInfo(i)` (`VERIFIED` returns isTrivial,
+  frequency, isRepeatable, isLegendary; no questID on era, so greeting entries are
+  title-only until the player opens one and `QUEST_DETAIL` supplies the ID),
+  `GetNumActiveQuests`, `GetActiveTitle(i)` (`GetActiveQuestID` `VERIFIED` absent). Gossip variant `VERIFIED` on era: `C_GossipInfo.GetAvailableQuests()`
   and `GetActiveQuests()` return tables with questID, title, isComplete, isTrivial,
   frequency, repeatable, questLevel; `C_GossipInfo.GetOptions()` returns name,
   gossipOptionID, icon (file ID), flags, status, orderIndex. Legacy `GetGossipText`
@@ -225,9 +234,11 @@ player's filters afterward. Dedupe `[npcID, serviceSpellID]`.
 ### Loot and drops (`loot.lua`)
 
 `LOOT_OPENED` → `GetNumLootItems()`, per slot `GetLootSlotType(i)` (item/money/currency),
-`GetLootSlotInfo(i)` (texture, name, quantity, currencyID, quality, locked, isQuestItem,
-questID, isActive), `GetLootSlotLink(i)`, `GetLootSourceInfo(i)` (list of GUID, quantity
-pairs). `IsFishingLoot()`.
+`GetLootSlotInfo(i)` (`VERIFIED` on era the returns are shifted: 1 texture, 2 name,
+3 quantity, 4 currencyID, 5 nil, 6 quality, 7 locked, 8 isQuestItem, 9 questID,
+10 isActive; take quality from the item link instead, N-0007), `GetLootSlotLink(i)`,
+`GetLootSourceInfo(i)` (`VERIFIED` GUID, quantity pairs for creatures and game
+objects), `GetLootSlotType(i)` (`VERIFIED` 1 for items). `IsFishingLoot()`.
 
 Server-side drop rate = (loot windows where item present) / (loot windows for that
 source). To make the denominator correct the add-on records **every** loot window,
@@ -240,8 +251,10 @@ Gathering kind (skin/mine/herb/fish/pickpocket/disenchant/prospect/mill/salvage)
 the most recent player spell cast success before the window.
 
 Journal: `loot` events for the player's own received items (`CHAT_MSG_LOOT` parsing:
-`VERIFIED` text form "You receive loot: <link>."; `LOOT_SLOT_CLEARED` fires per slot),
-money looted (`CHAT_MSG_MONEY`, `VERIFIED` "You loot 4 Copper").
+`VERIFIED` text form "You receive loot: <link>.", 17 arguments, player name at 5,
+line ID at 11, no GUID at 12; `LOOT_SLOT_CLEARED` fires per slot; `ITEM_PUSH`
+`VERIFIED` (bagSlot, iconFileID)), money looted (`CHAT_MSG_MONEY`, `VERIFIED` "You
+loot 4 Copper").
 
 ### Items (`items.lua`)
 
@@ -266,9 +279,10 @@ discovery and Journal inventory snapshots at logout only.
 - Player spellbook on `SPELLS_CHANGED` (throttled): era `GetNumSpellTabs`,
   `GetSpellTabInfo`, `GetSpellBookItemInfo(index, "spell")` (`VERIFIED`: returns
   "SPELL", spellID), `GetSpellBookItemName`; retail `C_SpellBook.*` (`VERIFIED` absent
-  on era). `LEARNED_SPELL_IN_TAB` `VERIFIED` absent on era: detect learning by
-  diffing the spellbook on `SPELLS_CHANGED` (N-0004). Record spell IDs, ranks (era),
-  tab (class/profession).
+  on era). Spell learning: `LEARNED_SPELL_IN_SKILL_LINE` (`VERIFIED` on era: spellID,
+  skillLineIndex, isGuildPerk; `LEARNED_SPELL_IN_TAB` is absent), with a spellbook
+  diff on `SPELLS_CHANGED` as the cross-flavor fallback (N-0004). Record spell IDs,
+  ranks (era), tab (class/profession).
 - Spell details on first sight of any spell ID: `GetSpellInfo`/`C_Spell.GetSpellInfo`
   (name, icon, castTime, minRange, maxRange), `GetSpellDescription`,
   `C_TooltipInfo.GetSpellByID` for tooltip text (cost, range, cooldown, description).
@@ -322,6 +336,11 @@ discovery and Journal inventory snapshots at logout only.
 
 ### Flight paths (`taxi.lua`)
 
+`C_TaxiMap.GetTaxiNodesForMap(mapID)` `VERIFIED` on era returns the whole continent's
+node catalog without opening the flight map (35 nodes from Mulgore: nodeID, name
+"Thunder Bluff, Mulgore", position, faction, isUndiscovered, atlasName). That is a
+client catalog (D-0006) and gives every node's name and position at once; the
+Journal's "discovered" state comes from `isUndiscovered` (N-0008).
 `TAXIMAP_OPENED` → `NumTaxiNodes()`, per node `TaxiNodeName(i)`, `TaxiNodePosition(i)`,
 `TaxiNodeGetType(i)` (CURRENT/REACHABLE/DISTANT), `TaxiNodeCost(i)`, `GetNumRoutes(i)`,
 `TaxiGetSrcX/Y`, `TaxiGetDestX/Y` for route segments, flight master npc GUID. On
@@ -382,9 +401,11 @@ only in the Journal.
 
 ### Reputation (`reputation.lua`)
 
-`UPDATE_FACTION` (throttled) → era `GetNumFactions`, `GetFactionInfo(i)` (name,
-description, standingID, barMin, barMax, barValue, atWarWith, canToggleAtWar, isHeader,
-isCollapsed, hasRep, isWatched, isChild, factionID, hasBonusRepGain, canBeLFGBonus);
+`UPDATE_FACTION` (throttled) → era `GetNumFactions`, `GetFactionInfo(i)` (`VERIFIED`
+16 returns: name, description (lore text, e.g. the Darkspear Trolls paragraph),
+standingID, barMin, barMax, barValue, atWarWith, canToggleAtWar, isHeader,
+isCollapsed, hasRep, isWatched, isChild, factionID at 14, hasBonusRepGain,
+canSetInactive);
 retail `C_Reputation.GetFactionDataByIndex` (`VERIFIED` absent on era). Wiki: factions,
 descriptions, hierarchy. Journal: standing snapshots and `rep_change` from
 `CHAT_MSG_COMBAT_FACTION_CHANGE` (`VERIFIED` "Your Thunder Bluff reputation has
@@ -425,9 +446,9 @@ Flavors with achievements (mists, retail, anniversary from Wrath phase onward):
 isGuild, wasEarnedByMe, earnedBy), `GetAchievementNumCriteria`,
 `GetAchievementCriteriaInfo` (criteriaString, criteriaType, completed, quantity,
 reqQuantity, charName, flags, assetID, quantityString), `GetNextAchievement`,
-`GetPreviousAchievement`. (`VERIFIED`: these functions exist on era too, presumably
-as empty stubs; probe v2 records what they return.) Full dump at login (throttled
-across frames), delta on
+`GetPreviousAchievement`. (`VERIFIED` on era: the functions exist, `GetCategoryList`
+returns 7 categories, `GetAchievementInfo(6)` returns nothing; treat era as having no
+achievement catalog.) Full dump at login (throttled across frames), delta on
 `ACHIEVEMENT_EARNED` and `CRITERIA_UPDATE`. Wiki: the achievement catalog per flavor
 and build. Journal: completion and criteria progress. Statistics (`GetStatistic`) are
 Journal only.
@@ -577,17 +598,29 @@ Probe runs 1 and 2 (Classic Era 1.15.9, 2026-10-03) settled:
 | Item-started quests | `UnitGUID("questnpc")` returns the item GUID. |
 | `PLAYER_INTERACTION_MANAGER_FRAME_SHOW` types seen | 3 quest/gossip, 5 merchant, 7 trainer. |
 | `C_GameRules.IsHardcoreActive`, `C_Seasons` on era | Present. |
-| Achievement, mount, pet, toy, Encounter Journal functions on era | Present (likely stubs; probe v2 records returns). |
+| Achievement, mount, pet, toy, Encounter Journal functions on era | Present but empty: 7 achievement categories with no achievements, 0 mounts, 0 journal tiers. |
+| Hidden tooltip scan on era | Works for units, items (`SetHyperlink`, `SetItemByID`), spells (`SetHyperlink`, `SetSpellByID`), inventory. |
+| `GetLootSourceInfo` for game objects | Returns `GameObject-...` GUIDs. |
+| `GetLootSlotInfo` return order on era | Shifted; quality at 6, locked 7, isQuestItem 8 (N-0007). |
+| `LEARNED_SPELL_IN_SKILL_LINE` on era | Fires (spellID, skillLineIndex, isGuildPerk). |
+| `C_TaxiMap.GetTaxiNodesForMap` on era | Full continent node catalog without the flight map open. |
+| `UnitPosition("player")` on era | World coordinates available. |
+| `C_MapExplorationInfo.GetExploredAreaIDsAtPosition` on era | Returns area IDs; `C_Map.GetAreaInfo` resolves names (222 = Bloodhoof Village). |
+| `C_QuestLog.GetQuestObjectives(questID)` on era | Structured objectives: text, type, numFulfilled, numRequired, finished. |
+| `C_QuestLog.GetQuestInfo(questID)` on era | Returns the title. |
+| `GetAvailableQuestInfo` on era | isTrivial, frequency, isRepeatable, isLegendary; no questID. |
+| `CHAT_MSG_LOOT` GUID (arg 12) on era | Nil. |
+| `WOW_PROJECT_ID`, build, TOC on era | 2, 70003 (1.15.9, interface 11509), `_Vanilla`. |
 
-Still open, covered by probe v2 or a later run:
+Still open, to be settled by the real add-on's debug output during normal play:
 
-1. `WOW_PROJECT_ID` value, `GetBuildInfo()` returns, TOC variant loaded (lost to a
-   probe bug in run 1).
-2. `ENCOUNTER_START`/`END` firing in era dungeons and raids (needs a dungeon run).
-3. `GetLootSourceInfo` returning GameObject GUIDs for chests, herbs, ore (loot detail
-   was collapsed by the same probe bug; needs a chest, herb, vein, or fishing catch).
-4. `CHAT_MSG_MONSTER_SAY`/`YELL` argument 12 (only an emote was observed).
-5. Replacement for `GetRewardSpell` on era.
-6. Hidden tooltip scan output for units, items, spells on era.
-7. `GetAvailableQuestInfo` return values.
-8. Anniversary client: TOC suffix, project ID, build (run the probe there).
+1. `ENCOUNTER_START`/`END` firing in era dungeons and raids (needs a dungeon run).
+2. `CHAT_MSG_MONSTER_SAY`/`YELL` argument 12 (only an emote was observed; it had no GUID).
+3. Replacement for `GetRewardSpell` on era (none of the candidate names existed in
+   probe v2's list; check `GetRewardSpellInfo`-style names when a spell-reward quest
+   is viewed).
+4. Live tooltip text for true game objects (chests, herbs, veins) on mouseover.
+5. `TAXIMAP_OPENED` did not fire while `TAXIMAP_CLOSED` did once; confirm the event
+   name on era when a flight map is actually opened.
+6. Anniversary client: TOC suffix, project ID, build (run the probe there when a
+   character exists).
