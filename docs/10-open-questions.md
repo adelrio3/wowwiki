@@ -22,7 +22,9 @@ below. Nothing else is needed from the owner for verification.
 
 ## C. Engineering questions (resolved by the team, no owner input)
 
-- Which Classic Era APIs exist: answered by the probe.
+- Which Classic Era APIs exist: mostly answered by probe runs 1 and 2 (see the
+  verification table in `03`); the remaining items are listed there and covered by
+  probe v2.
 - Anniversary client TOC suffix and project ID: answered by the probe run there.
 - WoW: Forever at launch (2026-11-04): folder name, TOC suffix, project ID, interface
   version; whether its add-on API matches Era's. Run the probe there after launch.
