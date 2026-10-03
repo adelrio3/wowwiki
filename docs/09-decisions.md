@@ -1,8 +1,11 @@
 # 09. Decision Log
 
-Append-only. Each decision has an ID, date, status, context, decision, consequences.
-To change a decision, add a new entry that supersedes the old one; do not edit the old
-one beyond its status line.
+Each decision has an ID, date, status, context, decision, consequences. To change a
+decision, add a new entry that supersedes the old one. The old entry is then collapsed
+to its title, a status line naming the successor, and one sentence on why it was
+rejected; its full text moves to `docs/archive/decisions-superseded.md`, which is
+history, not guidance. This keeps "we already rejected that, and why" visible without
+keeping the rejected reasoning in the reading path.
 
 Format:
 
@@ -17,7 +20,7 @@ Consequences: what follows, including what we gave up.
 ---
 
 ## D-0001: Wiki data comes only from our add-on
-Date: 2026-10-03  Status: accepted
+Date: 2026-10-03  Status: accepted; scope of Blizzard API use under review (`10` item C)
 Context: The owner wants an independent source of truth, not a derivative of Wowhead
 or the Blizzard API.
 Decision: Universal data enters only through add-on captures. No imports. Artwork is
@@ -43,15 +46,9 @@ enforces it by schema.
 Consequences: The wiki never shows "your" anything. The Journal is where enjoyment
 lives.
 
-## D-0004: Browser folder access is the transport; no required local software
-Date: 2026-10-03  Status: accepted
-Context: Add-ons cannot network; browsers cannot read disk unprompted. The owner does
-not want users to install anything.
-Decision: Use the File System Access API in Chromium browsers for install, update,
-removal, reading, and ack. Manual fallback elsewhere. An optional helper may come
-later and is advertised when unsynced data is detected, at most once per day.
-Consequences: Chromium-only for the smooth path. Sync happens only when the site is
-open. The owner accepted both.
+## D-0004: Browser folder access is the only transport
+Status: superseded by D-0018. Rejected because the owner wants the background helper
+from the first release, not later.
 
 ## D-0005: Ack and link files written into the add-on folder
 Date: 2026-10-03  Status: accepted
@@ -64,7 +61,7 @@ Consequences: Pruning lags one client restart behind sync. Safe by construction:
 ingested data is ever pruned.
 
 ## D-0006: Client-held catalogs are admissible wiki data
-Date: 2026-10-03  Status: accepted
+Date: 2026-10-03  Status: under review (`10` item B)
 Context: Achievement lists, journals, Encounter Journal, spellbooks exist in the client
 without being "seen" in the world.
 Decision: Admit them to the wiki, tagged `client_catalog`, as long as they are
@@ -72,24 +69,13 @@ objective. Player-specific state from the same APIs goes to the Journal.
 Consequences: Faster wiki coverage in flavors that have catalogs. Readers can tell
 catalog-sourced facts from encounter-sourced facts.
 
-## D-0007: Artwork via our own extraction pipeline
-Date: 2026-10-03  Status: accepted
-Context: The add-on can export icon file IDs but not images. The owner is willing to
-obtain assets elsewhere and keep them.
-Decision: An admin-only command-line tool, run by the owner against their own game
-client, extracts icons and map tiles using an open-source CASC extractor library and
-uploads them to our storage keyed by file data ID. We do not scrape Wowhead (their
-terms forbid it) and do not depend on third-party ID-to-name tables.
-Consequences: Artwork lags behind data until the owner runs the tool per client build.
-Pages render without art gracefully.
+## D-0007: Artwork only via our own extraction pipeline
+Status: superseded by D-0019. Rejected because Blizzard's own API serves most artwork
+directly; extraction is kept only for what the API lacks.
 
-## D-0008: Version by build, display by expansion
-Date: 2026-10-03  Status: accepted
-Context: Data changes patch to patch; readers think in expansions.
-Decision: Observations carry build; facts carry build intervals; pages collapse to
-expansion with patch-change notes and an expandable history.
-Consequences: A hand-maintained build→patch→expansion table in `game-meta`. Unknown
-builds are flagged for classification.
+## D-0008: Version by build, display by expansion with patch notes and history panel
+Status: superseded by D-0020. Rejected because anything finer than expansion in the
+reader UI was judged too loose to interpret.
 
 ## D-0009: Localized text from day one
 Date: 2026-10-03  Status: accepted
@@ -152,7 +138,7 @@ Consequences: Parser must handle Blizzard's escape rules exactly; fixtures from 
 files are required.
 
 ## D-0016: Raw uploads are immutable and retained forever
-Date: 2026-10-03  Status: accepted
+Date: 2026-10-03  Status: under review (`10` item A)
 Context: "Preserve the world" plus the ability to fix pipeline bugs without losing
 history.
 Decision: Every upload is stored as received. All derived data is rebuildable through
@@ -168,3 +154,58 @@ Decision: No frames, no options, no slash UI. One chat line at login, only when 
 is something to say (unsynced data, unlinked).
 Consequences: All configuration happens on the site and reaches the add-on through
 the link and ack files.
+
+## D-0018: The helper ships in the first release alongside the browser transport
+Date: 2026-10-03  Status: accepted
+Context: Supersedes D-0004. The owner wants users to be able to sync without opening
+the site, from day one.
+Decision: Two transports, one protocol, one code base (`packages/sync-core`). Browser
+via File System Access API; helper via a Tauri tray app on Windows and macOS. Neither
+is required for the other. The helper lets non-Chromium browsers have the full
+experience.
+Consequences: A desktop build, signing, notarization, and an updater join the scope.
+The helper lands in Phase 2 after the browser path proves the protocol.
+
+## D-0019: Artwork from Blizzard's API first, client extraction second
+Date: 2026-10-03  Status: accepted
+Context: Supersedes D-0007. Blizzard's Game Data API has media endpoints (items,
+spells, achievements, creature displays, instances, classes, races) including a
+Classic Era namespace; it has no zone map images.
+Decision: An admin job fetches artwork from the API for known entity IDs and stores
+copies in our bucket. Zone maps and anything else the API lacks come from the
+extraction tool run by the owner. Artwork never contributes facts.
+Consequences: Needs a Blizzard developer client; rate limits respected; API coverage
+per flavor verified during Phase 4.
+
+## D-0020: Readers see expansion only
+Date: 2026-10-03  Status: accepted
+Context: Supersedes D-0008's display rule. "Something they recognize" was too loose.
+Decision: Observations still carry build; facts still carry build intervals. The reader
+UI offers an expansion selector and nothing finer. Build and patch detail exist only in
+admin tools.
+Consequences: Where a value changed within an expansion, the page shows the latest
+confirmed value for that expansion; the earlier value is reachable only by admins
+until a later decision says otherwise.
+
+## D-0021: Decision log hygiene
+Date: 2026-10-03  Status: accepted
+Context: The owner asked whether keeping old decisions risks reintroducing rejected
+thinking into AI sessions.
+Decision: Superseded decisions are collapsed to a stub with the rejection reason; full
+text is archived outside the reading path. Stubs stay because "already rejected,
+because X" is what stops a re-proposal.
+Consequences: `CLAUDE.md` tells sessions not to read the archive unless asked about
+history.
+
+## D-0022: WoW: Forever is a fifth flavor
+Date: 2026-10-03  Status: accepted
+Context: Blizzard's Classic-plus branch launches 2026-11-04 with new zones, talents,
+dungeons, raids, and factions on a new client line (beta interface 16001, build
+1.60.x, folder `_classic_beta_` during beta). It diverges from Era content, so it
+cannot share Era's facts.
+Decision: Flavor key `forever`, its own folder, TOC, build table, and facts. Supported
+after Anniversary in Phase 5. Beta data is accepted but tagged `beta` and excluded
+from status computation.
+Consequences: Launch folder name and TOC suffix must be verified at launch. Entities
+shared with Era by ID are separate facts under `forever`; a later decision may add a
+cross-flavor "same thing" link for navigation.

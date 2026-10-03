@@ -7,7 +7,7 @@ always rebuildable from lower ones.
 
 | Layer | Name | Mutability | Contents |
 |-------|------|------------|----------|
-| L0 | Uploads | Immutable | Raw SavedVariables files in Storage, plus a row per upload. |
+| L0 | Uploads | Immutable while retained | Raw SavedVariables files in Storage, plus a row per upload. Retention window under decision (`10` item A). |
 | L1 | Observations | Immutable, append-only | Normalized records extracted from uploads. One row per (contributor, session, entity, field, value). |
 | L2 | Facts | Rebuildable | Aggregated per (flavor, entity, field): value intervals by build, contributor counts, status. |
 | L3 | Overrides | Mutable, audited | Admin corrections and hides, each with reason and author. |
@@ -90,10 +90,10 @@ in which that value was observed.
   `game-meta`: `(flavor, realm) → [(phase, start_at)]`. Observations get a phase by
   looking up realm and server time. Phase matters for what exists, not for what a thing
   is, so it is attached to presence facts (first/last seen) rather than attribute facts.
-- Readers see one page per `(flavor-group, entity)` with an expansion selector. Within
-  an expansion, if a field changed across patches, the page shows the latest value and
-  a "changed in patch X" note. Build-level detail is available in an expandable history
-  panel.
+- Readers see one page per `(flavor-group, entity)` with an expansion selector and
+  nothing finer (D-0020). Within an expansion, if a field changed across patches, the
+  page shows the latest confirmed value for that expansion. Build and patch detail is
+  visible only in admin tools.
 
 ## Localization
 

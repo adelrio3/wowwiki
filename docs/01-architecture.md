@@ -84,21 +84,48 @@ consuming a queue table. The raw-upload-first design makes that swap painless.
   imported game data.
 - `achievements`: criteria definitions and the evaluation engine (pure functions,
   heavily tested).
+- `sync-core`: the shared sync protocol (component 8).
 
 ### 6. Asset pipeline (`tools/assets/`)
 
-Admin-only command-line tool, run by the owner on their own machine against their own
-installed game client. It extracts icons and map tiles from the client's data files
-(using an existing open-source CASC extractor as a library) and uploads them to the
-`assets` bucket keyed by the client's file data ID. This is "found elsewhere and kept by
-us" without depending on any third party's database. See decision D-0007.
+Two sources, in order of preference (decision D-0019):
 
-### 7. Helper (future, `apps/helper/`)
+1. **Blizzard's API and media servers.** The Game Data API has media endpoints for
+   items, spells, achievements, creature displays, instances, classes, and races,
+   returning image URLs on Blizzard's render servers. Classic Era has its own API
+   namespace (`static-classic1x-<region>`) with item and creature media. An admin job
+   fetches media for IDs the wiki knows, stores copies in the `assets` bucket keyed by
+   entity ID, and refreshes periodically. Requires a Blizzard developer client ID and
+   secret; rate limit 36,000 requests per hour.
+2. **Extraction from the game client.** For what the API does not provide, above all
+   zone map images and minimap tiles, an admin-only command-line tool run by the owner
+   against their own installed client extracts files using an open-source CASC
+   extractor library and uploads them keyed by file data ID.
 
-Optional tray application that watches the SavedVariables folder and uploads without
-the browser. Uses the same upload API as the sync module. Not part of the first
-release. The web app and the add-on's login line both mention it when unsynced data is
-detected (see `04`).
+Neither source contributes facts; artwork only. Pages render without art gracefully.
+
+### 7. Helper (`apps/helper/`)
+
+Optional desktop tray application for Windows and macOS. It does exactly what the
+browser sync module does, in the background: locates the WoW folder, installs and
+updates the add-on, writes link and ack files, watches the SavedVariables folders, and
+uploads on change. With the helper installed, any browser works for the site itself.
+
+Built with Tauri (Rust shell, tiny binary, native tray, built-in updater) hosting the
+same TypeScript sync core as the browser. The helper's only UI is a tray menu and a
+small status window: signed in as, last sync per client, pause, open site, quit. It
+signs in by opening the site in the user's browser and receiving a device token.
+
+Costs to budget: Apple notarization (developer account) and a Windows code-signing
+certificate; without them users see scary warnings. See `04` for the sync protocol
+and `10` for the signing decision.
+
+### 8. Sync core (`packages/sync-core/`)
+
+One implementation of the sync protocol with a `FileSystemAdapter` interface. Two
+adapters: the browser's File System Access API handles, and Tauri's filesystem API.
+Everything else (folder layout detection, manifest install, hashing, parsing, upload,
+status polling, ack and link writing) is shared and tested once.
 
 ## Data flow
 
@@ -151,6 +178,7 @@ wowwiki/
       WoWCompendium_TBC.toc          # Anniversary: folder is _anniversary_; TOC suffix VERIFY (see 10)
       WoWCompendium_Mists.toc        # Mists Classic
       WoWCompendium_Mainline.toc     # Retail
+      WoWCompendium_Forever.toc      # WoW: Forever; suffix VERIFY at launch
       core/                          # bus, session, store, compat, ids
       modules/                       # one file per capture domain
       Compendium_Link.lua            # written by web app; default ships empty
@@ -159,11 +187,13 @@ wowwiki/
     build/                           # version stamping, zip, release manifest
   apps/
     web/                             # SvelteKit app + Netlify functions
+    helper/                          # Tauri tray app hosting sync-core
   packages/
     schema/
     lua-parser/
     game-meta/
     achievements/
+    sync-core/
   supabase/
     migrations/
     seed/

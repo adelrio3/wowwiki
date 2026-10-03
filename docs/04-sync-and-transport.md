@@ -1,8 +1,10 @@
 # 04. Sync and Transport
 
 How data gets from the game client to the server, and how the add-on gets installed,
-updated, removed, and told what has been uploaded. There is no installer and no
-required background process. The browser does the work when the site is open.
+updated, removed, and told what has been uploaded. Two transports share one protocol
+and one code base (`packages/sync-core`): the browser, with no install, when the site
+is open; and the optional helper application, in the background. Neither is required
+for the other.
 
 ## Hard constraints
 
@@ -134,7 +136,29 @@ already pruned by ack, so the file stays small. Observations are deduplicated
 server-side by `(character, seq)` so re-uploads of not-yet-acked sessions never double
 count.
 
-## Unsynced detection and the helper
+## The helper
+
+A Tauri tray application for Windows and macOS hosting `sync-core` with a native file
+adapter. Behavior:
+
+- **Sign-in**: the helper opens the site in the default browser with a one-time device
+  code; the user approves; the helper receives a device token scoped to sync only.
+  Tokens are listed and revocable in account settings.
+- **Folder**: auto-detects the WoW install from the launcher's registry entry on
+  Windows and the default path on macOS; the user can pick another.
+- **Install and update**: same manifest flow as the browser. Updates are applied when
+  the game is not running (the helper can check the process list, which the browser
+  cannot).
+- **Watch**: filesystem watcher on every `WTF/Account/*/SavedVariables/` folder across
+  flavor folders. On a change to `WoWCompendium.lua`, wait for the file to settle (no
+  writes for 5 seconds), then run the standard upload flow and write the ack file.
+- **Status**: tray icon state (idle, syncing, error, paused), menu with last sync per
+  client and character, pause, open site, quit. No other UI.
+- **Updater**: Tauri's built-in updater against our release feed, signed.
+- **Coexistence**: if both the browser and the helper are active, uploads dedupe by
+  hash and acks are idempotent, so nothing conflicts.
+
+## Unsynced detection
 
 Two places detect unsynced data:
 
@@ -143,12 +167,10 @@ Two places detect unsynced data:
 - **On the site**: when the user opens the site, pending files are found and synced,
   and the Journal shows "last synced" per character.
 
-Both mention the optional helper. The helper is a future tray app using the same
-`/sync/*` API with the account token; it watches the SavedVariables folders and uploads
-on change. It is never required and is not in the first release. The site should not
-nag: the message appears at most once per day per client.
+Both mention the helper as the way to avoid the step. The site should not nag: the
+message appears at most once per day per client.
 
-## Manual fallback (non-Chromium browsers)
+## Manual fallback (non-Chromium browsers without the helper)
 
 - Install: download `WoWCompendium-<version>.zip` with instructions for the AddOns
   folder per flavor and OS. The zip includes the link file pre-filled with the user's

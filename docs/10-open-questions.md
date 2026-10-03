@@ -4,6 +4,34 @@ Items the owner must decide, or that need verification in the live client. Resol
 moving the answer into `09-decisions.md` (for decisions) or into the relevant doc (for
 verifications), then delete the item here.
 
+## Under discussion (blocking the owner decisions below)
+
+**A. Retention of raw uploads and observations** (D-0016 under review). The owner
+considers keeping everything forever wasteful. Proposal: raw uploads kept 90 days
+rolling (long enough to reprocess after a pipeline fix), plus the first 3 uploads per
+(flavor, build) kept indefinitely as fixtures; observations compacted per (fact,
+patch) once a configurable number of distinct contributors (initial 50) have
+reported it, keeping those contributors' rows and folding later reports into
+counters. Account deletion unaffected. Decide: accept, change the numbers, or keep
+nothing raw at all.
+
+**B. Client catalogs** (D-0006 under review). The owner does not want catalogs as a
+coverage shortcut. Options: (1) exclude catalogs entirely; (2) admit them, tagged
+`client_catalog`, shown with a badge; (3) admit them but show an entity as "listed by
+the client, not yet witnessed" until someone encounters it, at which point it becomes
+a normal page. Recommendation: 3.
+
+**C. Blizzard Game Data API beyond artwork** (D-0001 scope). The owner opened the
+door "so long as it follows the rest of our rules". Options: (1) artwork only
+(D-0019, already decided); (2) also use API data as a silent cross-check that raises
+or lowers trust of observations, never displayed; (3) also admit API data as
+displayed facts tagged `blizzard_api`, which makes the wiki partly derivative and
+contradicts "our own source of truth". Recommendation: 2.
+
+**D. Meaning of "public".** Confirm whether an opted-in public Journal profile is
+visible to anyone with the link (including logged-out visitors) or only to signed-in
+users. The World Wiki is visible to everyone regardless.
+
 ## Owner decisions
 
 1. **Login line wording and frequency.** Proposed: at most once per login, only when
@@ -26,26 +54,33 @@ verifications), then delete the item here.
 9. **Reports and comments.** Reports yes, public comments no, in the first release.
    Confirm.
 10. **CurseForge/Wago distribution.** Deferred. Confirm it stays deferred.
-11. **Helper agent nag frequency.** Proposed once per day per client. Confirm.
+11. **Helper nag frequency.** Proposed once per day per client. Confirm.
+12. **Code signing budget.** Apple developer account (annual fee) and a Windows
+    code-signing certificate are needed for a helper that installs without warnings.
+    Confirm you are willing to pay for both before Phase 2.
 
 ## Verifications in the live client (owner runs; see checklist in `03`)
 
-12. All twelve items in the `03` verification checklist. A debug build of the add-on
+13. All twelve items in the `03` verification checklist. A debug build of the add-on
     will produce the dump; until then these stay open.
-13. **Anniversary client**: TOC suffix the `_anniversary_` client loads
+14. **Anniversary client**: TOC suffix the `_anniversary_` client loads
     (`_TBC`, `_Anniversary`, or other), its `WOW_PROJECT_ID`, and its interface
     version.
-14. **Game running detection** for safe add-on updates (`04`): is there a reliable
-    file-based signal, or do we just ask the user?
-15. **"WoW: Forever - Beta"** appears in the owner's launcher. Unknown product; find
-    out whether it is a distinct client with its own folder and whether it matters
-    for the flavor list.
+15. **Game running detection** for safe add-on updates from the browser (`04`): is
+    there a reliable file-based signal, or do we just ask the user? (The helper can
+    check the process list.)
+16. **WoW: Forever at launch (2026-11-04)**: launch folder name, TOC suffix,
+    `WOW_PROJECT_ID`, interface version, and whether the beta add-on API matches Era's.
+    One third-party source claims Forever shares the retail binary; unverified.
 
 ## Engineering questions (resolve during Phase 1)
 
-16. Netlify background function limits with a 10 MB upload: measure before deciding
+17. Netlify background function limits with a 10 MB upload: measure before deciding
     whether a separate worker is needed.
-17. Observation table partitioning strategy: by flavor only, or flavor plus month.
-18. Chrome persistent permission behavior when the site is installed as a PWA versus a
+18. Observation table partitioning strategy: by flavor only, or flavor plus month.
+19. Chrome persistent permission behavior when the site is installed as a PWA versus a
     normal tab; whether to recommend "install as app" for one-click syncing.
-19. Exact dedupe key for speech scenes across contributors when line order varies.
+20. Exact dedupe key for speech scenes across contributors when line order varies.
+21. Blizzard API coverage for `static-classic1x`: which media endpoints exist for
+    Era (items and creature displays are confirmed by forum posts; spells and others
+    unknown). Verify with a developer client in Phase 4.

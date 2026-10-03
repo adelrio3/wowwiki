@@ -21,7 +21,8 @@ Goal: one entity type end to end, proving every component.
 - `packages/lua-parser` with fixtures; `packages/schema` v1 for the slice.
 - Add-on core (init, compat, session, store, ids, link, ack, login line) plus
   `units.lua` and `zones.lua` only.
-- Sync module: folder picker, install, link file, read, hash, upload, status, ack.
+- `packages/sync-core` with the browser adapter: folder picker, install, link file,
+  read, hash, upload, status, ack.
 - Ingest and aggregate functions for creatures and zones.
 - Wiki page: creature (name, level, classification, type, reaction, positions on a
   blank coordinate grid, build/expansion selector, status badge). Zone page listing
@@ -44,8 +45,12 @@ Add modules in this order, each with ingest, aggregation, wiki pages, Journal vi
 5. Professions, recipes, reputation.
 6. Taxi, character, social, PvP, mail.
 
+Also in this phase: the helper (`apps/helper`) with the Tauri adapter over the same
+sync core, including device sign-in, watcher, tray, updater, and signing.
+
 Exit: every entity type in `03` has a page; the owner's Journal has the full event
-set; the verification checklist is fully green.
+set; the verification checklist is fully green; the helper syncs the owner's data
+with the site closed.
 
 ## Phase 3: Progress and achievements
 
@@ -64,7 +69,8 @@ earns at least one reconstructed achievement from live play.
 - Visibility settings, public profiles, leaderboards, export and delete.
 - Manual fallback for non-Chromium browsers.
 - Terms and privacy pages.
-- Asset pipeline: icons and zone maps for Era, served on wiki pages.
+- Asset pipeline: icons from Blizzard's API, zone maps from client extraction, served
+  on wiki pages.
 - Search across entities and locales.
 
 Exit: a second person installs from the site with no help, plays, and their data
@@ -72,16 +78,15 @@ confirms the owner's. Nothing from them is public until they opt in.
 
 ## Phase 5: Other flavors
 
-- Anniversary (`_anniversary_`), then Retail, then Mists: compat layer, flavor-specific
-  modules (achievements catalog, collections, Encounter Journal), build tables, phase
-  timelines.
+- Anniversary (`_anniversary_`), then WoW: Forever (launches 2026-11-04), then Retail,
+  then Mists: compat layer, flavor-specific modules (achievements catalog, collections,
+  Encounter Journal), build tables, phase timelines.
 
 Exit: each flavor passes the Phase 1 slice and Phase 2 checklist.
 
 ## Phase 6: Deferred features
 
 - Cosmetics and titles.
-- Optional sync helper.
 - Auction house data.
 - Public API.
 - CurseForge/Wago distribution.

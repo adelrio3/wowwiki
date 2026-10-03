@@ -58,12 +58,18 @@ its output, through the browser's folder access.
    across all contributors" is wiki.
 3. **Preserve, don't interpret.** Record what was seen with full provenance. Derive
    conclusions in a separate layer that can be recomputed.
-4. **Versioned by build, displayed by expansion.** Track as finely as the data allows;
-   show readers something they recognize.
-5. **Immutable raw data.** Every upload is kept forever. All derived data can be rebuilt.
-6. **Private by default.** Nothing about a player is public until they say so.
-7. **Non-invasive.** No installer, no background process required. The browser does
-   the work when the user opens the site. An optional helper may be offered later.
+4. **Versioned by build, displayed by expansion.** Track as finely as the data allows.
+   Readers choose an expansion and see that expansion's values; nothing finer than
+   expansion is shown outside admin tools.
+5. **Provenance over bulk.** Every fact can be traced to the accounts and builds that
+   reported it. Retention of raw uploads and of individual observations is bounded
+   (limits under decision; see `10` item A).
+6. **Private by default.** Nothing about a player is visible to other people using the
+   site until they say so.
+7. **Non-invasive, two ways.** The browser does the work when the user opens the site,
+   with no install. An optional helper application does the same work in the
+   background for users who prefer not to open the site. Both are first-class from the
+   first release and share one code path.
 8. **Multi-user from day one.** Even though one person tests first, every table,
    policy, and flow assumes many accounts and untrusted input.
 9. **Design before code.** Documents first. Decisions logged. Code follows.
@@ -76,30 +82,35 @@ its output, through the browser's folder access.
   Mists Classic, and Retail. Classic Era first, because the owner plays it.
 - Localized capture: strings recorded with their client locale.
 - Browser-based install, update, removal, and sync of the add-on (Chromium browsers).
-- Manual fallback for other browsers: download the add-on, drag in the data file.
+- The helper: an optional desktop application that installs, updates, and syncs in the
+  background. With it, any browser works.
+- Manual fallback for other browsers without the helper: download the add-on, drag in
+  the data file.
 - Consensus and trust model, administrator overrides with auditing.
 - Achievement mirroring and Classic Era reconstruction, progress tracking, opt-in
   leaderboards.
 - Hooks for cosmetics and titles (schema only; features deferred).
-- Artwork via an asset pipeline we run ourselves (see `01`).
+- Artwork from Blizzard's official API and media servers first, and from our own
+  extraction pipeline for what the API does not provide, such as zone maps (see `01`).
+- Use of Blizzard's Game Data API beyond artwork is under decision (see `10` item C).
 
 ## Out of scope
 
 - Any gameplay assistance: rotation helpers, boss mods, auction tools, automation.
 - Anything that violates Blizzard's add-on policy or terms of service.
-- Importing data from Wowhead, the Blizzard API, or community data dumps.
+- Importing data from Wowhead or community data dumps. (Blizzard's own API: see `10`
+  item C.)
 - Guild management or raid logistics.
 - Monetization.
 - Offline use of the web app.
 - Supporting more than one Compendium account per person (one account rolls up all
   their characters across all flavors and WoW licenses).
 - An in-game UI for the add-on.
-- A required desktop component.
+- A required desktop component. The helper is optional.
 
 ## Deferred (planned, not now)
 
 - Cosmetics and titles unlocked by achievements.
-- Optional background sync helper for users who do not want to open the site.
 - Auction house and economy data.
 - Public API for third parties.
 
@@ -122,7 +133,7 @@ Use these words exactly, in docs and code.
 
 | Term | Meaning |
 |------|---------|
-| **Flavor** | Which game client: `era` (Classic Era incl. Hardcore and seasonal; folder `_classic_era_`), `anniversary` (Burning Crusade Anniversary; folder `_anniversary_`), `mists` (Mists of Pandaria Classic; folder `_classic_`), `retail` (folder `_retail_`). Derived from the client, never guessed. |
+| **Flavor** | Which game client: `era` (Classic Era incl. Hardcore and seasonal; folder `_classic_era_`), `anniversary` (Burning Crusade Anniversary; folder `_anniversary_`), `mists` (Mists of Pandaria Classic; folder `_classic_`), `retail` (folder `_retail_`), `forever` (WoW: Forever, launching 2026-11-04; beta folder `_classic_beta_`, launch folder unknown). Derived from the client, never guessed. |
 | **Build** | The client build number from `GetBuildInfo()`. The finest version grain we record. |
 | **Patch** | Human-readable version such as `1.15.7`. Mapped from build via our own lookup table. |
 | **Expansion** | What readers see: Classic, Burning Crusade, Wrath, ... Mapped from flavor and patch. |
@@ -142,4 +153,5 @@ Use these words exactly, in docs and code.
 | **Lore text** | Readable in-world text: books, signs, plaques, letters, pages. |
 | **Ack file** | The small Lua file the web app writes into the add-on folder to tell the add-on what has been uploaded. |
 | **Link file** | The Lua file the web app writes to bind the add-on's output to a Compendium account. |
-| **Helper** | The optional future desktop background sync agent. Not required. |
+| **Helper** | The optional desktop application that syncs in the background. Never required. Same code as the browser sync module behind a different file adapter. |
+| **Sync core** | The shared package that reads, parses, hashes, uploads, and writes ack/link files, used by both the browser and the helper. |

@@ -15,6 +15,8 @@ AI-generated churn.
    and Journal), the principles, and the glossary. Use the glossary's words.
 2. Read the document(s) covering the area you are touching (index below).
 3. Read `docs/09-decisions.md`. Do not re-open a decided question unless the owner does.
+   Never read `docs/archive/` unless the owner asks about history; it holds rejected
+   reasoning.
 4. Check `docs/10-open-questions.md`. If your task depends on an open question, ask the
    owner rather than assume. Do everything that does not depend on it first.
 
@@ -49,13 +51,15 @@ AI-generated churn.
   is handled by the asset pipeline described in `docs/01-architecture.md`.
 - **Objective vs. experiential.** Anything subjective or specific to one player's
   experience never enters the World Wiki. It belongs to the Journal.
-- **Raw uploads are immutable and kept forever.** Every derived table must be
-  rebuildable from them.
+- **Provenance is never lost.** Every fact traces to the accounts and builds that
+  reported it. Retention limits are set in `docs/02-data-model.md` once decided.
 - **Every observation carries** flavor, client build, locale, region, realm, server
   timestamp, and the contributing account.
 - **Private by default.** Public sharing of Journal data is opt-in, per setting.
 - **The add-on has no in-game UI.** The only in-game output is a single chat-frame
   line at login (see `docs/04-sync-and-transport.md`).
+- **Two transports, one code.** Browser sync and the helper both use
+  `packages/sync-core`. Never implement sync logic in only one of them.
 - **Nothing against Blizzard's add-on policy.** No automation, no gameplay assistance,
   no obfuscated code, no in-game solicitation.
 - **No model names or AI attribution** in code, comments, or committed files other
