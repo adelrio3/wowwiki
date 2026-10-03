@@ -32,6 +32,15 @@ answer wanted. Never ask the owner to verify game APIs; that is done with the pr
 add-on or the real add-on's debug output. Keep "decisions" and "tasks for the owner"
 in separate lists.
 
+## Versions and rebuilds (D-0034)
+
+Versions are MAJOR.MINOR.PATCH. Releases before 1.0.0 are built in the original
+session. Each new major version is built from scratch in a new session from the
+documents alone; prior code is not preserved. The database is permanent and is never
+recreated; its structure in `docs/02-data-model.md` is binding. The documents give
+intent and rules, not every detail; find your own way, except where
+`docs/11-engineering-notes.md` already holds a solution.
+
 ## When direction changes
 
 - Every new product or architecture decision gets an entry in `docs/09-decisions.md`

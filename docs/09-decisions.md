@@ -376,3 +376,33 @@ from observed facts.
 Alternatives: no comments in the first release (rejected: adding later means
 redesigning every page); rich comments with links and images (more abuse surface).
 Consequences: Moderation queue gains comment reports. Terms cover user content.
+
+## D-0034: Major versions are rebuilt from scratch; the database is permanent
+Date: 2026-10-03  Status: accepted
+Context: The owner wants to avoid the drift that comes from patching code over code
+across long AI sessions, without specifying every detail of the implementation.
+Decision:
+- Versions use MAJOR.MINOR.PATCH (semantic versioning). Everything before 1.0.0 is a
+  0.x release built in one continuous effort in the original session, iterating on
+  documents and code together. 1.0.0 begins a new session that rebuilds the entire
+  code base from scratch, using only the documents, and then continues through 1.1.0,
+  1.2.0 and patch releases 1.0.1, 1.0.2 within that session. 2.0.0 starts the next
+  fresh session, and so on.
+- The database is never rebuilt. Its structure is documented precisely enough in
+  `02` (fixed table and column names, meanings, layer rules) that code written from
+  scratch can continue using the data earlier versions collected. Schema changes
+  after 1.0.0 are migrations, never recreation.
+- What carries forward across a rebuild: the design documents, the decision log, the
+  engineering notes, test fixtures and acceptance tests, verified client facts (probe
+  results), artwork assets, secrets and environment configuration, and the live
+  database with its raw uploads. Code does not carry forward.
+- The documents express intent and rules, not every implementation detail. A fresh
+  session is expected to find its own way, possibly a better one. Hard-won solutions
+  are the exception and are recorded in `11-engineering-notes.md` with the problem,
+  the trick, the constraint it exploits and why that works, and what failed first.
+Alternatives: patch forever in one session (drift and layering, rejected by owner);
+specify every detail so rebuilds are mechanical (forecloses better solutions,
+rejected by owner); rebuild on every commit (impractical, rejected by owner).
+Consequences: A session starting a new major version must not preserve prior code.
+Retention of raw uploads (D-0023) applies as written; the database itself is the
+continuity, not the code.
