@@ -32,3 +32,13 @@ expansion with patch-change notes and an expandable history.
 Consequences: A hand-maintained build→patch→expansion table in `game-meta`. Unknown
 builds are flagged for classification.
 
+
+## D-0016: Raw uploads are immutable and retained forever
+Date: 2026-10-03  Status: superseded by D-0023
+Context: "Preserve the world" plus the ability to fix pipeline bugs without losing
+history.
+Decision: Every upload is stored as received. All derived data is rebuildable through
+reprocessing. Account deletion removes the user's raw uploads but tombstones, not
+deletes, derived observations.
+Consequences: Terms must say wiki contributions are irrevocable and anonymous after
+deletion.

@@ -6,28 +6,6 @@ verifications), then delete the item here.
 
 ## Under discussion (blocking the owner decisions below)
 
-**A. Retention of raw uploads and observations** (D-0016 under review). The owner
-considers keeping everything forever wasteful. Proposal: raw uploads kept 90 days
-rolling (long enough to reprocess after a pipeline fix), plus the first 3 uploads per
-(flavor, build) kept indefinitely as fixtures; observations compacted per (fact,
-patch) once a configurable number of distinct contributors (initial 50) have
-reported it, keeping those contributors' rows and folding later reports into
-counters. Account deletion unaffected. Decide: accept, change the numbers, or keep
-nothing raw at all.
-
-**B. Client catalogs** (D-0006 under review). The owner does not want catalogs as a
-coverage shortcut. Options: (1) exclude catalogs entirely; (2) admit them, tagged
-`client_catalog`, shown with a badge; (3) admit them but show an entity as "listed by
-the client, not yet witnessed" until someone encounters it, at which point it becomes
-a normal page. Recommendation: 3.
-
-**C. Blizzard Game Data API beyond artwork** (D-0001 scope). The owner opened the
-door "so long as it follows the rest of our rules". Options: (1) artwork only
-(D-0019, already decided); (2) also use API data as a silent cross-check that raises
-or lowers trust of observations, never displayed; (3) also admit API data as
-displayed facts tagged `blizzard_api`, which makes the wiki partly derivative and
-contradicts "our own source of truth". Recommendation: 2.
-
 **D. Meaning of "public".** Confirm whether an opted-in public Journal profile is
 visible to anyone with the link (including logged-out visitors) or only to signed-in
 users. The World Wiki is visible to everyone regardless.
@@ -55,9 +33,10 @@ users. The World Wiki is visible to everyone regardless.
    Confirm.
 10. **CurseForge/Wago distribution.** Deferred. Confirm it stays deferred.
 11. **Helper nag frequency.** Proposed once per day per client. Confirm.
-12. **Code signing budget.** Apple developer account (annual fee) and a Windows
-    code-signing certificate are needed for a helper that installs without warnings.
-    Confirm you are willing to pay for both before Phase 2.
+12. **Open source?** Free Windows code signing (SignPath Foundation) requires a public
+    repository under an open-source license. The owner said there are no license
+    considerations. Confirm whether the repository may be public with an open-source
+    license; if yes, we apply once the helper exists.
 
 ## Verifications in the live client (owner runs; see checklist in `03`)
 

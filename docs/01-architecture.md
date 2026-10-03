@@ -106,7 +106,7 @@ Neither source contributes facts; artwork only. Pages render without art gracefu
 
 ### 7. Helper (`apps/helper/`)
 
-Optional desktop tray application for Windows and macOS. It does exactly what the
+Optional desktop tray application for Windows (macOS deferred, D-0025). It does exactly what the
 browser sync module does, in the background: locates the WoW folder, installs and
 updates the add-on, writes link and ack files, watches the SavedVariables folders, and
 uploads on change. With the helper installed, any browser works for the site itself.
@@ -116,9 +116,10 @@ same TypeScript sync core as the browser. The helper's only UI is a tray menu an
 small status window: signed in as, last sync per client, pause, open site, quit. It
 signs in by opening the site in the user's browser and receiving a device token.
 
-Costs to budget: Apple notarization (developer account) and a Windows code-signing
-certificate; without them users see scary warnings. See `04` for the sync protocol
-and `10` for the signing decision.
+The helper ships unsigned (D-0025): Windows shows a SmartScreen warning the install
+page explains; the macOS helper is deferred because unsigned apps are blocked by
+default there, and macOS users have the browser path. Updates are verified with
+Tauri's own keys. See `04` for the sync protocol.
 
 ### 8. Sync core (`packages/sync-core/`)
 

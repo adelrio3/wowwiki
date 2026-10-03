@@ -47,7 +47,10 @@ honest contributors or losing anything.
    A character belongs to exactly one account; a second account claiming the same player
    GUID is held for review.
 10. **Rate limits.** Uploads per account per day, bytes per day, sessions per upload.
-11. **Overrides and audit.** See below.
+11. **Blizzard API agreement** (D-0024). Agreement with the API raises a fact's
+    confidence and its contributors' trust slightly. Disagreement is logged for admins
+    and changes nothing: observed data wins.
+12. **Overrides and audit.** See below.
 
 ## Status computation
 
@@ -94,9 +97,10 @@ above.
 
 ## Reprocessing
 
-Because uploads are immutable, any fix to the parser, the schema mapping, or the
-aggregation can be applied to history: `reprocess(upload_ids | all)` truncates derived
-observations for those uploads and re-ingests. Facts are rebuilt incrementally.
+Any fix to the parser, the schema mapping, or the aggregation can be applied to the
+retained window: `reprocess(upload_ids | all)` truncates derived observations for
+those uploads and re-ingests. Facts are rebuilt incrementally. Uploads older than the
+90-day window (D-0023) cannot be reprocessed; their observations stand as ingested.
 Reprocessing is an admin action with an audit entry and runs as background jobs.
 
 ## Reporting

@@ -15,8 +15,10 @@ AI-generated churn.
    and Journal), the principles, and the glossary. Use the glossary's words.
 2. Read the document(s) covering the area you are touching (index below).
 3. Read `docs/09-decisions.md`. Do not re-open a decided question unless the owner does.
-   Never read `docs/archive/` unless the owner asks about history; it holds rejected
-   reasoning.
+   Before proposing any change of approach, check the `Alternatives` lines: if your
+   idea is already there with a reason it lost, say so and stop unless the owner
+   wants to revisit. Never read `docs/archive/` unless the owner asks about history;
+   it holds rejected reasoning.
 4. Check `docs/10-open-questions.md`. If your task depends on an open question, ask the
    owner rather than assume. Do everything that does not depend on it first.
 
@@ -52,7 +54,9 @@ AI-generated churn.
 - **Objective vs. experiential.** Anything subjective or specific to one player's
   experience never enters the World Wiki. It belongs to the Journal.
 - **Provenance is never lost.** Every fact traces to the accounts and builds that
-  reported it. Retention limits are set in `docs/02-data-model.md` once decided.
+  reported it. Retention limits are in `docs/02-data-model.md`.
+- **Blizzard's API is never a source.** Artwork and a trust signal only. Observed
+  data always wins a disagreement.
 - **Every observation carries** flavor, client build, locale, region, realm, server
   timestamp, and the contributing account.
 - **Private by default.** Public sharing of Journal data is opt-in, per setting.

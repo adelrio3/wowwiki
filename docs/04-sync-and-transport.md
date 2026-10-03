@@ -138,8 +138,8 @@ count.
 
 ## The helper
 
-A Tauri tray application for Windows and macOS hosting `sync-core` with a native file
-adapter. Behavior:
+A Tauri tray application for Windows (macOS deferred, D-0025) hosting `sync-core` with
+a native file adapter. Behavior:
 
 - **Sign-in**: the helper opens the site in the default browser with a one-time device
   code; the user approves; the helper receives a device token scoped to sync only.
@@ -154,7 +154,9 @@ adapter. Behavior:
   writes for 5 seconds), then run the standard upload flow and write the ack file.
 - **Status**: tray icon state (idle, syncing, error, paused), menu with last sync per
   client and character, pause, open site, quit. No other UI.
-- **Updater**: Tauri's built-in updater against our release feed, signed.
+- **Updater**: Tauri's built-in updater against our release feed, verified with the
+  project's updater keys. The installer itself is unsigned; the download page shows
+  the SmartScreen steps.
 - **Coexistence**: if both the browser and the helper are active, uploads dedupe by
   hash and acks are idempotent, so nothing conflicts.
 

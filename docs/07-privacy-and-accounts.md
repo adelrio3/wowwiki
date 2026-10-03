@@ -28,7 +28,7 @@ later upload of the same identity by a different account is held for review (`05
 | Other players seen (name, realm, class, guild, level, inspected gear) | `journal` social tables | Private to the account that saw them | Never aggregated publicly. Users can request removal of their own name from others' Journals (by character name + realm), applied as a redaction rule. |
 | Group members in encounters | encounter events | Private; on public profiles shown as "group of N" unless each named player has opted in to public profiles | |
 | NPC speech directed at the player (contains player name) | Journal (raw), wiki (name replaced by placeholder) | Wiki version public | |
-| Raw uploads | Storage `uploads` | Owner and admins | Deleted on account deletion. |
+| Raw uploads | Storage `uploads` | Owner and admins | Deleted 90 days after ingest, or immediately on account deletion. |
 | Observations | `observations` | Not directly visible | Contain `account_id`. On account deletion the column is set to a tombstone id; the rows stay so wiki facts survive. |
 | Leaderboard entries | `leaderboard_entries` | Public, opt-in | Removed when opt-out. |
 | Audit log | `audit_log` | Admins | Admin actions only. |

@@ -399,9 +399,9 @@ Retail collections: `C_MountJournal`, `C_PetJournal`, `C_ToyBox`,
 ### Encounter Journal dump (`journal_ej.lua`)
 
 Retail and mists: `EJ_*`/`C_EncounterJournal` enumerate tiers, instances, encounters,
-sections (abilities with descriptions), and loot. This is client-held static data and
-is admitted to the wiki under decision D-0006, flagged with source `client_catalog`
-so readers can distinguish "the client lists this" from "a player saw this happen".
+sections (abilities with descriptions), and loot. This is client-held data read
+directly from the client and is an observation like any other (D-0006). Records carry
+source `client_catalog` for provenance only; they are not displayed differently.
 
 ### PvP (`pvp.lua`)
 

@@ -7,14 +7,36 @@ always rebuildable from lower ones.
 
 | Layer | Name | Mutability | Contents |
 |-------|------|------------|----------|
-| L0 | Uploads | Immutable while retained | Raw SavedVariables files in Storage, plus a row per upload. Retention window under decision (`10` item A). |
-| L1 | Observations | Immutable, append-only | Normalized records extracted from uploads. One row per (contributor, session, entity, field, value). |
+| L0 | Uploads | Immutable while retained | Raw SavedVariables files in Storage, plus a row per upload. Retained 90 days; first 3 per (flavor, build) kept as fixtures (D-0023). |
+| L1 | Observations | Immutable, append-only, compacted | Normalized records extracted from uploads. One row per (contributor, session, entity, field, value). Compacted per (fact, patch) after 50 distinct contributors (D-0023). |
 | L2 | Facts | Rebuildable | Aggregated per (flavor, entity, field): value intervals by build, contributor counts, status. |
 | L3 | Overrides | Mutable, audited | Admin corrections and hides, each with reason and author. |
 | L4 | Views | Derived | What pages render: facts merged with overrides, collapsed to expansion. Materialized where needed. |
 
 The Journal is a parallel set of per-account tables derived from L1 (experiential
-observations) plus the achievement engine's output.
+observations) plus the achievement engine's output. Journal data is never compacted;
+it is the user's own record.
+
+## Retention (D-0023)
+
+| Data | Rule |
+|------|------|
+| Raw uploads | Deleted 90 days after ingest. The first 3 uploads per (flavor, build) are kept indefinitely as scrubbed fixtures. |
+| Observations | Once a (fact, patch) has rows from 50 distinct contributors, new reports increment `facts.contributor_count` and `observation_count` and update the build/time intervals, but no row is written. Existing rows are never deleted except by account deletion. |
+| Facts, relations, positions | Rebuildable from retained observations plus the counters; never pruned. |
+| Journal | Kept until the user deletes it. |
+| Audit log | Kept indefinitely. |
+
+Both numbers are configuration values and may change by decision.
+
+## Cross-check with Blizzard's API (D-0024)
+
+An aggregate-stage job compares confirmed facts with the corresponding Blizzard Game
+Data API record where one exists (items and creatures for Era; more for Retail).
+Agreement adds a `api_agrees = true` flag on the fact and a small positive trust
+adjustment to its contributors. Disagreement writes a row to `api_disagreements`
+(fact, api value, observed value, at) for admins and changes nothing else. API values
+are not stored as facts and are never rendered.
 
 ## Identity
 
@@ -155,6 +177,8 @@ overrides(id, flavor, entity_type, entity_id, field, locale,
           action, value_json, reason, created_by, created_at,
           superseded_by)
 audit_log(id, actor_id, action, target, before_json, after_json, at)
+api_disagreements(id, flavor, entity_type, entity_id, field, api_json,
+                  observed_json, checked_at, resolved_by)
 
 -- Reference (hand-maintained)
 builds(flavor, build, patch, expansion, released_at)
