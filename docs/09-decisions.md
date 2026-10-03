@@ -289,3 +289,48 @@ objection); ship no helper (D-0018 rejected that).
 Consequences: Some Windows users will refuse the warning; they still have the
 browser. macOS helper revisited if a free signing path appears or the owner changes
 their mind.
+
+## D-0026: Opted-in Journal profiles are visible to anyone, signed in or not
+Date: 2026-10-03  Status: accepted
+Context: "Public" needed a precise meaning.
+Decision: Once a user opts a Journal section in, anyone with the link can view it,
+including visitors who are not signed in. The World Wiki is always visible to all.
+Alternatives: signed-in users only (adds friction to sharing a profile link; no
+privacy gain since sign-up is open).
+Consequences: Public profile pages are cacheable like wiki pages. Search engines may
+index them; the profile settings page says so.
+
+## D-0027: Leaderboards show character names by default
+Date: 2026-10-03  Status: accepted
+Context: Leaderboards are opt-in; the question was what to show once opted in.
+Decision: Character name and realm by default, with an option to show the account's
+display name instead.
+Alternatives: display name by default (less recognizable to other players).
+Consequences: None beyond the setting.
+
+## D-0028: Helper is offered at every login where it applies
+Date: 2026-10-03  Status: accepted
+Context: The proposal to limit the offer to once a day was unnecessary.
+Decision: The add-on's single login line mentions the helper whenever unsynced data
+exists, every login. The site offers the helper whenever it finds unsynced data for a
+user who has not installed it. No daily cap.
+Alternatives: once per day (rejected by owner as needless).
+Consequences: None.
+
+## D-0029: Repository stays private; no open-source license; no code signing
+Date: 2026-10-03  Status: accepted
+Context: Free Windows code signing requires an open-source project. The owner does
+not want to open-source the project and accepts install warnings.
+Decision: Private repository. The Windows helper ships unsigned with install
+instructions (D-0025). No signing service is pursued.
+Alternatives: open-source with free signing (rejected by owner).
+Consequences: Windows SmartScreen warning on helper install; macOS helper deferred.
+
+## D-0030: Login line wording, stack, and distribution confirmed
+Date: 2026-10-03  Status: accepted
+Context: Owner confirmed three proposed defaults in one pass.
+Decision: Login line as specified in `03` (unsynced count, unlinked notice, helper
+mention; silent otherwise). Stack per D-0013 is final. CurseForge and Wago
+distribution stays deferred.
+Alternatives: none raised.
+Consequences: None.

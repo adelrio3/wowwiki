@@ -180,8 +180,9 @@ class, or Hardcore:
 - Boss first kills by date (realm-first style, based on server time of the encounter
   end).
 
-Boards are recomputed on a schedule, show display names (not character names unless
-the user opts to show them), and exclude accounts with trust below threshold.
+Boards are recomputed on a schedule, show character name and realm by default with an
+option to show the account display name instead (D-0027), and exclude accounts with
+trust below threshold.
 
 ## Cosmetics and titles (deferred, schema only)
 

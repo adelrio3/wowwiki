@@ -45,10 +45,12 @@ Per account, each off by default:
 - Public sections: timeline, achievements, statistics, kills and deaths, loot, social.
 - Leaderboard participation (requires public profile).
 - Show BattleTag on profile.
-- Show character names on leaderboards (otherwise display name only).
+- Show the account's display name on leaderboards instead of character names
+  (character names are the default, D-0027).
 
 Settings apply immediately to rendering; leaderboards update on their next
-recomputation (minutes, not days).
+recomputation (minutes, not days). Anything opted in is visible to anyone with the
+link, signed in or not (D-0026).
 
 ## Deletion and export
 

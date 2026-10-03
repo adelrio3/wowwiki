@@ -116,9 +116,9 @@ same TypeScript sync core as the browser. The helper's only UI is a tray menu an
 small status window: signed in as, last sync per client, pause, open site, quit. It
 signs in by opening the site in the user's browser and receiving a device token.
 
-The helper ships unsigned (D-0025): Windows shows a SmartScreen warning the install
-page explains; the macOS helper is deferred because unsigned apps are blocked by
-default there, and macOS users have the browser path. Updates are verified with
+The helper ships unsigned (D-0025, D-0029): Windows shows a SmartScreen warning the
+install page explains; the macOS helper is deferred because unsigned apps are blocked
+by default there, and macOS users have the browser path. Updates are verified with
 Tauri's own keys. See `04` for the sync protocol.
 
 ### 8. Sync core (`packages/sync-core/`)

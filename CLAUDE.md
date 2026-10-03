@@ -22,6 +22,15 @@ AI-generated churn.
 4. Check `docs/10-open-questions.md`. If your task depends on an open question, ask the
    owner rather than assume. Do everything that does not depend on it first.
 
+## How to ask the owner things
+
+The owner reads chat, not repository files. Never answer a question by pointing at a
+file path. Put the question itself in the chat message: what is being decided, the
+recommended answer, what changes if they choose differently, and the exact form of
+answer wanted. Never ask the owner to verify game APIs; that is done with the probe
+add-on or the real add-on's debug output. Keep "decisions" and "tasks for the owner"
+in separate lists.
+
 ## When direction changes
 
 - Every new product or architecture decision gets an entry in `docs/09-decisions.md`

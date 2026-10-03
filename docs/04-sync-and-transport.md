@@ -169,8 +169,8 @@ Two places detect unsynced data:
 - **On the site**: when the user opens the site, pending files are found and synced,
   and the Journal shows "last synced" per character.
 
-Both mention the helper as the way to avoid the step. The site should not nag: the
-message appears at most once per day per client.
+Both mention the helper as the way to avoid the step, every time they apply
+(D-0028).
 
 ## Manual fallback (non-Chromium browsers without the helper)
 
