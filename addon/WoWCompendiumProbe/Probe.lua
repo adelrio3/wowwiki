@@ -4,6 +4,7 @@
 -- results can be read after /reload or logout. It has no UI beyond /cprobe.
 
 local ADDON_NAME = ...
+local PROBE_VERSION = 2
 local MAX_SAMPLES = 5
 local DB
 
@@ -38,22 +39,24 @@ local function try(fn, ...)
   return res
 end
 
--- Shallow, size-limited copy so SavedVariables stay small.
-local function trim(v, depth)
+-- Size-limited copy so SavedVariables stay small.
+local function trim(v, depth, maxDepth, maxKeys)
   depth = depth or 0
+  maxDepth = maxDepth or 5
+  maxKeys = maxKeys or 64
   local t = type(v)
   if t == "string" then
-    if #v > 200 then return string.sub(v, 1, 200) .. "..." end
+    if #v > 300 then return string.sub(v, 1, 300) .. "..." end
     return v
   elseif t == "number" or t == "boolean" or t == "nil" then
     return v
   elseif t == "table" then
-    if depth >= 2 then return "<table>" end
+    if depth >= maxDepth then return "<table>" end
     local out, n = {}, 0
     for k, val in pairs(v) do
       n = n + 1
-      if n > 24 then out["..."] = true break end
-      out[tostring(k)] = trim(val, depth + 1)
+      if n > maxKeys then out["..."] = true break end
+      out[tostring(k)] = trim(val, depth + 1, maxDepth, maxKeys)
     end
     return out
   else
@@ -68,6 +71,42 @@ local function sample(bucket, record)
   if #list >= MAX_SAMPLES then return end
   record.t = now()
   list[#list + 1] = trim(record)
+end
+
+-- One sample per distinct key (for example per npcID), up to max.
+local function sampleUnique(bucket, key, record, max)
+  DB.counts[bucket] = (DB.counts[bucket] or 0) + 1
+  DB.samples[bucket] = DB.samples[bucket] or {}
+  local list = DB.samples[bucket]
+  key = tostring(key)
+  if list[key] then return end
+  local n = 0
+  for _ in pairs(list) do n = n + 1 end
+  if n >= (max or 15) then return end
+  record.t = now()
+  list[key] = trim(record)
+end
+
+-- Hidden tooltip scanner: the classic way to read tooltip text when
+-- C_TooltipInfo does not exist (it does not, on Classic Era 1.15).
+local tip = CreateFrame("GameTooltip", "WoWCompendiumProbeTip", UIParent, "GameTooltipTemplate")
+local function scanTip(method, ...)
+  if type(tip[method]) ~= "function" then return { err = "no " .. method } end
+  tip:SetOwner(UIParent, "ANCHOR_NONE")
+  tip:ClearLines()
+  local ok, err = pcall(tip[method], tip, ...)
+  if not ok then tip:Hide(); return { err = tostring(err) } end
+  local lines = {}
+  for i = 1, tip:NumLines() do
+    local left = _G["WoWCompendiumProbeTipTextLeft" .. i]
+    local right = _G["WoWCompendiumProbeTipTextRight" .. i]
+    local l = left and left:GetText()
+    local r = right and right:GetText()
+    lines[i] = r and (l .. " || " .. r) or l
+  end
+  local unitName, unitToken = tip:GetUnit()
+  tip:Hide()
+  return { n = #lines, lines = lines, unitName = unitName, unitToken = unitToken }
 end
 
 local function note(key, value)
@@ -127,6 +166,9 @@ local API_PATHS = {
   "GetProgressText", "GetNumQuestRewards", "GetNumQuestChoices", "GetQuestItemLink",
   "GetQuestItemInfo", "GetRewardMoney", "GetRewardXP", "GetRewardSpell", "GetRewardTitle",
   "GetRewardHonor", "GetNumRewardCurrencies", "GetNumQuestItems", "GetQuestMoneyToGet",
+  "GetNumRewardSpells", "GetRewardSpellInfo", "C_QuestOffer.GetQuestRewardSpells",
+  "C_QuestOffer.GetQuestRewardSpellInfo", "C_QuestInfoSystem.GetQuestRewardSpells",
+  "C_QuestLog.GetQuestRewardSpells", "GetQuestLogRewardSpell", "C_QuestOffer.GetQuestRequiredCurrencyInfo",
   "GetNumAvailableQuests", "GetAvailableTitle", "GetAvailableQuestInfo",
   "GetNumActiveQuests", "GetActiveTitle", "GetActiveQuestID", "IsQuestCompletable",
   "GetSuggestedGroupNum", "QuestGetAutoAccept", "GetQuestPortraitGiver",
@@ -194,6 +236,19 @@ local API_PATHS = {
   "GetNumBattlefieldStats", "GetBattlefieldStatInfo", "C_PvP.GetMatchPVPStatColumns",
   -- misc
   "C_Timer.After", "C_Timer.NewTicker", "hooksecurefunc", "C_PlayerInteractionManager.IsInteractingWithNpcOfType",
+  "GameTooltip.SetUnit", "GameTooltip.SetHyperlink", "GameTooltip.SetItemByID", "GameTooltip.SetSpellByID",
+  "GameTooltip.SetLootItem", "GameTooltip.SetMerchantItem", "GameTooltip.SetTrainerService",
+  "GameTooltip.SetInventoryItem", "GameTooltip.SetBagItem", "GameTooltip.SetQuestItem",
+  "GameTooltip.SetQuestLogItem", "GameTooltip.SetTradeSkillItem", "GameTooltip.SetCraftItem",
+  "GameTooltip.SetTalent", "GameTooltip.SetSpellBookItem", "GameTooltip.SetUnitAura",
+  "GameTooltip.GetUnit", "GameTooltip.GetItem", "GameTooltip.GetSpell", "GameTooltip.NumLines",
+  "C_Map.GetWorldPosFromMapPos", "C_Map.GetMapPosFromWorldPos", "UnitPosition",
+  "GetAreaText", "C_ZoneInfo.GetAreaInfo", "GetSubZoneText", "C_PvP.GetZonePVPInfo", "GetZonePVPInfo",
+  "C_Spell.RequestLoadSpellData", "C_Spell.IsSpellDataCached", "GetSpellTexture", "C_Spell.GetSpellTexture",
+  "GetSpellRank", "C_Spell.GetSpellSubtext", "GetSpellSubtext",
+  "GetNumCompanions", "C_PetJournal.GetNumPets", "GetNumMacros",
+  "C_GameRules.IsGameRuleActive", "C_GameRules.GetGameRuleAsString", "C_Seasons.GetSeasonName",
+  "UnitIsHardcore", "C_Reputation.IsFactionParagon", "GetFriendshipReputation",
   "C_PlayerInteractionManager.GetInteractionType", "C_Calendar.GetNumDayEvents",
   "C_DateAndTime.GetServerTimeLocal", "C_DateAndTime.GetCurrentCalendarTime",
   "GetCVar", "C_CVar.GetCVar", "GetGameTime", "GetRealmID", "C_ChatInfo.SendAddonMessage",
@@ -257,7 +312,52 @@ local function snapshotUnit(unit)
     local res = try(CheckInteractDistance, unit, 3)
     r.interact3 = res.err or res[1]
   end
+  r.tip = scanTip("SetUnit", unit)
   return r
+end
+
+local function npcIDFromGUID(guid)
+  if not guid then return nil end
+  local kind, id = string.match(guid, "^(%a+)%-0%-%d+%-%d+%-%d+%-(%d+)%-")
+  return id and (kind .. ":" .. id) or guid
+end
+
+local function probeValues()
+  local V = {}
+  V.projectID = WOW_PROJECT_ID
+  V.projectConstants = {
+    mainline = WOW_PROJECT_MAINLINE, classic = WOW_PROJECT_CLASSIC,
+    tbc = WOW_PROJECT_BURNING_CRUSADE_CLASSIC, wrath = WOW_PROJECT_WRATH_CLASSIC,
+    cata = WOW_PROJECT_CATACLYSM_CLASSIC, mists = WOW_PROJECT_MISTS_CLASSIC,
+  }
+  V.buildInfo = try(GetBuildInfo)
+  V.locale = GetLocale()
+  V.expansionLevelCurrent = LE_EXPANSION_LEVEL_CURRENT
+  if GetExpansionLevel then V.expansionLevel = try(GetExpansionLevel)[1] end
+  if C_AddOns and C_AddOns.GetAddOnMetadata then
+    V.tocVariant = C_AddOns.GetAddOnMetadata(ADDON_NAME, "X-Toc")
+    V.tocInterface = C_AddOns.GetAddOnMetadata(ADDON_NAME, "Interface")
+  end
+  if C_Seasons then
+    if C_Seasons.HasActiveSeason then V.hasActiveSeason = try(C_Seasons.HasActiveSeason)[1] end
+    if C_Seasons.GetActiveSeason then V.activeSeason = try(C_Seasons.GetActiveSeason)[1] end
+  end
+  if C_GameRules and C_GameRules.IsHardcoreActive then V.hardcore = try(C_GameRules.IsHardcoreActive)[1] end
+  if UnitIsHardcore then V.unitIsHardcore = try(UnitIsHardcore, "player")[1] end
+  V.playerGUID = UnitGUID("player")
+  V.playerName = UnitName("player")
+  V.playerLevel = UnitLevel("player")
+  V.playerClass = try(UnitClass, "player")
+  V.playerRace = try(UnitRace, "player")
+  V.playerFaction = try(UnitFactionGroup, "player")
+  V.realm = GetRealmName()
+  if GetNormalizedRealmName then V.realmNormalized = GetNormalizedRealmName() end
+  if GetRealmID then V.realmID = try(GetRealmID)[1] end
+  if GetCurrentRegion then V.region = GetCurrentRegion() end
+  if GetCurrentRegionName then V.regionName = GetCurrentRegionName() end
+  if GetAutoCompleteRealms then V.connectedRealms = try(GetAutoCompleteRealms) end
+  V.serverTime = now()
+  DB.values = trim(V, 0, 6, 200)
 end
 
 local function probeLogin()
@@ -298,6 +398,25 @@ local function probeLogin()
   if GetAccountExpansionLevel then L.accountExpansion = GetAccountExpansionLevel() end
   L.expansionLevelCurrent = LE_EXPANSION_LEVEL_CURRENT
 
+  -- hidden tooltip scans (C_TooltipInfo is absent on Era)
+  L.tipItemHyperlink = scanTip("SetHyperlink", "item:6948")
+  L.tipItemByID = scanTip("SetItemByID", 6948)
+  L.tipSpellHyperlink = scanTip("SetHyperlink", "spell:8690")
+  L.tipSpellByID = scanTip("SetSpellByID", 8690)
+  L.tipInventory16 = scanTip("SetInventoryItem", "player", 16)
+  L.tipPlayer = scanTip("SetUnit", "player")
+
+  -- catalogs that may be stubs on Era
+  if GetCategoryList then
+    local res = try(GetCategoryList)
+    L.achievementCategories = res.err or (type(res[1]) == "table" and #res[1]) or "?"
+  end
+  if GetNumCompletedAchievements then L.achievementsCompleted = try(GetNumCompletedAchievements) end
+  if GetAchievementInfo then L.achievement6 = try(GetAchievementInfo, 6) end
+  if C_MountJournal and C_MountJournal.GetNumMounts then L.numMounts = try(C_MountJournal.GetNumMounts) end
+  if EJ_GetNumTiers then L.ejTiers = try(EJ_GetNumTiers) end
+  if GetNumCompanions then L.companions = try(GetNumCompanions, "CRITTER") end
+
   -- item + spell info on a known item (Hearthstone 6948) and spell (Hearthstone 8690)
   L.itemInfo = try(GetItemInfo, 6948)
   if C_Item and C_Item.GetItemInfo then L.itemInfoC = try(C_Item.GetItemInfo, 6948) end
@@ -321,6 +440,46 @@ local function probeLogin()
       L.spellTooltipLines = res.err or (type(d) == "table" and d.lines and #d.lines) or "no lines"
     end
   end
+
+  -- quest log detail: first real quest
+  if GetNumQuestLogEntries and GetQuestLogTitle then
+    local n = GetNumQuestLogEntries()
+    for i = 1, (n or 0) do
+      local info = try(GetQuestLogTitle, i)
+      if not info.err and info[1] and not info[4] then
+        L.questLogFirst = { index = i, title = info }
+        if SelectQuestLogEntry then pcall(SelectQuestLogEntry, i) end
+        if GetQuestLogQuestText then L.questLogFirst.text = try(GetQuestLogQuestText) end
+        if GetNumQuestLeaderBoards then
+          L.questLogFirst.numObjectives = try(GetNumQuestLeaderBoards, i)[1]
+          if GetQuestLogLeaderBoard then L.questLogFirst.objective1 = try(GetQuestLogLeaderBoard, 1, i) end
+        end
+        if GetQuestLogRewardInfo then L.questLogFirst.reward1 = try(GetQuestLogRewardInfo, 1) end
+        if GetQuestLogRewardMoney then L.questLogFirst.money = try(GetQuestLogRewardMoney) end
+        if GetQuestLogRewardXP then L.questLogFirst.xp = try(GetQuestLogRewardXP) end
+        local qid = info[8]
+        if qid and C_QuestLog then
+          if C_QuestLog.GetQuestObjectives then L.questLogFirst.cObjectives = try(C_QuestLog.GetQuestObjectives, qid) end
+          if C_QuestLog.GetQuestInfo then L.questLogFirst.cInfo = try(C_QuestLog.GetQuestInfo, qid) end
+        end
+        break
+      end
+    end
+  end
+
+  -- exploration by position
+  if C_MapExplorationInfo and C_MapExplorationInfo.GetExploredAreaIDsAtPosition and C_Map and C_Map.GetBestMapForUnit then
+    local map = C_Map.GetBestMapForUnit("player")
+    local pos = map and C_Map.GetPlayerMapPosition(map, "player")
+    if pos then
+      local res = try(C_MapExplorationInfo.GetExploredAreaIDsAtPosition, map, pos)
+      L.exploredAreaIDsHere = res
+      if type(res[1]) == "table" and res[1][1] and C_Map.GetAreaInfo then
+        L.exploredAreaHereName = try(C_Map.GetAreaInfo, res[1][1])
+      end
+    end
+  end
+  if UnitPosition then L.unitPosition = try(UnitPosition, "player") end
 
   -- spellbook / talents
   if GetNumSpellTabs then L.spellTabs = try(GetNumSpellTabs)[1] end
@@ -372,7 +531,20 @@ local function probeLogin()
   end
   if GetNumTitles then L.numTitles = try(GetNumTitles)[1] end
   if GetPVPLifetimeStats then L.pvpLifetime = try(GetPVPLifetimeStats) end
-  if UnitPVPRank then L.pvpRank = try(UnitPVPRank, "player") end
+  if UnitPVPRank then
+    L.pvpRank = try(UnitPVPRank, "player")
+    if GetPVPRankInfo and L.pvpRank[1] then L.pvpRankInfo = try(GetPVPRankInfo, L.pvpRank[1]) end
+  end
+  if C_TaxiMap and C_TaxiMap.GetAllTaxiNodes and C_Map and C_Map.GetBestMapForUnit then
+    local map = C_Map.GetBestMapForUnit("player")
+    local res = try(C_TaxiMap.GetAllTaxiNodes, map)
+    L.taxiAllNodes = res.err or (type(res[1]) == "table" and #res[1]) or "?"
+    if C_TaxiMap.GetTaxiNodesForMap then
+      local r2 = try(C_TaxiMap.GetTaxiNodesForMap, map)
+      L.taxiNodesForMap = r2.err or (type(r2[1]) == "table" and #r2[1]) or "?"
+      if type(r2[1]) == "table" and r2[1][1] then L.taxiNodeForMap1 = r2[1][1] end
+    end
+  end
   if GetMoney then L.money = GetMoney() end
   if GetBindLocation then L.bindLocation = try(GetBindLocation)[1] end
   L.equippedMainHand = try(GetInventoryItemLink, "player", 16)
@@ -410,7 +582,7 @@ local function probeLogin()
   L.instanceInfo = try(GetInstanceInfo)
   if GetNumGroupMembers then L.groupMembers = GetNumGroupMembers() end
 
-  DB.login = trim(L)
+  DB.login = trim(L, 0, 6, 500)
   DB.loginAt = now()
 end
 
@@ -446,6 +618,10 @@ local EVENTS = {
   "BANKFRAME_OPENED", "AUCTION_HOUSE_SHOW", "PET_STABLE_SHOW", "CONFIRM_XP_LOSS",
   "RESURRECT_REQUEST", "CORPSE_IN_RANGE", "PLAYER_FLAGS_CHANGED", "UNIT_FACTION",
   "HARDCORE_DEATH", "SEASON_INFO_UPDATE",
+  "LEARNED_SPELL_IN_SKILL_LINE", "NEW_RECIPE_LEARNED", "PLAYER_XP_UPDATE", "ITEM_PUSH",
+  "CHAT_MSG_MONSTER_PARTY", "GOSSIP_CONFIRM", "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED",
+  "QUEST_WATCH_UPDATE", "QUEST_ITEM_UPDATE", "TRADE_SKILL_LIST_UPDATE", "UNIT_INVENTORY_CHANGED",
+  "CHAT_MSG_TEXT_EMOTE", "TAXIMAP_OPENED", "PLAYER_UPDATE_RESTING", "DISCOVERY_PLAYER_SHOW",
 }
 
 local function registerAll()
@@ -459,15 +635,34 @@ end
 local handlers = {}
 
 handlers.PLAYER_TARGET_CHANGED = function()
-  if UnitExists("target") then sample("target", snapshotUnit("target")) end
+  if UnitExists("target") then
+    sampleUnique("target", npcIDFromGUID(UnitGUID("target")), snapshotUnit("target"), 20)
+  end
 end
 handlers.UPDATE_MOUSEOVER_UNIT = function()
-  if UnitExists("mouseover") and not UnitIsUnit("mouseover", "player") then
-    sample("mouseover", snapshotUnit("mouseover"))
+  if UnitExists("mouseover") then
+    if not UnitIsUnit("mouseover", "player") then
+      sampleUnique("mouseover", npcIDFromGUID(UnitGUID("mouseover")), snapshotUnit("mouseover"), 20)
+    end
+  else
+    -- no unit: probably a game object (chest, herb, vein, sign). Read the live tooltip.
+    local l1 = GameTooltipTextLeft1 and GameTooltipTextLeft1:GetText()
+    if l1 then
+      local r = { line1 = l1 }
+      local l2 = GameTooltipTextLeft2 and GameTooltipTextLeft2:GetText()
+      r.line2 = l2
+      if GameTooltip.GetUnit then r.tipUnit = try(GameTooltip.GetUnit, GameTooltip) end
+      if C_Map and C_Map.GetBestMapForUnit then
+        r.mapID = C_Map.GetBestMapForUnit("player")
+        local pos = r.mapID and C_Map.GetPlayerMapPosition(r.mapID, "player")
+        if pos then r.x, r.y = pos:GetXY() end
+      end
+      sampleUnique("mouseoverObject", l1, r, 20)
+    end
   end
 end
 handlers.NAME_PLATE_UNIT_ADDED = function(unit)
-  sample("nameplate", { unit = unit, guid = UnitGUID(unit), name = UnitName(unit), level = UnitLevel(unit) })
+  sampleUnique("nameplate", npcIDFromGUID(UnitGUID(unit)), { unit = unit, guid = UnitGUID(unit), name = UnitName(unit), level = UnitLevel(unit) }, 20)
 end
 
 handlers.LOOT_OPENED = function(autoLoot)
@@ -533,7 +728,13 @@ handlers.QUEST_GREETING = function()
   end
   sample("questGreeting", r)
 end
-handlers.QUEST_ACCEPTED = function(...) sample("questAccepted", { args = { ... } }) end
+handlers.QUEST_ACCEPTED = function(...)
+  local r = { args = { ... } }
+  local qid = select(2, ...) or select(1, ...)
+  if C_QuestLog and C_QuestLog.GetQuestInfo and type(qid) == "number" then r.cInfo = try(C_QuestLog.GetQuestInfo, qid) end
+  if C_QuestLog and C_QuestLog.GetQuestObjectives and type(qid) == "number" then r.cObjectives = try(C_QuestLog.GetQuestObjectives, qid) end
+  sample("questAccepted", r)
+end
 handlers.QUEST_TURNED_IN = function(...) sample("questTurnedIn", { args = { ... } }) end
 handlers.QUEST_REMOVED = function(...) sample("questRemoved", { args = { ... } }) end
 
@@ -623,8 +824,11 @@ handlers.ITEM_TEXT_READY = function()
 end
 
 local function speech(kind)
-  return function(text, sender, lang, chan, target, flags, a7, a8, a9, a10, lineID, guid)
-    sample("speech_" .. kind, { sender = sender, lang = lang, target = target, lineID = lineID, guid = guid, textLen = #(text or "") })
+  return function(...)
+    local text, sender, lang, chan, target, flags, a7, a8, a9, a10, lineID, guid, a13 = ...
+    sample("speech_" .. kind, { nargs = select("#", ...), sender = sender, lang = lang, target = target, flags = flags,
+      a7 = a7, a8 = a8, a9 = a9, a10 = a10, lineID = lineID, guid = guid, a13 = a13, text = text,
+      mouseoverGUID = UnitGUID("mouseover"), targetGUID = UnitGUID("target") })
   end
 end
 handlers.CHAT_MSG_MONSTER_SAY = speech("say")
@@ -671,8 +875,23 @@ handlers.ZONE_CHANGED_NEW_AREA = function()
   sample("zoneNewArea", r)
 end
 handlers.ZONE_CHANGED = function()
-  sample("zoneChanged", { zone = GetZoneText(), sub = GetSubZoneText() })
+  local r = { zone = GetZoneText(), sub = GetSubZoneText() }
+  if C_MapExplorationInfo and C_MapExplorationInfo.GetExploredAreaIDsAtPosition and C_Map and C_Map.GetBestMapForUnit then
+    local map = C_Map.GetBestMapForUnit("player")
+    local pos = map and C_Map.GetPlayerMapPosition(map, "player")
+    if pos then
+      r.areaIDs = try(C_MapExplorationInfo.GetExploredAreaIDsAtPosition, map, pos)
+      if type(r.areaIDs[1]) == "table" and r.areaIDs[1][1] and C_Map.GetAreaInfo then r.areaName = try(C_Map.GetAreaInfo, r.areaIDs[1][1]) end
+    end
+  end
+  sample("zoneChanged", r)
 end
+handlers.LEARNED_SPELL_IN_SKILL_LINE = function(...) sample("learnedSpellSkillLine", { args = { ... } }) end
+handlers.NEW_RECIPE_LEARNED = function(...) sample("newRecipe", { args = { ... } }) end
+handlers.PLAYER_XP_UPDATE = function(...) sample("xpUpdate", { args = { ... }, xp = UnitXP("player"), max = UnitXPMax("player") }) end
+handlers.ITEM_PUSH = function(...) sample("itemPush", { args = { ... } }) end
+handlers.CHAT_MSG_MONSTER_PARTY = speech("party")
+handlers.GOSSIP_CONFIRM = function(...) sample("gossipConfirm", { args = { ... } }) end
 
 handlers.UNIT_AURA = function(unit, info)
   if unit ~= "player" then return end
@@ -720,7 +939,12 @@ handlers.CRAFT_SHOW = function()
 end
 handlers.CHAT_MSG_COMBAT_FACTION_CHANGE = function(text) sample("factionChange", { text = text }) end
 handlers.CHAT_MSG_SKILL = function(text) sample("skillMsg", { text = text }) end
-handlers.CHAT_MSG_LOOT = function(text, ...) sample("lootMsg", { text = text, guid = select(11, ...) }) end
+handlers.CHAT_MSG_LOOT = function(...)
+  local n = select("#", ...)
+  local r = { nargs = n, text = (...) }
+  for i = 2, n do r["a" .. i] = select(i, ...) end
+  sample("lootMsg", r)
+end
 handlers.CHAT_MSG_MONEY = function(text) sample("moneyMsg", { text = text }) end
 handlers.CHAT_MSG_COMBAT_HONOR_GAIN = function(text) sample("honorMsg", { text = text }) end
 handlers.PLAYER_LEVEL_UP = function(...) sample("levelUp", { args = { ... } }) end
@@ -741,7 +965,7 @@ handlers.ACHIEVEMENT_EARNED = function(...) sample("achievementEarned", { args =
 handlers.HARDCORE_DEATH = function(...) sample("hardcoreDeath", { args = { ... } }) end
 handlers.CHAT_MSG_SYSTEM = function(text)
   -- only keep discovery-like and level-like system lines
-  if text and (string.find(text, "iscover") or string.find(text, "evel")) then sample("systemMsg", { text = text }) end
+  if text and (string.find(text, "iscover") or string.find(text, "learned") or string.find(text, "xperience")) then sample("systemMsg", { text = text }) end
 end
 
 local COUNT_ONLY = { QUEST_LOG_UPDATE = true, BAG_UPDATE = true, PLAYER_MONEY = true, GET_ITEM_INFO_RECEIVED = true,
@@ -755,19 +979,24 @@ local COUNT_ONLY = { QUEST_LOG_UPDATE = true, BAG_UPDATE = true, PLAYER_MONEY = 
   BANKFRAME_OPENED = true, AUCTION_HOUSE_SHOW = true, PET_STABLE_SHOW = true, CONFIRM_XP_LOSS = true,
   RESURRECT_REQUEST = true, CORPSE_IN_RANGE = true, MAIL_SHOW = true, PLAYER_PVP_KILLS_CHANGED = true,
   UPDATE_BATTLEFIELD_SCORE = true, DUEL_REQUESTED = true, CRITERIA_UPDATE = true, SEASON_INFO_UPDATE = true,
-  PLAYER_ENTERING_WORLD = true }
+  PLAYER_ENTERING_WORLD = true, PLAYER_REGEN_DISABLED = true, PLAYER_REGEN_ENABLED = true,
+  QUEST_WATCH_UPDATE = true, QUEST_ITEM_UPDATE = true, TRADE_SKILL_LIST_UPDATE = true,
+  UNIT_INVENTORY_CHANGED = true, CHAT_MSG_TEXT_EMOTE = true, PLAYER_UPDATE_RESTING = true,
+  DISCOVERY_PLAYER_SHOW = true }
 
 frame:SetScript("OnEvent", function(self, event, ...)
   if event == "PLAYER_LOGIN" then
     WoWCompendiumProbeDB = WoWCompendiumProbeDB or {}
+    if WoWCompendiumProbeDB.version ~= PROBE_VERSION then wipe(WoWCompendiumProbeDB) end
     DB = WoWCompendiumProbeDB
-    DB.version = 1
+    DB.version = PROBE_VERSION
     DB.counts = DB.counts or {}
     DB.samples = DB.samples or {}
     DB.notes = DB.notes or {}
     DB.sessions = (DB.sessions or 0) + 1
     registerAll()
     probeAPIs()
+    probeValues()
     -- delay the snapshot so caches warm up
     if C_Timer and C_Timer.After then
       C_Timer.After(3, probeLogin)
@@ -807,6 +1036,12 @@ SlashCmdList.CPROBE = function(msg)
   if msg == "reset" then
     wipe(WoWCompendiumProbeDB)
     print("WoW Compendium Probe: data cleared. /reload to start fresh.")
+    return
+  end
+  if msg == "tip" and UnitExists("target") then
+    local r = scanTip("SetUnit", "target")
+    print("WoW Compendium Probe: tooltip lines for target: " .. tostring(r.n or r.err))
+    for i, l in ipairs(r.lines or {}) do print("  " .. i .. ": " .. tostring(l)) end
     return
   end
   local n = 0

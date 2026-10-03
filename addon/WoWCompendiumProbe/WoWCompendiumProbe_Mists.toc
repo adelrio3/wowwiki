@@ -2,7 +2,7 @@
 ## Title: WoW Compendium Probe
 ## Notes: Throwaway diagnostic. Records which APIs and events this client exposes. Remove after use.
 ## Author: WoW Compendium
-## Version: 0.1.0
+## Version: 0.2.0
 ## SavedVariables: WoWCompendiumProbeDB
 ## X-Toc: Mists
 
