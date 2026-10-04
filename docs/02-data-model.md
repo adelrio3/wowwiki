@@ -73,6 +73,7 @@ ID across flavors may describe different things, so every entity key is `(flavor
 | map | uiMapID (`C_Map`) | Zones, subzones, continents, instance maps. Fields include `art_layer` (one JSON: layer size, tile size, tile FileDataIDs) and `art_overlay` (one JSON per explored piece: size, offset, FileDataIDs), both `client_catalog` source; overlays are a set, never a dispute. |
 | area | areaID | Subzone names, discovered via `C_Map.GetAreaInfo` / zone text. |
 | faction | factionID | Reputations. |
+| taxi_node | nodeID (`C_TaxiMap`) | Name, position, faction from the client catalog; `flight_master` (npcID) and `taxi_route` (JSON `{to}`, a set) from the open flight map. |
 | instance | instanceID from `GetInstanceInfo` | Dungeons, raids, battlegrounds. |
 | encounter | encounterID from `ENCOUNTER_START` | Bosses. Falls back to final-boss npcID where encounter IDs are absent. |
 | taxi_node | taxi node ID | Flight masters and routes. |
@@ -243,4 +244,9 @@ Each device token row also carries what that helper last reported (D-0043):
 `helper_version`, `state` (JSON: folder, clients, last sync, last error, paused,
 game running), `last_seen_at`, and `pending_action` (`sync` or null), which the
 site sets and the helper clears when it collects it.
+
+### Character state kinds
+
+`character_state.kind` is `explored` (key: areaID) for discovered areas and `taxi`
+(key: nodeID, value: name and map) for flight paths the character can use.
 

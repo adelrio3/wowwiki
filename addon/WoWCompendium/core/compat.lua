@@ -189,3 +189,19 @@ function compat.allMapIDs()
   return ids
 end
 
+-- The open flight map: every node with its state (0 current, 1 reachable,
+-- 2 unreachable) and the map it is drawn on. Nil when no flight map is open.
+function compat.taxiMapNodes()
+  if not (C_TaxiMap and C_TaxiMap.GetAllTaxiNodes) then return nil end
+  local mapID
+  if GetTaxiMapID then
+    local ok, id = pcall(GetTaxiMapID)
+    if ok then mapID = id end
+  end
+  if not mapID then mapID = compat.playerMapPosition() end
+  if not mapID then return nil end
+  local ok, nodes = pcall(C_TaxiMap.GetAllTaxiNodes, mapID)
+  if not ok or type(nodes) ~= "table" then return nil end
+  return nodes, mapID
+end
+

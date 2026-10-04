@@ -10,7 +10,7 @@ import { serviceClient } from "../supabase";
 import { SUPABASE_URL } from "../env";
 
 const locatorFiles = import.meta.glob("./locators/*.json", { eager: true, import: "default" }) as Record<string, Locator>;
-type BootstrapLayouts = Record<string, { name: string; layer: MapLayout["layer"]; overlays: MapOverlay[] }>;
+type BootstrapLayouts = Record<string, { name: string; parent: number; type: number; layer: MapLayout["layer"]; overlays: MapOverlay[] }>;
 const layoutFiles = import.meta.glob("./layouts/*.json", { eager: true, import: "default" }) as Record<string, BootstrapLayouts>;
 
 /** Layouts from the client's own tables for a flavor's newest build (D-0044). */

@@ -13,7 +13,7 @@ const session = SessionSchema.parse({
     },
     maps: { "1412": { id: 1412, name: "Mulgore", type: 3, parent: 1414, ft: 1790998608, art: { w: 1002, h: 668, tw: 256, th: 256, t: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], aid: 6412 }, ovl: [{ w: 256, h: 256, x: 300, y: 200, t: [272173] }] } },
     areas: { "222": { id: 222, name: "Bloodhoof Village", m: 1412, zone: "Mulgore", sub: "Bloodhoof Village", ft: 1790998608, lt: 1790998700 } },
-    taxiNodes: { "22": { id: 22, name: "Thunder Bluff, Mulgore", m: 1412, x: 0.39, y: 0.27, faction: 1, undiscovered: false, ft: 1790998608 } },
+    taxiNodes: { "22": { id: 22, name: "Thunder Bluff, Mulgore", m: 1412, x: 0.39, y: 0.27, faction: 1, undiscovered: false, known: true, fm: 2995, routes: { "25": true }, ft: 1790998608 } },
   },
   events: [{ t: 1790998608, k: "login", d: { level: 5 } }],
   state: { level: 5 },
@@ -33,6 +33,11 @@ describe("observationsFor", () => {
     expect(rows.find((r) => r.entity_type === "area" && r.field === "map")?.value_num).toBe(1412);
     expect(rows.find((r) => r.entity_type === "taxi_node" && r.field === "name")).toMatchObject({ source: "client_catalog" });
     expect(rows.every((r) => r.server_time.endsWith("Z"))).toBe(true);
+  });
+  it("records flight routes and the flight master as encounter facts", () => {
+    const rows = observationsFor(session, ctx);
+    expect(rows.find((r) => r.entity_type === "taxi_node" && r.field === "taxi_route")).toMatchObject({ source: "encounter", value_json: { to: 25 } });
+    expect(rows.find((r) => r.entity_type === "taxi_node" && r.field === "flight_master")?.value_num).toBe(2995);
   });
   it("records map art layout as client catalog facts", () => {
     const rows = observationsFor(session, ctx);

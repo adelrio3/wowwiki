@@ -187,3 +187,11 @@ with trust below threshold.
 `account_achievements` and `achievement_progress` carry `reward_json`. Reward kinds
 `title`, `badge`, `frame`, `theme` are reserved. The profile page has a slot for a
 chosen title and badge. No rewards are defined in the first release.
+
+### Zones visited and flight paths known
+
+The character page lists the zones a character has entered (from `zone_enter`
+events) and the flight paths it can use (`character_state` kind `taxi`, recorded
+from the flight map's current and reachable nodes). Both are Journal data only;
+the wiki's flight paths come from routes, never from who knows them (D-0045).
+

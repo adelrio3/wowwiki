@@ -76,9 +76,19 @@ function M.install()
     GetExploredAreaIDsAtPosition = function() return M.areaIDs end,
     GetExploredMapTextures = function(id) if id ~= 1412 then return {} end return { { textureWidth = 256, textureHeight = 256, offsetX = 300, offsetY = 200, fileDataIDs = { 272173 } } } end,
   }
-  _G.C_TaxiMap = { GetTaxiNodesForMap = function()
-    return { { nodeID = 22, name = "Thunder Bluff, Mulgore", position = { GetXY = function() return 0.39, 0.27 end }, faction = 1, isUndiscovered = false } }
-  end }
+  _G.C_TaxiMap = {
+    GetTaxiNodesForMap = function()
+      return { { nodeID = 22, name = "Thunder Bluff, Mulgore", position = { GetXY = function() return 0.39, 0.27 end }, faction = 1, isUndiscovered = false } }
+    end,
+    GetAllTaxiNodes = function()
+      return {
+        { nodeID = 22, name = "Thunder Bluff, Mulgore", state = 0, position = { GetXY = function() return 0.39, 0.27 end } },
+        { nodeID = 25, name = "The Crossroads, The Barrens", state = 1, position = { GetXY = function() return 0.52, 0.30 end } },
+        { nodeID = 23, name = "Orgrimmar, Durotar", state = 2, position = { GetXY = function() return 0.61, 0.21 end } },
+      }
+    end,
+  }
+  _G.GetTaxiMapID = function() return 1414 end
 
   local function unit(token) return M.units[token] end
   _G.UnitExists = function(t) return unit(t) ~= nil end

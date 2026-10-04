@@ -7,7 +7,7 @@ export const load: PageServerLoad = async ({ url }) => {
   const q = (url.searchParams.get("q") ?? "").trim();
   const zones = await zoneOverview(flavor);
   if (!q) return { flavor, q, zones, results: null };
-  const [units, areas, taxi] = await Promise.all([unitRows(flavor, q, 100), listEntities(flavor, "area", 50, q), listEntities(flavor, "taxi_node", 50, q)]);
+  const [units, areas] = await Promise.all([unitRows(flavor, q, 100), listEntities(flavor, "area", 50, q)]);
   const lower = q.toLowerCase();
   return {
     flavor,
@@ -18,7 +18,6 @@ export const load: PageServerLoad = async ({ url }) => {
       creatures: units.filter((u) => u.kind === "Creature"),
       zones: zones.filter((z) => z.name.toLowerCase().includes(lower)),
       areas,
-      taxi,
     },
   };
 };

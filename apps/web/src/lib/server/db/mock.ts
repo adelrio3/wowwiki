@@ -96,6 +96,8 @@ export const mockCharacterDetail = {
     { seq: 2, started_at: "2026-10-03T21:00:00.000Z", ended_at: "2026-10-03T22:30:00.000Z", build: 70003, level_start: 5, level_end: 6 },
   ],
   exploredCount: 4,
+  flightPaths: [{ nodeId: 22, name: "Thunder Bluff, Mulgore", mapId: 1412, since: t }, { nodeId: 25, name: "The Crossroads, The Barrens", mapId: 1413, since: t }],
+  zonesVisited: [{ mapId: 1412, at: "2026-10-03T21:00:00.000Z" }, { mapId: 1456, at: "2026-10-04T12:30:00.000Z" }],
 };
 
 export const mockUploads = [

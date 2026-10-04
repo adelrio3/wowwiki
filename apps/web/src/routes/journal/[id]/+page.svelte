@@ -34,9 +34,10 @@
   </div>
 </PageHeader>
 
-<div class="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+<div class="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-5">
   <StatTile value={played(data.stats.played_total)} label="played" />
   <StatTile value={data.exploredCount} label="areas explored" />
+  <StatTile value={data.flightPaths.length} label="flight paths known" />
   <StatTile value={data.stats.deaths ?? 0} label="deaths" />
   <StatTile value={data.stats.sessions ?? data.sessions.length} label="sessions" />
 </div>
@@ -66,6 +67,22 @@
     {/if}
   </section>
   <aside class="space-y-4 lg:sticky lg:top-6 lg:self-start">
+    <Card title="Zones visited">
+      <ul class="space-y-1.5 text-[14px]">
+        {#each data.zonesVisited as z (z.mapId)}
+          <li class="flex justify-between gap-2"><a href="/wiki/{c.flavor}/zone/{z.mapId}">{data.maps[z.mapId] ?? `Map ${z.mapId}`}</a><span class="num text-ink-faint">{new Date(z.at).toLocaleDateString()}</span></li>
+        {/each}
+        {#if !data.zonesVisited.length}<li class="text-ink-muted">None yet.</li>{/if}
+      </ul>
+    </Card>
+    <Card title="Flight paths known">
+      <ul class="space-y-1.5 text-[14px]">
+        {#each data.flightPaths as f (f.nodeId)}
+          <li>{#if f.mapId !== null}<a href="/wiki/{c.flavor}/zone/{f.mapId}" class="text-ink hover:text-accent">{f.name}</a>{:else}{f.name}{/if}</li>
+        {/each}
+        {#if !data.flightPaths.length}<li class="text-ink-muted">None recorded yet. Open a flight master's map once.</li>{/if}
+      </ul>
+    </Card>
     <Card title="Sessions">
       <ul class="space-y-1.5 text-[14px]">
         {#each data.sessions.slice(0, 10) as s}

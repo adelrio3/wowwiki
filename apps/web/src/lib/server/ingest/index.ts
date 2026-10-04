@@ -281,6 +281,8 @@ export function observationsFor(s: Session, c: Ctx): ObservationRow[] {
     if (n.name) push("taxi_node", n.id, "", "name", { text: n.name }, n.ft, undefined, "client_catalog");
     if (n.m !== undefined && n.x !== undefined) push("taxi_node", n.id, "", "position", { json: { k: "catalog" } }, n.ft, { t: n.ft, m: n.m, x: n.x, y: n.y }, "client_catalog");
     if (n.faction !== undefined) push("taxi_node", n.id, "", "faction", { num: n.faction }, n.ft, undefined, "client_catalog");
+    if (n.fm !== undefined) push("taxi_node", n.id, "", "flight_master", { num: n.fm }, n.ft);
+    for (const to of Object.keys(n.routes ?? {})) push("taxi_node", n.id, "", "taxi_route", { json: { to: Number(to) } }, n.ft);
   }
   return rows;
 }
@@ -373,6 +375,13 @@ async function writeJournal(db: SupabaseClient, characterId: string, sessionId: 
     await db.from("character_stats").upsert(stats.map((x) => ({ character_id: characterId, ...x, updated_at: asOf })), { onConflict: "character_id,stat_key" });
   }
   if (st.level !== undefined) await db.from("characters").update({ level: st.level }).eq("id", characterId);
+  const known = Object.values(s.world.taxiNodes).filter((n) => n.known || n.undiscovered === false);
+  if (known.length) {
+    await db.from("character_state").upsert(
+      known.map((n) => ({ character_id: characterId, kind: "taxi", key: String(n.id), value_json: { name: n.name ?? null, map: n.m ?? null }, as_of: asOf })),
+      { onConflict: "character_id,kind,key" },
+    );
+  }
   if (st.explored?.length) {
     await db.from("character_state").upsert(
       st.explored.map((areaId) => ({ character_id: characterId, kind: "explored", key: String(areaId), value_json: true, as_of: asOf })),

@@ -178,6 +178,12 @@ export const TaxiNodeRecordSchema = z.object({
   faction: z.number().int().optional(),
   /** false means the character has discovered it (Journal state) */
   undiscovered: z.boolean().optional(),
+  /** this character can fly from or to it (flight map state current/reachable): Journal */
+  known: z.boolean().optional(),
+  /** npcID of the flight master who opened the map here */
+  fm: z.number().int().optional(),
+  /** destination nodeIDs reachable from this node, as the flight map showed */
+  routes: luaRecord(z.boolean()).optional(),
   ft: z.number().int(),
 });
 

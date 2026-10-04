@@ -56,7 +56,7 @@ if (cmd === "layouts") {
   const [maps, xart, arts, styles, tiles, overlays, otiles] = await Promise.all(["UiMap", "UiMapXMapArt", "UiMapArt", "UiMapArtStyleLayer", "UiMapArtTile", "WorldMapOverlay", "WorldMapOverlayTile"].map((t) => csv(t, build)));
   const styleOf = new Map(arts.map((a) => [a.ID!, a.UiMapArtStyleID!]));
   const layerOf = new Map(styles.filter((l) => l.LayerIndex === "0").map((l) => [l.UiMapArtStyleID!, l]));
-  const out: Record<string, { layer: { w: number; h: number; tw: number; th: number; t: number[]; aid: number }; overlays: Array<{ w: number; h: number; x: number; y: number; t: number[] }>; name: string }> = {};
+  const out: Record<string, { layer: { w: number; h: number; tw: number; th: number; t: number[]; aid: number }; overlays: Array<{ w: number; h: number; x: number; y: number; t: number[] }>; name: string; parent: number; type: number }> = {};
   for (const x of xart) {
     if (x.PhaseID !== "0") continue;
     const artId = x.UiMapArtID!, mapId = x.UiMapID!;
@@ -67,7 +67,8 @@ if (cmd === "layouts") {
       w: Number(o.TextureWidth), h: Number(o.TextureHeight), x: Number(o.OffsetX), y: Number(o.OffsetY),
       t: otiles.filter((t) => t.WorldMapOverlayID === o.ID && t.LayerIndex === "0").sort((a, b) => Number(a.RowIndex) - Number(b.RowIndex) || Number(a.ColIndex) - Number(b.ColIndex)).map((t) => Number(t.FileDataID)),
     })).filter((o) => o.t.length);
-    out[mapId] = { name: (maps.find((m) => m.ID === mapId)?.Name_lang ?? "").replace(/^"|"$/g, ""), layer: { w: Number(style.LayerWidth), h: Number(style.LayerHeight), tw: Number(style.TileWidth), th: Number(style.TileHeight), t: base.map((t) => Number(t.FileDataID)), aid: Number(artId) }, overlays: ov };
+    const row = maps.find((m) => m.ID === mapId);
+    out[mapId] = { name: (row?.Name_lang ?? "").replace(/^"|"$/g, ""), parent: Number(row?.ParentUiMapID ?? 0), type: Number(row?.Type ?? 3), layer: { w: Number(style.LayerWidth), h: Number(style.LayerHeight), tw: Number(style.TileWidth), th: Number(style.TileHeight), t: base.map((t) => Number(t.FileDataID)), aid: Number(artId) }, overlays: ov };
   }
   const buildId = build.split(".").pop();
   const outPath = args.out ?? join(process.cwd(), "..", "..", "apps", "web", "src", "lib", "server", "map-art", "layouts", `${flavor}-${buildId}.json`);

@@ -2,7 +2,7 @@
 import { serviceClient } from "../supabase";
 import { DEFAULT_LOCALE } from "@compendium/game-meta";
 import { MOCK, mockArtwork, mockCreatureFacts, mockListed, mockMaps, mockPositions, mockSummaries } from "./mock";
-import { ensureMapArt, publicUrl } from "../map-art";
+import { bootstrapLayouts, ensureMapArt, publicUrl } from "../map-art";
 import { kindSignalsFromFacts, unitKind } from "$lib/wiki-format";
 
 export interface FactRow {
@@ -248,33 +248,39 @@ export interface ZoneOverview extends Listed {
   areas: number;
 }
 
-/** Every map with a name, with its parent, type, and how much has been seen there. */
+/**
+ * Every map of the build (from the client's layout tables, D-0045) with its
+ * parent and type, plus what contributors have seen there. Maps appear before
+ * anyone visits them; counts fill in as uploads arrive.
+ */
 export async function zoneOverview(flavor: string): Promise<ZoneOverview[]> {
+  const byId = new Map<number, ZoneOverview>();
+  for (const [id, b] of Object.entries(bootstrapLayouts(flavor))) byId.set(Number(id), { entity_id: Number(id), name: b.name, status: "unrecorded", contributor_count: 0, last_build: 0, parent: b.parent || null, parentName: null, mapType: b.type, units: 0, areas: 0 });
   if (MOCK) {
     const units = (id: number) => Object.values(mockPositions).filter((ps) => ps.some((p) => p.map_id === id)).length;
-    return mockListed.map.map((m) => ({ ...m, parent: 1414, parentName: "Kalimdor", mapType: m.entity_id === 1456 ? 3 : 3, units: units(m.entity_id), areas: m.entity_id === 1412 ? 2 : 0 }));
+    for (const m of mockListed.map) { const z = byId.get(m.entity_id) ?? byId.set(m.entity_id, { ...m, parent: 1414, parentName: null, mapType: 3, units: 0, areas: 0 }).get(m.entity_id)!; z.status = m.status; z.contributor_count = m.contributor_count; z.last_build = m.last_build; z.units = units(m.entity_id); z.areas = m.entity_id === 1412 ? 2 : 0; }
+  } else {
+    const db = serviceClient();
+    const [{ data: names }, { data: parents }, { data: types }, { data: pos }, { data: areaMaps }] = await Promise.all([
+      db.from("facts").select("entity_id, value_text, locale, status, contributor_count, last_build").eq("flavor", flavor).eq("entity_type", "map").eq("field", "name"),
+      db.from("facts").select("entity_id, value_num").eq("flavor", flavor).eq("entity_type", "map").eq("field", "parent"),
+      db.from("facts").select("entity_id, value_num").eq("flavor", flavor).eq("entity_type", "map").eq("field", "map_type"),
+      db.from("positions").select("entity_id, map_id").eq("flavor", flavor).eq("entity_type", "creature").limit(5000),
+      db.from("facts").select("entity_id, value_num").eq("flavor", flavor).eq("entity_type", "area").eq("field", "map"),
+    ]);
+    for (const n of names ?? []) {
+      const z = byId.get(n.entity_id) ?? byId.set(n.entity_id, { entity_id: n.entity_id, name: n.value_text ?? "", status: n.status, contributor_count: n.contributor_count, last_build: n.last_build, parent: null, parentName: null, mapType: null, units: 0, areas: 0 }).get(n.entity_id)!;
+      if (n.locale === DEFAULT_LOCALE || z.status === "unrecorded") { z.name = n.value_text ?? z.name; z.status = n.status; z.contributor_count = n.contributor_count; z.last_build = n.last_build; }
+    }
+    for (const p of parents ?? []) { const z = byId.get(p.entity_id); if (z && z.parent === null) z.parent = p.value_num; }
+    for (const t of types ?? []) { const z = byId.get(t.entity_id); if (z && z.mapType === null) z.mapType = t.value_num; }
+    const unitsByMap = new Map<number, Set<number>>();
+    for (const p of pos ?? []) { if (p.map_id === null) continue; (unitsByMap.get(p.map_id) ?? unitsByMap.set(p.map_id, new Set()).get(p.map_id)!).add(p.entity_id); }
+    for (const [m, set] of unitsByMap) { const z = byId.get(m); if (z) z.units = set.size; }
+    const areasByMap = new Map<number, Set<number>>();
+    for (const a of areaMaps ?? []) { if (a.value_num === null) continue; (areasByMap.get(a.value_num) ?? areasByMap.set(a.value_num, new Set()).get(a.value_num)!).add(a.entity_id); }
+    for (const [m, set] of areasByMap) { const z = byId.get(m); if (z) z.areas = set.size; }
   }
-  const db = serviceClient();
-  const [{ data: names }, { data: parents }, { data: types }, { data: pos }, { data: areaMaps }] = await Promise.all([
-    db.from("facts").select("entity_id, value_text, locale, status, contributor_count, last_build").eq("flavor", flavor).eq("entity_type", "map").eq("field", "name"),
-    db.from("facts").select("entity_id, value_num").eq("flavor", flavor).eq("entity_type", "map").eq("field", "parent"),
-    db.from("facts").select("entity_id, value_num").eq("flavor", flavor).eq("entity_type", "map").eq("field", "map_type"),
-    db.from("positions").select("entity_id, map_id").eq("flavor", flavor).eq("entity_type", "creature").limit(5000),
-    db.from("facts").select("entity_id, value_num").eq("flavor", flavor).eq("entity_type", "area").eq("field", "map"),
-  ]);
-  const byId = new Map<number, ZoneOverview>();
-  for (const n of names ?? []) {
-    if (byId.has(n.entity_id) && n.locale !== DEFAULT_LOCALE) continue;
-    byId.set(n.entity_id, { entity_id: n.entity_id, name: n.value_text ?? "", status: n.status, contributor_count: n.contributor_count, last_build: n.last_build, parent: null, parentName: null, mapType: null, units: 0, areas: 0 });
-  }
-  for (const p of parents ?? []) { const z = byId.get(p.entity_id); if (z) z.parent = p.value_num; }
-  for (const t of types ?? []) { const z = byId.get(t.entity_id); if (z) z.mapType = t.value_num; }
-  const unitsByMap = new Map<number, Set<number>>();
-  for (const p of pos ?? []) { if (p.map_id === null) continue; (unitsByMap.get(p.map_id) ?? unitsByMap.set(p.map_id, new Set()).get(p.map_id)!).add(p.entity_id); }
-  for (const [m, set] of unitsByMap) { const z = byId.get(m); if (z) z.units = set.size; }
-  const areasByMap = new Map<number, Set<number>>();
-  for (const a of areaMaps ?? []) { if (a.value_num === null) continue; (areasByMap.get(a.value_num) ?? areasByMap.set(a.value_num, new Set()).get(a.value_num)!).add(a.entity_id); }
-  for (const [m, set] of areasByMap) { const z = byId.get(m); if (z) z.areas = set.size; }
   for (const z of byId.values()) z.parentName = z.parent !== null ? (byId.get(z.parent)?.name ?? null) : null;
   return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
@@ -314,5 +320,39 @@ export async function artworkFor(flavor: string, entityType: string, entityId: n
   if (existing || entityType !== "map" || kind !== "map") return existing;
   // First view of a map that has a layout but no image yet: compose it now.
   return (await ensureMapArt(flavor, entityId)) ? read() : null;
+}
+
+export interface FlightMaster { nodeId: number; name: string; x: number | null; y: number | null; npcId: number | null; npcName: string | null; destinations: Array<{ nodeId: number; name: string; mapId: number | null }> }
+
+/** Flight masters standing on a map, who they are, and where you can fly from them (D-0045). */
+export async function flightMastersOnMap(flavor: string, mapId: number): Promise<FlightMaster[]> {
+  const nodes = await taxiNodesOnMap(flavor, mapId);
+  if (!nodes.length) return [];
+  if (MOCK) return nodes.map((n) => ({ nodeId: n.entity_id, name: n.name, x: n.x, y: n.y, npcId: 2995, npcName: "Tal", destinations: [{ nodeId: 25, name: "The Crossroads, The Barrens", mapId: 1413 }] }));
+  const db = serviceClient();
+  const ids = nodes.map((n) => n.entity_id);
+  const { data: facts } = await db.from("facts").select("entity_id, field, value_num, value_json").eq("flavor", flavor).eq("entity_type", "taxi_node").in("field", ["flight_master", "taxi_route"]).in("entity_id", ids);
+  const destIds = [...new Set((facts ?? []).filter((f) => f.field === "taxi_route").map((f) => (f.value_json as { to: number }).to))];
+  const npcIds = [...new Set((facts ?? []).filter((f) => f.field === "flight_master" && f.value_num !== null).map((f) => f.value_num as number))];
+  const [{ data: destNames }, { data: destPos }, { data: npcNames }] = await Promise.all([
+    destIds.length ? db.from("facts").select("entity_id, value_text, locale").eq("flavor", flavor).eq("entity_type", "taxi_node").eq("field", "name").in("entity_id", destIds) : Promise.resolve({ data: [] as Array<{ entity_id: number; value_text: string | null; locale: string }> }),
+    destIds.length ? db.from("positions").select("entity_id, map_id").eq("flavor", flavor).eq("entity_type", "taxi_node").in("entity_id", destIds) : Promise.resolve({ data: [] as Array<{ entity_id: number; map_id: number | null }> }),
+    npcIds.length ? db.from("facts").select("entity_id, value_text, locale").eq("flavor", flavor).eq("entity_type", "creature").eq("field", "name").in("entity_id", npcIds) : Promise.resolve({ data: [] as Array<{ entity_id: number; value_text: string | null; locale: string }> }),
+  ]);
+  const nameOf = (rows: Array<{ entity_id: number; value_text: string | null; locale: string }> | null) => { const m = new Map<number, string>(); for (const r of rows ?? []) if (r.locale === DEFAULT_LOCALE || !m.has(r.entity_id)) m.set(r.entity_id, r.value_text ?? ""); return m; };
+  const dn = nameOf(destNames), nn = nameOf(npcNames);
+  const dm = new Map((destPos ?? []).map((p) => [p.entity_id, p.map_id]));
+  return nodes.map((n) => {
+    const mine = (facts ?? []).filter((f) => f.entity_id === n.entity_id);
+    const npcId = (mine.find((f) => f.field === "flight_master")?.value_num as number | undefined) ?? null;
+    const destinations = mine.filter((f) => f.field === "taxi_route").map((f) => (f.value_json as { to: number }).to).filter((id) => id !== n.entity_id).map((id) => ({ nodeId: id, name: dn.get(id) ?? `#${id}`, mapId: dm.get(id) ?? null })).sort((a, b) => a.name.localeCompare(b.name));
+    return { nodeId: n.entity_id, name: n.name, x: n.x, y: n.y, npcId, npcName: npcId !== null ? (nn.get(npcId) ?? null) : null, destinations };
+  });
+}
+
+/** Name, parent and type for a map from the client's layout tables, for maps no one has recorded yet. */
+export function bootstrapMap(flavor: string, mapId: number): { name: string; parent: number | null; type: number } | null {
+  const b = bootstrapLayouts(flavor)[String(mapId)];
+  return b ? { name: b.name, parent: b.parent || null, type: b.type } : null;
 }
 

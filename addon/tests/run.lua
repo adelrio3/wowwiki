@@ -213,6 +213,15 @@ test("login catalogs every map's art layout and this character's explored pieces
   eq(NS.session.errors and #NS.session.errors or 0, 0)
 end)
 
+test("opening the flight map records routes, known nodes, and the flight master", function()
+  loadAddon(); player(); login()
+  mock.units.npc = { guid = "Creature-0-5162-1-56-2995-00003DC5F0", name = "Tal", level = 55, reaction = 5, health = 1, healthMax = 1 }
+  mock.fire("TAXIMAP_OPENED")
+  local n = NS.session.world.taxiNodes
+  assert(n["22"] and n["22"].known, "current node known"); eq(n["22"].fm, 2995); eq(n["22"].routes["25"], true); eq(n["22"].routes["23"], nil)
+  assert(n["25"].known, "reachable node known"); eq(n["23"].known, nil); eq(n["23"].name, "Orgrimmar, Durotar"); eq(n["25"].m, 1414)
+end)
+
 test("discovery messages become area_discovered events", function()
   loadAddon(); player(); login()
   mock.fire("CHAT_MSG_SYSTEM", "Discovered Brambleblade Ravine: 25 experience gained")

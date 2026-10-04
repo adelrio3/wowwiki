@@ -28,8 +28,8 @@ The sidebar (`Shell`) is the only navigation. Top to bottom:
 2. Search (`/` focuses it; submits to `/wiki?q=`).
 3. Game version selector (Classic Era now; other versions listed as "soon").
 4. **World**: Zones (`/wiki`), NPCs (`/wiki/npcs`), Creatures (`/wiki/creatures`),
-   Areas (`/wiki/areas`), Flight paths (`/wiki/flight-paths`). Every world entity
-   type gets a category page here; a new type is not done until it has one.
+   Areas (`/wiki/areas`). Every world entity type that people look up by name gets
+   a category page here; flight paths do not (D-0045), they live on zone pages.
 5. **You**: Journal (`/journal`), Add-on (`/sync`).
 6. Account (email, sign out, or sign in) and the theme toggle.
 
@@ -119,19 +119,22 @@ live in `src/lib/server/wiki-lists.ts` and `category-load.ts`.
   count, most-seen first), Notable finds (rares, elites, bosses), Recently seen
   (table with kind, level, zone), and a "Add what you see" card with three steps and
   the add-on button.
-- **Zones** (`/wiki`): zone cards grouped by continent (parent map), each with unit
-  and area counts. With `?q=`, the same page shows search results grouped by
+- **Zones** (`/wiki`): every zone of the build (D-0045) as cards grouped by
+  continent, the continent name linking to its own map page; a card shows unit
+  and area counts, or "Nothing recorded here yet". With `?q=`, the same page shows search results grouped by
   category and an empty state that explains names match as typed in-game.
 - **NPCs / Creatures**: toolbar (name filter, type, sort) and the `UnitList` table.
   NPCs and Creatures are always separate pages, never one list with a tag (D-0038).
-- **Areas / Flight paths**: name filter and a table with the zone (and coordinates
-  for flight paths).
+- **Areas**: name filter and a table with the zone.
 - **Zone**: breadcrumbs (Zones / continent / zone), title, section chips with counts
-  that jump to NPCs, Creatures, Areas, Flight paths. When map art exists, the zone
-  map (`MapImage`) is the first thing on the page, full width, with nothing drawn
-  on it and no switch to draw anything (D-0040); the Evidence card says how many
-  explored areas it shows. Tables show coordinates within this zone. Rail:
-  About (kind, part of, counts, map ID) and Evidence.
+  that jump to NPCs, Creatures, Areas, Flight paths. The zone map (`MapImage`) is
+  the first thing on the page, full width. The only marks on it are flight masters
+  (dark diamonds with a gold edge, D-0045); nothing else is drawn and there is no
+  switch (D-0040). Tables show coordinates within this zone. The Flight paths
+  section is one card per flight master: node name, the flight master's name
+  linking to their page, coordinates, and destination chips linking to zones.
+  Rail: About (kind, part of, counts, map ID) and Evidence, or "No one has
+  recorded this zone yet" for a map only the client tables know.
 - **NPC / Creature**: breadcrumbs (category / home zone / name), serif name,
   `<subtitle>`, level with Elite/Rare in gold, type and family, role chips. Main:
   "Where to find them/it" (zone, up to six coordinate spots most-seen first,
@@ -142,8 +145,10 @@ live in `src/lib/server/wiki-lists.ts` and `category-load.ts`.
   sheet titled NPC or Creature, then Evidence with the observation count.
 - **Journal index**: character cards with a class-tinted initial, level, race,
   class, realm, last seen.
-- **Journal character**: breadcrumbs, class dot and meta line, four stat tiles,
-  timeline grouped by day with gold glyphs, sessions and privacy in the rail.
+- **Journal character**: breadcrumbs, class dot and meta line, stat tiles (played,
+  areas explored, flight paths known, deaths, sessions), timeline grouped by day
+  with gold glyphs; in the rail: zones visited, flight paths known, sessions,
+  privacy.
 - **Add-on** (`/sync`): a vertical checklist of four cards (Connect folder, Install,
   Play then log out, Sync); the current step has an ink number, done steps a green
   check, later steps are faint. Per-client rows under Install; results under Sync;

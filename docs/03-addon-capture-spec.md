@@ -108,6 +108,16 @@ a map on each visit and after each discovery:
 - Maps without art (the cosmic map, some instances) throw inside the API; every call
   is pcall'd and the map is recorded without art.
 
+### Flight map (`zones.lua`)
+
+On `TAXIMAP_OPENED`: `C_TaxiMap.GetAllTaxiNodes(GetTaxiMapID())` (`VERIFIED` both
+present on era 1.15.9; fields `VERIFY` on first real upload) gives every node with
+`state` (0 current, 1 reachable, 2 unreachable), name and position. Recorded on
+`taxiNodes[id]`: `known` for current and reachable nodes (Journal), `fm` (the
+`npc` unit's npcID, the flight master) and `routes` (reachable node IDs) on the
+current node (wiki facts `flight_master`, `taxi_route`). Positions and names are
+refreshed for every node shown.
+
 ### Creatures (`units.lua`)
 
 Sight: the client exposes nearby units only through nameplates (N-0016), and the

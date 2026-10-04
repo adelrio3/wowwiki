@@ -594,3 +594,24 @@ one-time export; worth doing if wago.tools ever goes away).
 Consequences: Every Classic Era map (54) can be composed before anyone visits
 it; a new build needs `layouts` re-run alongside `locator`.
 
+## D-0045: Every zone exists from the start; flight paths live on the zone, not in a list
+Date: 2026-10-04  Status: accepted
+Context: Zone pages appeared only after a contributor visited, while the map
+art for every Classic Era zone already existed (D-0044). Flight paths had a
+sidebar category and a list page that nobody looks things up by.
+Decision: The Zones index lists every map of the build from the client's layout
+tables, grouped by continent, with its map; a zone no one has recorded says so
+and fills in as uploads arrive. Flight paths have no category and no list
+anywhere. On a zone page, flight masters are the one thing drawn on the zone map
+(the game draws them too), each with the flight master's name and the
+destinations reachable from there, as players saw on the flight map. A
+character's known flight paths and the zones it has visited belong to the
+Journal.
+Alternatives: keep zones appearing on first visit (made the wiki look empty for
+no reason); a flight paths list page (not how anyone looks for a flight).
+Consequences: Zone names, parents and types for unvisited maps come from the
+client tables, the same place the map art comes from, and are not stored as
+facts; add-on captures replace them as they arrive. The add-on records routes,
+the flight master and known nodes when the flight map opens (0.3.1). D-0040 gains
+its one exception: flight masters on the zone map.
+

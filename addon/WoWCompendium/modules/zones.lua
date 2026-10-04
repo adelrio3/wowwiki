@@ -85,6 +85,40 @@ local function recordTaxiCatalog(mapID)
   end
 end
 
+-- The flight map is open: the current node, which nodes it reaches, which
+-- nodes this character knows, and the flight master standing here (docs/03).
+local function recordTaxiMap()
+  local nodes, mapID = compat.taxiMapNodes()
+  if not nodes then return end
+  local current, fm
+  local npc = UnitGUID and UnitGUID("npc")
+  if npc then
+    local p = NS.ids.parse(npc)
+    if NS.ids.isCreature(p) then fm = p.id end
+  end
+  for _, n in ipairs(nodes) do
+    if n.nodeID then
+      local rec = store.taxiNode(n.nodeID)
+      if rec then
+        rec.name = n.name or rec.name
+        if n.position then
+          if n.position.GetXY then rec.x, rec.y = n.position:GetXY() else rec.x, rec.y = n.position.x, n.position.y end
+          rec.m = rec.m or mapID
+        end
+        if n.state == 0 or n.state == 1 then rec.known = true end
+        if n.state == 0 then current = rec end
+      end
+    end
+  end
+  if not current then return end
+  if fm then current.fm = fm end
+  current.routes = current.routes or {}
+  for _, n in ipairs(nodes) do
+    if n.nodeID and n.state == 1 then current.routes[tostring(n.nodeID)] = true end
+  end
+end
+NS.on("TAXIMAP_OPENED", function() recordTaxiMap() end)
+
 -- Where am I: maps, areas, zone texts, instance, explored set, zone_enter events.
 local function locate(reason)
   if not NS.session then return end

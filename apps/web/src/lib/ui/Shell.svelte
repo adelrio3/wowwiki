@@ -28,7 +28,6 @@
     { href: "/wiki/npcs", label: "NPCs", icon: "user" },
     { href: "/wiki/creatures", label: "Creatures", icon: "paw" },
     { href: "/wiki/areas", label: "Areas", icon: "pin" },
-    { href: "/wiki/flight-paths", label: "Flight paths", icon: "wind" },
   ] as const;
   const you = [
     { href: "/journal", label: "Journal", icon: "journal" },
@@ -43,7 +42,7 @@
   const item = "flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[14px] hover:no-underline";
 </script>
 
-{#snippet navlink(n: { href: string; label: string; icon: "map" | "user" | "paw" | "pin" | "wind" | "journal" | "plug"; exact?: boolean })}
+{#snippet navlink(n: { href: string; label: string; icon: "map" | "user" | "paw" | "pin" | "journal" | "plug"; exact?: boolean })}
   {@const on = active(n.href, n.exact)}
   <a href={n.href} class="{item} {on ? 'bg-surface-2 font-medium text-ink' : 'text-ink-muted hover:bg-surface-2 hover:text-ink'}" aria-current={on ? "page" : undefined}>
     <Icon name={n.icon} size={16} class={on ? "text-gold" : "text-ink-faint"} />

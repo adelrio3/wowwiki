@@ -10,8 +10,9 @@
     { id: "npcs", label: "NPCs", n: data.npcs.length },
     { id: "creatures", label: "Creatures", n: data.creatures.length },
     { id: "areas", label: "Areas", n: data.areas.length },
-    { id: "flight-paths", label: "Flight paths", n: data.taxi.length },
+    { id: "flight", label: "Flight paths", n: data.flight.length },
   ]);
+  const flightPins = $derived(data.flight.filter((f) => f.x !== null && f.y !== null).map((f) => ({ x: f.x!, y: f.y!, label: `Flight master${f.npcName ? ` ${f.npcName}` : ""}: ${f.name} (${coord(f.x, f.y)})`, kind: "flight" as const })));
 </script>
 
 <svelte:head><title>{data.name} · Classic Era · WoW Compendium</title></svelte:head>
@@ -25,7 +26,8 @@
 </PageHeader>
 
 {#if data.art}
-  <MapImage art={data.art} title="Map of {data.name}" class="mb-8" />
+  <MapImage art={data.art} title="Map of {data.name}" pins={flightPins} class="mb-2" />
+  <p class="mb-8 text-[13px] text-ink-faint">{#if flightPins.length}The marked spots are flight masters. {/if}Nothing else is drawn on the zone map; open an NPC or creature to see where it was seen.</p>
 {:else if data.artNote}
   {@html `<!-- map: ${data.artNote.replace(/-->/g, "")} -->`}
 {/if}
@@ -34,7 +36,7 @@
   <div class="min-w-0 space-y-10">
     <section id="npcs" class="scroll-mt-20">
       <h2 class="mb-3 text-[17px] font-semibold">NPCs <span class="num text-[13px] font-normal text-ink-faint">{data.npcs.length}</span></h2>
-      <UnitList rows={data.npcs} flavor={data.flavor} showZone={false} mapId={data.id} emptyText="No one has met an NPC here yet." />
+      <UnitList rows={data.npcs} flavor={data.flavor} showZone={false} mapId={data.id} emptyText="No one has recorded an NPC here yet." />
     </section>
     <section id="creatures" class="scroll-mt-20">
       <h2 class="mb-3 text-[17px] font-semibold">Creatures <span class="num text-[13px] font-normal text-ink-faint">{data.creatures.length}</span></h2>
@@ -48,13 +50,29 @@
         </ul>
       {:else}<p class="text-[14px] text-ink-muted">No areas discovered here yet.</p>{/if}
     </section>
-    <section id="flight-paths" class="scroll-mt-20">
-      <h2 class="mb-3 text-[17px] font-semibold">Flight paths <span class="num text-[13px] font-normal text-ink-faint">{data.taxi.length}</span></h2>
-      {#if data.taxi.length}
-        <ul class="card divide-y divide-line text-[14px]">
-          {#each data.taxi as t}<li class="flex items-center justify-between gap-3 px-4 py-2.5"><span class="font-medium">{t.name}</span><span class="num text-ink-muted">{coord(t.x, t.y)}</span></li>{/each}
-        </ul>
-      {:else}<p class="text-[14px] text-ink-muted">No flight master found here yet.</p>{/if}
+    <section id="flight" class="scroll-mt-20">
+      <h2 class="mb-3 text-[17px] font-semibold">Flight paths <span class="num text-[13px] font-normal text-ink-faint">{data.flight.length}</span></h2>
+      {#if data.flight.length}
+        <div class="space-y-3">
+          {#each data.flight as f (f.nodeId)}
+            <div class="card px-4 py-3">
+              <div class="flex flex-wrap items-baseline justify-between gap-2">
+                <div class="font-medium">{f.name}</div>
+                <div class="text-[13px] text-ink-muted">{#if f.npcId !== null}Flight master <a href="/wiki/{data.flavor}/creature/{f.npcId}">{f.npcName ?? `#${f.npcId}`}</a> · {/if}<span class="num">{coord(f.x, f.y)}</span></div>
+              </div>
+              {#if f.destinations.length}
+                <ul class="mt-2 flex flex-wrap gap-1.5">
+                  {#each f.destinations as d (d.nodeId)}
+                    <li>{#if d.mapId !== null}<a href="/wiki/{data.flavor}/zone/{d.mapId}" class="rounded-md border border-line bg-surface px-2 py-0.5 text-[13px] text-ink-muted hover:border-line-strong hover:text-ink hover:no-underline">{d.name}</a>{:else}<span class="rounded-md border border-line bg-surface px-2 py-0.5 text-[13px] text-ink-muted">{d.name}</span>{/if}</li>
+                  {/each}
+                </ul>
+              {:else}
+                <p class="mt-1 text-[13px] text-ink-faint">Destinations appear once a player opens the flight map here.</p>
+              {/if}
+            </div>
+          {/each}
+        </div>
+      {:else}<p class="text-[14px] text-ink-muted">No flight master recorded here yet.</p>{/if}
     </section>
   </div>
 
@@ -68,8 +86,8 @@
       { label: "Map ID", value: data.id, mono: true },
     ]} />
     <div class="card px-4 py-3">
-      <Evidence status={data.status} contributors={data.contributors} />
-      <p class="mt-2 text-xs text-ink-faint">Everything here was seen in a player's game client. Nothing is imported.{#if data.art}{" "}The map shows the <span class="num">{data.art.pieces}</span> area{data.art.pieces === 1 ? "" : "s"} players have explored so far.{/if}</p>
+      {#if data.recorded}<Evidence status={data.status} contributors={data.contributors} />{:else}<p class="text-[13px] text-ink-muted">No one has recorded this zone yet. The map is the game's own; everything else fills in as players visit.</p>{/if}
+      <p class="mt-2 text-xs text-ink-faint">NPCs, creatures and areas come only from players' game clients. Nothing is imported.</p>
     </div>
   </aside>
 </div>
