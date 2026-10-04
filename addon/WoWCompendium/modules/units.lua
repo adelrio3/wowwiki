@@ -44,6 +44,9 @@ local function snapshot(unit, kind)
   local guid = UnitGUID(unit)
   local p = ids.parse(guid)
   if not ids.isCreature(p) then return end
+  -- Totems, minions, companions and charmed units carry Creature GUIDs but belong
+  -- to a player; they are never world data (D-0038).
+  if UnitPlayerControlled and UnitPlayerControlled(unit) then return end
   local rec = store.creature(p.id)
   if not rec then return end
   rec.gt = p.kind

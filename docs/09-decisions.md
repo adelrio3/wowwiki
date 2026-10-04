@@ -463,4 +463,7 @@ type would need migrations for a presentation choice); roles-only classification
 (rejected: a pet is a player's possession, not a fact about the world).
 Consequences: Units captured before 0.2.1 lack the attackable signal and may show
 as creatures until re-observed. Section headings, counts and breadcrumbs name the
-category; the data model is unchanged.
+category; the data model is unchanged. The exclusion is enforced in three places,
+because the add-on alone was not enough (N-0019): the add-on skips `Pet` GUIDs and
+player-controlled units, ingest drops `Pet` records, and migration 0002 removed the
+pets that reached the database before this decision.

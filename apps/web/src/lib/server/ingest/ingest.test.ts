@@ -8,6 +8,7 @@ const session = SessionSchema.parse({
   ctx: { flavor: "era", project: 2, version: "1.15.9", build: 70003, locale: "enUS", region: 1, realm: "Mankrik", addon: "0.1.0", started: 1790998608, ended: 1790999000 },
   world: {
     creatures: {
+      "1555": { id: 1555, gt: "Pet", name: "Happyending", lmin: 7, lmax: 7, ct: "Beast", sub: "Pongping's Pet", n: 1, sp: 1, ft: 1790998620, lt: 1790998620 },
       "3063": { id: 3063, name: "Krang Stonehoof", lmin: 14, lmax: 14, cls: "normal", ct: "Humanoid", rx: 5, sub: "Warrior Trainer", tf: "Thunder Bluff", hp: { "14": 500 }, roles: { trainer: true }, n: 2, sp: 1, ft: 1790998610, lt: 1790998700, pos: [{ t: 1790998610, m: 1412, x: 0.5, y: 0.8, i: 1, wx: -351.8, wy: -2357, k: "interact" }] },
     },
     maps: { "1412": { id: 1412, name: "Mulgore", type: 3, parent: 1414, ft: 1790998608 } },
@@ -32,6 +33,10 @@ describe("observationsFor", () => {
     expect(rows.find((r) => r.entity_type === "area" && r.field === "map")?.value_num).toBe(1412);
     expect(rows.find((r) => r.entity_type === "taxi_node" && r.field === "name")).toMatchObject({ source: "client_catalog" });
     expect(rows.every((r) => r.server_time.endsWith("Z"))).toBe(true);
+  });
+  it("drops player pets sent by older add-ons", () => {
+    const rows = observationsFor(session, ctx);
+    expect(rows.some((r) => r.entity_type === "creature" && r.entity_id === 1555)).toBe(false);
   });
 });
 

@@ -49,10 +49,13 @@ export function unitKind(s: KindSignals): "NPC" | "Creature" {
   return "Creature";
 }
 
+/** "<Owner>'s Pet" marks a creature that fights for someone; it is not a person. */
+const PET_SUBTITLE = /['\u2019]s Pet$/i;
+
 export function kindSignalsFromFacts(facts: Array<{ field: string; value_kind: string; value_num: number | null; value_text: string | null; value_json: unknown }>): KindSignals {
   return {
     roles: facts.filter((f) => f.field.startsWith("role:")).map((f) => f.field.slice(5)),
-    subtitle: facts.find((f) => f.field === "subtitle")?.value_text ?? null,
+    subtitle: facts.find((f) => f.field === "subtitle" && f.value_text && !PET_SUBTITLE.test(f.value_text))?.value_text ?? null,
     civilian: facts.some((f) => f.field === "civilian" && f.value_num === 1),
     notAttackable: facts.some((f) => f.field === "attackable" && f.value_num === 0),
     friendlyToAnyone: facts.some((f) => f.field === "reaction" && ((f.value_json as { reaction?: number })?.reaction ?? 0) >= 5),

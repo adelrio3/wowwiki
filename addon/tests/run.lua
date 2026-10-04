@@ -154,6 +154,9 @@ test("targeting a creature records it once per spawn with health, tooltip, and p
   mock.units.target = { guid = "Pet-0-5162-1-56-2955-00009999AA", name = "Bitey", level = 5, health = 1, healthMax = 1 }
   mock.fire("PLAYER_TARGET_CHANGED")
   eq(NS.session.world.creatures["2955"], nil, "pets never recorded")
+  mock.units.target = { guid = "Creature-0-5162-1-56-5929-00009999AB", name = "Stoneclaw Totem", level = 5, health = 1, healthMax = 1, playerControlled = true }
+  mock.fire("PLAYER_TARGET_CHANGED")
+  eq(NS.session.world.creatures["5929"], nil, "player-controlled creatures never recorded")
   -- attackable flag recorded
   mock.units.target = { guid = "Creature-0-5162-1-56-3222-0000000001", name = "Brave Wildrunner", level = 14, health = 1, healthMax = 1, attackable = false, reaction = 5 }
   mock.fire("PLAYER_TARGET_CHANGED")

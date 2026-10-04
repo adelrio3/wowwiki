@@ -285,6 +285,8 @@ export function observationsFor(s: Session, c: Ctx): ObservationRow[] {
 type Push = (entityType: string, entityId: number, entityKey: string, field: string, value: { num?: number; text?: string; json?: unknown; bool?: boolean }, t: number, pos?: Position, source?: "encounter" | "client_catalog") => void;
 
 function creatureObservations(cr: CreatureRecord, push: Push): void {
+  // Add-ons before 0.2.1 sent player pets. They are never wiki data (D-0038, N-0019).
+  if (cr.gt === "Pet") return;
   const id = cr.id;
   const t = cr.ft;
   if (cr.name) push("creature", id, "", "name", { text: cr.name }, t);

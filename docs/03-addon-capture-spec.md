@@ -101,12 +101,15 @@ during normal play.
 Categories (D-0038): the wiki presents **NPCs** and **Creatures** as two separate
 categories built from one `creature` entity type. A unit is an NPC when any of these
 hold: it has an interaction role (vendor, trainer, quest giver, flight master, ...),
-it has a tooltip subtitle, it is a civilian, it cannot be attacked by the observer
+it has a tooltip subtitle other than "<Owner>'s Pet", it is a civilian, it cannot be attacked by the observer
 (`UnitCanAttack`, recorded as `atk`), or any contributor saw it at reaction friendly or
 better. Otherwise it is a Creature. Signals are unioned across contributors, so a
 Horde guard seen as hostile by an Alliance player is still an NPC once a Horde player
-reports it friendly or unattackable. Player pets (`Pet` GUIDs) are never recorded as
-wiki units; they belong to a player, not to the world.
+reports it friendly or unattackable. Player pets (`Pet` GUIDs) and any unit for which
+`UnitPlayerControlled` is true (totems, minions, companions, charmed units: these carry
+`Creature` GUIDs) are never recorded; they belong to a player, not to the world.
+`VERIFY` `UnitPlayerControlled` on era for a hunter pet and a totem. Ingest drops
+`Pet` records from older add-ons as a second guard (N-0019).
 
 Triggers: `PLAYER_TARGET_CHANGED`, `UPDATE_MOUSEOVER_UNIT`, `NAME_PLATE_UNIT_ADDED`,
 `UNIT_TARGET` for party/raid targets, `GOSSIP_SHOW`/`MERCHANT_SHOW`/`QUEST_DETAIL`

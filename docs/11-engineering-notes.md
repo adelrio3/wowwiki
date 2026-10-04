@@ -267,3 +267,19 @@ themes, two widths, WCAG AA) runs before any visual change is deployed; it catch
 this class of bug mechanically.
 Why: Cascade layers make unlayered rules win regardless of specificity.
 Verified: audit output before and after the fix (46 problems to 0).
+
+## N-0019: A capture rule enforced only in the add-on does not hold
+Area: add-on, ingest
+Problem: D-0038 excluded player pets by changing the add-on. Five pets captured by
+the previous add-on version were already in the database, and the read-time NPC
+classifier then counted their "<Owner>'s Pet" subtitle as a person, so the pets
+moved from the Creatures table to the NPCs table instead of disappearing.
+Solution: Every "never record X" rule is enforced in three places: the add-on (so it
+is not captured), ingest (so uploads from older add-ons and re-ingested raw files
+cannot bring it back), and a data migration for what already landed. The classifier
+ignores subtitles ending in "'s Pet", which also covers NPC-owned pets that carry
+`Creature` GUIDs and are legitimately creatures.
+Why: Add-on versions in the field lag the site, and raw uploads are retained and
+re-ingested. The add-on is the first filter, never the only one.
+Verified: ingest test drops a `Pet` record; classifier test; live facts query
+showed exactly the five pet entities that migration 0002 targets.

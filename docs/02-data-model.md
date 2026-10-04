@@ -65,7 +65,7 @@ ID across flavors may describe different things, so every entity key is `(flavor
 
 | Entity | ID source | Notes |
 |--------|-----------|-------|
-| creature | npcID from GUID `Creature-0-...-<npcID>-...` | Also `Vehicle`, `Pet` GUID types recorded with their kind. |
+| creature | npcID from GUID `Creature-0-...-<npcID>-...` | Also `Vehicle`. `Pet` GUIDs and player-controlled units are never recorded (D-0038); ingest drops any that arrive. The wiki presents the type as two categories, NPCs and Creatures, derived at read time. |
 | gameobject | objectID from GUID `GameObject-0-...-<objectID>-...` | Seen via loot source and some interactions only. |
 | item | itemID from item link | Variants (suffix, bonus IDs, enchants) stored as attributes of an observed item instance. |
 | quest | questID | |

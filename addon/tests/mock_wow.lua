@@ -89,6 +89,7 @@ function M.install()
   _G.UnitIsPVP = function(t) local u = unit(t) return u and u.pvp end
   _G.UnitCanAttack = function(_, t) local u = unit(t) return u and u.attackable end
   _G.UnitIsCivilian = function(t) local u = unit(t) return u and u.civilian end
+  _G.UnitPlayerControlled = function(t) local u = unit(t) return u and u.playerControlled or false end
   _G.UnitPowerType = function(t) local u = unit(t) return u and u.powerType end
   _G.UnitHealth = function(t) local u = unit(t) return u and u.health end
   _G.UnitHealthMax = function(t) local u = unit(t) return u and u.healthMax end

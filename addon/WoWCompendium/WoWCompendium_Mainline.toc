@@ -2,7 +2,7 @@
 ## Title: WoW Compendium
 ## Notes: Silent recorder for the WoW Compendium wiki and journal. No in-game interface.
 ## Author: WoW Compendium
-## Version: 0.2.1
+## Version: 0.2.2
 ## SavedVariables: WoWCompendiumDB
 ## X-Toc: Mainline
 ## X-Website: https://wow-wiki.netlify.app
