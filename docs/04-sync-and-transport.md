@@ -169,8 +169,11 @@ Behavior:
   root, and accepts the first folder that contains a flavor folder. "Choose game
   folder" in the tray or the window opens a native picker.
 - **Install and update**: same manifest flow as the browser, run at startup, on
-  every sync, and on a timer. Updates are applied only when no `Wow*.exe` process
-  is running; otherwise the helper logs that it waits for the game to close.
+  every sync, and on a timer, plus an explicit "Install or update the add-on"
+  button per client in the window and an item in the tray. Files are written
+  whether or not the game runs; if it does, the log says the add-on loads at the
+  next login. The window shows setup as three numbered steps (game folder, sign
+  in, add-on per client) with the action for each step beside it.
 - **Watch**: a recursive filesystem watch on every flavor's `WTF/Account` folder.
   On a change to `WoWCompendium.lua`, wait five seconds for the file to settle,
   then run the standard upload flow and write the ack file. A ten-minute timer is

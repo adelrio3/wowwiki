@@ -133,7 +133,7 @@
             <dt class="text-ink-muted">Game folder</dt><dd class="mono text-[13px]">{st.folder ?? "not found yet: choose it in the helper window"}</dd>
             {#each clients as c (c.folder)}
               <dt class="text-ink-muted">Add-on in <span class="mono">{c.folder}</span></dt>
-              <dd>{#if !c.installed}<span class="text-warn">not installed</span>{:else}<span class="num">{c.version ?? "?"}</span>{#if c.needsUpdate}<span class="ml-2 text-warn">update waiting</span>{/if}{#if !c.linked}<span class="ml-2 text-warn">not linked to your account</span>{/if}{/if}{#if (!c.installed || c.needsUpdate) && st.gameRunning} <span class="text-ink-faint">· installs when the game is closed</span>{/if}</dd>
+              <dd>{#if !c.installed}<span class="text-warn">not installed</span>{:else}<span class="num">{c.version ?? "?"}</span>{#if c.needsUpdate}<span class="ml-2 text-warn">update waiting</span>{/if}{#if !c.linked}<span class="ml-2 text-warn">not linked to your account</span>{/if}{/if}{#if c.installed && st.gameRunning} <span class="text-ink-faint">· the game is running: new files load at your next login</span>{/if}</dd>
             {/each}
             <dt class="text-ink-muted">Last upload</dt><dd>{ago(st.lastSync ?? h.lastUsedAt)}</dd>
             {#if st.lastError}<dt class="text-ink-muted">Last problem</dt><dd class="text-bad">{st.lastError}</dd>{/if}

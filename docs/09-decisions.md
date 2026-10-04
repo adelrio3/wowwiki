@@ -561,9 +561,11 @@ shows one card per signed-in helper with that state, refreshed every ten seconds
 and a button that asks the helper to act now (install or update the add-on if
 needed, then sync); the helper picks the request up on its next heartbeat. When
 at least one helper exists, the browser path is folded away under "Sync from this
-page instead" and is never required. The only friction left is the one the game
-imposes: the add-on can be written only while the game is closed, and the page
-says so.
+page instead" and is never required. Revised the same day: writing the add-on's files is safe while the
+game runs (the game reads add-ons at login), so nothing waits for the game to
+close; a running game just needs a logout and login to load the new files. The
+helper window and tray carry an explicit "Install or update the add-on" action
+per client beside the automatic one.
 Alternatives: detecting the helper from the browser (no clean way for a web page
 to see a desktop app); a local port the site talks to (firewall prompts, mixed
 content); keeping the browser steps visible (what the owner called friction).
