@@ -1,6 +1,7 @@
 import type { PageServerLoad } from "./$types";
-import { wikiCounts } from "$lib/server/db/wiki";
+import { recentEntities, wikiCounts } from "$lib/server/db/wiki";
 
 export const load: PageServerLoad = async () => {
-  return { counts: await wikiCounts() };
+  const [counts, creatures, zones] = await Promise.all([wikiCounts(), recentEntities("era", "creature", 8), recentEntities("era", "map", 6)]);
+  return { counts, creatures, zones };
 };

@@ -27,12 +27,28 @@ export interface PositionRow {
 
 export async function wikiCounts() {
   const db = serviceClient();
-  const [c, a, k] = await Promise.all([
-    db.from("facts").select("entity_id", { count: "exact", head: true }).eq("entity_type", "creature").eq("field", "name"),
-    db.from("facts").select("entity_id", { count: "exact", head: true }).eq("entity_type", "area").eq("field", "name"),
-    db.from("addon_identities").select("id", { count: "exact", head: true }),
+  const [c, a, m, k] = await Promise.all([
+    db.from("facts").select("entity_id", { count: "exact", head: true }).eq("entity_type", "creature").eq("field", "name").eq("locale", DEFAULT_LOCALE),
+    db.from("facts").select("entity_id", { count: "exact", head: true }).eq("entity_type", "area").eq("field", "name").eq("locale", DEFAULT_LOCALE),
+    db.from("facts").select("entity_id", { count: "exact", head: true }).eq("entity_type", "map").eq("field", "name").eq("locale", DEFAULT_LOCALE),
+    db.from("accounts").select("id", { count: "exact", head: true }),
   ]);
-  return { creatures: c.count ?? 0, areas: a.count ?? 0, contributors: k.count ?? 0 };
+  return { creatures: c.count ?? 0, areas: a.count ?? 0, zones: m.count ?? 0, contributors: k.count ?? 0 };
+}
+
+/** Most recently observed entities of a kind, by last_seen_at. */
+export async function recentEntities(flavor: string, entityType: string, limit = 8): Promise<Listed[]> {
+  const db = serviceClient();
+  const { data } = await db
+    .from("facts")
+    .select("entity_id, value_text, status, contributor_count, last_build, last_seen_at")
+    .eq("flavor", flavor)
+    .eq("entity_type", entityType)
+    .eq("field", "name")
+    .eq("locale", DEFAULT_LOCALE)
+    .order("last_seen_at", { ascending: false })
+    .limit(limit);
+  return (data ?? []).map((r) => ({ entity_id: r.entity_id, name: r.value_text ?? "", status: r.status, contributor_count: r.contributor_count, last_build: r.last_build }));
 }
 
 export async function entityFacts(flavor: string, entityType: string, entityId: number, entityKey = ""): Promise<FactRow[]> {
@@ -153,4 +169,47 @@ export async function buildsFor(flavor: string) {
   const db = serviceClient();
   const { data } = await db.from("builds").select("build, patch, expansion, classified").eq("flavor", flavor).order("build");
   return data ?? [];
+}
+
+export interface CreatureListed extends Listed {
+  level_min: number | null;
+  level_max: number | null;
+  creature_type: string | null;
+  classification: string | null;
+}
+
+/** Names plus level/type/classification for a set of creature ids. */
+export async function creatureSummaries(flavor: string, ids: number[]): Promise<Map<number, CreatureListed>> {
+  const out = new Map<number, CreatureListed>();
+  if (!ids.length) return out;
+  const db = serviceClient();
+  const { data } = await db
+    .from("facts")
+    .select("entity_id, field, locale, value_text, value_num, status, contributor_count, last_build")
+    .eq("flavor", flavor)
+    .eq("entity_type", "creature")
+    .in("field", ["name", "level_min", "level_max", "creature_type", "classification"])
+    .in("entity_id", ids);
+  for (const id of ids) out.set(id, { entity_id: id, name: `#${id}`, status: "unconfirmed", contributor_count: 0, last_build: 0, level_min: null, level_max: null, creature_type: null, classification: null });
+  for (const r of data ?? []) {
+    const c = out.get(r.entity_id)!;
+    if (r.field === "name" && (r.locale === DEFAULT_LOCALE || c.name.startsWith("#"))) { c.name = r.value_text ?? c.name; c.status = r.status; c.contributor_count = r.contributor_count; c.last_build = r.last_build; }
+    else if (r.field === "level_min") c.level_min = r.value_num;
+    else if (r.field === "level_max") c.level_max = r.value_num;
+    else if (r.field === "creature_type" && (r.locale === DEFAULT_LOCALE || !c.creature_type)) c.creature_type = r.value_text;
+    else if (r.field === "classification") c.classification = r.value_text;
+  }
+  return out;
+}
+
+export async function taxiNodesOnMap(flavor: string, mapId: number) {
+  const db = serviceClient();
+  const { data: onMap } = await db.from("facts").select("entity_id").eq("flavor", flavor).eq("entity_type", "taxi_node").eq("field", "position").contains("value_json", {});
+  const ids = [...new Set((onMap ?? []).map((r) => r.entity_id))];
+  if (!ids.length) return [];
+  const { data: names } = await db.from("facts").select("entity_id, value_text, locale").eq("flavor", flavor).eq("entity_type", "taxi_node").eq("field", "name").in("entity_id", ids);
+  const { data: pos } = await db.from("positions").select("entity_id, cluster_x, cluster_y").eq("flavor", flavor).eq("entity_type", "taxi_node").eq("map_id", mapId);
+  const byId = new Map<number, string>();
+  for (const n of names ?? []) if (n.locale === DEFAULT_LOCALE || !byId.has(n.entity_id)) byId.set(n.entity_id, n.value_text ?? "");
+  return (pos ?? []).map((p) => ({ entity_id: p.entity_id, name: byId.get(p.entity_id) ?? `#${p.entity_id}`, x: p.cluster_x, y: p.cluster_y }));
 }

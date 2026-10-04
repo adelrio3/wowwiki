@@ -68,6 +68,7 @@ intent and rules, not every detail; find your own way, except where
 | `docs/09-decisions.md` | Decision log (ADRs) |
 | `docs/10-open-questions.md` | Unresolved questions with owner |
 | `docs/11-engineering-notes.md` | Solved problems: exact solutions, why, how verified |
+| `docs/12-design.md` | Visual design: direction, tokens, typography, components, page patterns |
 
 ## Hard rules
 

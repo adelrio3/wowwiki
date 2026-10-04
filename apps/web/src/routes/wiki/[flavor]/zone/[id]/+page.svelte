@@ -1,40 +1,62 @@
 <script lang="ts">
-  import { STATUS_CLASS, STATUS_LABEL } from "$lib/wiki-format";
+  import Badge from "$lib/ui/Badge.svelte";
+  import Card from "$lib/ui/Card.svelte";
+  import EntityHeader from "$lib/ui/EntityHeader.svelte";
+  import MapPanel from "$lib/ui/MapPanel.svelte";
+  import { CLASSIFICATION_LABEL } from "$lib/wiki-format";
   let { data } = $props();
+  const kind = $derived(`${data.mapType ? data.mapType[0]!.toUpperCase() + data.mapType.slice(1) : "Map"} · Classic Era`);
 </script>
 
 <svelte:head><title>{data.name} · WoW Compendium</title></svelte:head>
 
-<article class="space-y-6 max-w-4xl">
-  <header>
-    <div class="text-sm text-stone-400">{data.mapType ?? "Map"} · Classic Era{#if data.parent !== null} · <a href="/wiki/{data.flavor}/zone/{data.parent}">parent map</a>{/if}</div>
-    <h1 class="text-3xl font-bold">{data.name}</h1>
-  </header>
+<article class="space-y-8">
+  <EntityHeader {kind} title={data.name} status={data.status}>
+    {#if data.parent !== null}<a href="/wiki/{data.flavor}/zone/{data.parent}" class="text-sm">↑ Parent map</a>{/if}
+  </EntityHeader>
 
-  <section>
-    <h2 class="font-semibold mb-2">Creatures seen here</h2>
-    <svg viewBox="0 0 100 66.7" class="w-full max-w-xl rounded border border-stone-800 bg-stone-900">
-      {#each data.creatures as c}
-        {#each c.positions as p}
-          {#if p.cluster_x !== null && p.cluster_y !== null}
-            <circle cx={p.cluster_x * 100} cy={p.cluster_y * 66.7} r="1" fill="#f5c542" fill-opacity="0.7"><title>{c.name}</title></circle>
-          {/if}
-        {/each}
-      {/each}
-    </svg>
-    <ul class="mt-3 columns-2 md:columns-3 text-sm space-y-1">
-      {#each data.creatures as c}
-        <li class="flex items-center gap-2"><a href="/wiki/{data.flavor}/creature/{c.entity_id}">{c.name}</a><span class="rounded border px-1 text-[10px] {STATUS_CLASS[c.status]}">{STATUS_LABEL[c.status]}</span></li>
-      {/each}
-      {#if !data.creatures.length}<li class="text-stone-500">None recorded yet.</li>{/if}
-    </ul>
-  </section>
+  <div class="grid gap-8 lg:grid-cols-[1fr_20rem]">
+    <div class="space-y-8">
+      <MapPanel points={data.points} title="Creatures seen in {data.name}" caption="Hover a dot for the creature; click to open it. Coordinates are percentages of the zone map." />
 
-  <section>
-    <h2 class="font-semibold mb-2">Areas</h2>
-    <ul class="columns-2 md:columns-3 text-sm space-y-1">
-      {#each data.areas as a}<li>{a.name} <span class="text-stone-500 text-xs">#{a.entity_id}</span></li>{/each}
-      {#if !data.areas.length}<li class="text-stone-500">None recorded yet.</li>{/if}
-    </ul>
-  </section>
+      <section>
+        <h2 class="mb-2 text-xl font-medium">Creatures <span class="num text-sm text-ink-faint">{data.creatures.length}</span></h2>
+        {#if data.creatures.length}
+          <div class="overflow-x-auto rounded-md border border-line bg-surface">
+            <table class="w-full text-sm">
+              <thead class="text-left text-xs uppercase tracking-wide text-ink-muted"><tr><th class="px-3 py-2 font-medium">Name</th><th class="px-3 py-2 font-medium">Level</th><th class="px-3 py-2 font-medium">Type</th><th class="px-3 py-2 font-medium">Spots</th><th class="px-3 py-2 font-medium">Status</th></tr></thead>
+              <tbody>
+                {#each data.creatures as c}
+                  <tr class="border-t border-line even:bg-surface-2/40">
+                    <td class="px-3 py-1.5"><a href="/wiki/{data.flavor}/creature/{c.entity_id}">{c.name}</a>{#if c.classification && c.classification !== "normal"}<span class="ml-2 text-xs text-ink-muted">{CLASSIFICATION_LABEL[c.classification] ?? c.classification}</span>{/if}</td>
+                    <td class="num px-3 py-1.5">{c.level_min === null ? "" : c.level_min === c.level_max ? c.level_min : `${c.level_min}–${c.level_max}`}</td>
+                    <td class="px-3 py-1.5 text-ink-muted">{c.creature_type ?? ""}</td>
+                    <td class="num px-3 py-1.5">{c.positions.length}</td>
+                    <td class="px-3 py-1.5"><Badge status={c.status} /></td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          </div>
+        {:else}
+          <p class="text-sm text-ink-muted">No creature positions recorded here yet.</p>
+        {/if}
+      </section>
+    </div>
+
+    <aside class="space-y-4 lg:sticky lg:top-20 lg:self-start">
+      <Card title="Areas">
+        <ul class="space-y-1 text-sm">
+          {#each data.areas as a}<li class="flex justify-between gap-2"><span>{a.name}</span><span class="num text-xs text-ink-faint">#{a.entity_id}</span></li>{/each}
+          {#if !data.areas.length}<li class="text-ink-muted">None recorded yet.</li>{/if}
+        </ul>
+      </Card>
+      <Card title="Flight points">
+        <ul class="space-y-1 text-sm">
+          {#each data.taxi as t}<li class="flex justify-between gap-2"><span>{t.name}</span>{#if t.x !== null && t.y !== null}<span class="num text-xs text-ink-faint">{(t.x * 100).toFixed(0)}, {(t.y * 100).toFixed(0)}</span>{/if}</li>{/each}
+          {#if !data.taxi.length}<li class="text-ink-muted">None recorded yet.</li>{/if}
+        </ul>
+      </Card>
+    </aside>
+  </div>
 </article>

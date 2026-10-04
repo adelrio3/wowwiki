@@ -1,7 +1,81 @@
 @import "tailwindcss";
 
-:root {
+/* Design tokens (docs/12). Pages use only these names. */
+:root,
+:root[data-theme="dark"] {
   color-scheme: dark;
+  --bg: #141210;
+  --surface: #1b1815;
+  --surface-2: #242019;
+  --line: #332c24;
+  --ink: #efe7da;
+  --ink-muted: #a79c8b;
+  --ink-faint: #6f6555;
+  --gold: #dcb257;
+  --gold-strong: #f0c86c;
+  --ok: #86c492;
+  --warn: #e0aa5a;
+  --bad: #e2796a;
+  --info: #86b6dc;
 }
 
-a { @apply text-amber-300 hover:text-amber-200; }
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f6f1e7;
+  --surface: #fffdf8;
+  --surface-2: #efe7d8;
+  --line: #dcd1bf;
+  --ink: #1e1913;
+  --ink-muted: #6a6154;
+  --ink-faint: #9a8f80;
+  --gold: #8d6210;
+  --gold-strong: #6f4c0a;
+  --ok: #2f7a3f;
+  --warn: #9a6a12;
+  --bad: #b3392a;
+  --info: #2c6a9a;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+  --color-gold: var(--gold);
+  --color-gold-strong: var(--gold-strong);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-bad: var(--bad);
+  --color-info: var(--info);
+  --font-display: "Fraunces", "Iowan Old Style", Georgia, serif;
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+
+html { background: var(--bg); }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, .display {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  line-height: 1.2;
+}
+h1 { letter-spacing: -0.015em; }
+
+a { color: var(--gold); text-decoration: none; transition: color 150ms; }
+a:hover { color: var(--gold-strong); text-decoration: underline; text-underline-offset: 3px; }
+
+.num, .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+input, select, textarea, button { font: inherit; }
+::selection { background: color-mix(in srgb, var(--gold) 35%, transparent); }
