@@ -1,21 +1,26 @@
 @import "tailwindcss";
 
-/* Design tokens (docs/12, direction 2: "field guide"). Light first.
-   Every text/background pairing here passes WCAG AA (4.5:1) for body text;
-   verified by apps/web/scripts/check-contrast.mjs. */
+/* Design tokens (docs/12, direction 3: "the atlas"). Light first, warm neutrals,
+   one link color, gold only as a mark. Every text/background pairing passes
+   WCAG AA; scripts/check-pages.mjs enforces it on every page in both themes. */
 :root,
 :root[data-theme="light"] {
   color-scheme: light;
-  --bg: #f6f8fa;
+  --bg: #f5f3ee;
   --surface: #ffffff;
-  --surface-2: #eef2f6;
-  --line: #d9e0e8;
-  --ink: #111827;
-  --ink-muted: #4b5563;
-  --ink-faint: #5b6676;
-  --accent: #0f766e;
-  --accent-strong: #115e59;
-  --accent-ink: #ffffff;
+  --surface-2: #ede9e1;
+  --line: #ddd8cd;
+  --line-strong: #c9c3b6;
+  --ink: #1c1917;
+  --ink-muted: #57534e;
+  --ink-faint: #6b6660;
+  --accent: #1e40af;
+  --accent-strong: #1e3a8a;
+  --gold: #875606;
+  --gold-soft: #fdf3d7;
+  --btn: #1c1917;
+  --btn-hover: #292524;
+  --btn-ink: #ffffff;
   --ok: #166534;
   --ok-soft: #dcfce7;
   --warn: #92400e;
@@ -24,30 +29,35 @@
   --bad-soft: #fee2e2;
   --info: #1e40af;
   --info-soft: #dbeafe;
-  --neutral-soft: #eef2f6;
+  --shadow: 0 1px 2px rgb(28 25 23 / 0.06), 0 1px 1px rgb(28 25 23 / 0.04);
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #0b1220;
-  --surface: #121b2d;
-  --surface-2: #1a2538;
-  --line: #2a3650;
-  --ink: #e8eef8;
-  --ink-muted: #b4c0d3;
-  --ink-faint: #8a98b0;
-  --accent: #2dd4bf;
-  --accent-strong: #5eead4;
-  --accent-ink: #0b1220;
-  --ok: #6ee7a0;
-  --ok-soft: #10301f;
+  --bg: #121417;
+  --surface: #1a1d22;
+  --surface-2: #23272e;
+  --line: #30353d;
+  --line-strong: #434952;
+  --ink: #ece9e2;
+  --ink-muted: #b5b0a6;
+  --ink-faint: #948f85;
+  --accent: #93b4ff;
+  --accent-strong: #b7cbff;
+  --gold: #f5c451;
+  --gold-soft: #3a2f10;
+  --btn: #ece9e2;
+  --btn-hover: #ffffff;
+  --btn-ink: #121417;
+  --ok: #86efac;
+  --ok-soft: #14301f;
   --warn: #fcd34d;
   --warn-soft: #3a2a08;
   --bad: #fca5a5;
   --bad-soft: #3c1414;
   --info: #93c5fd;
   --info-soft: #152a4d;
-  --neutral-soft: #1a2538;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4);
 }
 
 @theme inline {
@@ -55,12 +65,17 @@
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
   --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
   --color-ink: var(--ink);
   --color-ink-muted: var(--ink-muted);
   --color-ink-faint: var(--ink-faint);
   --color-accent: var(--accent);
   --color-accent-strong: var(--accent-strong);
-  --color-accent-ink: var(--accent-ink);
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-btn: var(--btn);
+  --color-btn-hover: var(--btn-hover);
+  --color-btn-ink: var(--btn-ink);
   --color-ok: var(--ok);
   --color-ok-soft: var(--ok-soft);
   --color-warn: var(--warn);
@@ -69,28 +84,50 @@
   --color-bad-soft: var(--bad-soft);
   --color-info: var(--info);
   --color-info-soft: var(--info-soft);
-  --color-neutral-soft: var(--neutral-soft);
-  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-serif: "Fraunces", Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  --shadow-card: var(--shadow);
 }
 
-/* Base styles live in the base layer so utility classes always win (N-0018). */
+/* Base styles live in the base layer so utilities always win (N-0018). */
 @layer base {
   html { background: var(--bg); }
   body {
     background: var(--bg);
     color: var(--ink);
     font-family: var(--font-sans);
-    font-size: 16px;
-    line-height: 1.5;
+    font-size: 15px;
+    line-height: 1.55;
     -webkit-font-smoothing: antialiased;
+    font-feature-settings: "cv11", "ss01";
   }
-  h1, h2, h3 { font-weight: 600; line-height: 1.2; letter-spacing: -0.01em; }
+  h1, h2, h3 { line-height: 1.15; letter-spacing: -0.01em; font-weight: 600; }
   a { color: var(--accent); text-decoration: none; transition: color 150ms; }
   a:hover { color: var(--accent-strong); text-decoration: underline; text-underline-offset: 3px; }
   input, select, textarea, button { font: inherit; }
-  ::selection { background: color-mix(in srgb, var(--accent) 30%, transparent); }
+  ::selection { background: color-mix(in srgb, var(--gold) 35%, transparent); }
+  summary { cursor: pointer; }
 }
 
-@utility num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+@layer components {
+  /* Dense data table used on every list. Numbers are set with .num. */
+  .tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .tbl th { text-align: left; font-weight: 500; font-size: 12px; letter-spacing: 0.02em; text-transform: uppercase; color: var(--ink-faint); padding: 8px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .tbl td { padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .tbl tbody tr:last-child td { border-bottom: 0; }
+  .tbl tbody tr:hover td { background: color-mix(in srgb, var(--surface-2) 55%, transparent); }
+  .tbl td.r, .tbl th.r { text-align: right; }
+  .tbl a.name { color: var(--ink); font-weight: 500; }
+  .tbl a.name:hover { color: var(--accent); }
+  .field { width: 100%; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); border-radius: 8px; padding: 8px 12px; font-size: 14px; }
+  .field::placeholder { color: var(--ink-faint); }
+  .field:focus { outline: 2px solid color-mix(in srgb, var(--accent) 60%, transparent); outline-offset: 0; border-color: var(--accent); }
+  .prose-sm p + p { margin-top: 0.6em; }
+}
+
+@utility num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 0.95em; }
 @utility mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+@utility serif { font-family: var(--font-serif); font-variation-settings: "SOFT" 50, "WONK" 0; font-weight: 500; letter-spacing: -0.015em; }
+@utility eyebrow { font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint); }
+@utility card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); }

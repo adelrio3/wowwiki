@@ -3,23 +3,43 @@
 How the site looks and behaves. Binding for every page; a rebuild (D-0034) starts
 from this document, not from the previous code.
 
-## Direction (D-0035, revised 2026-10-04)
+## Direction (D-0039)
 
-**A field guide, not a game interface.** Clean, light-first, and highly readable:
-white surfaces on a cool off-white page, dark slate text, one teal accent, hairline
-borders, and dense tables with clear headers. It should feel like a well-made modern
-reference site, closer to a documentation site than to a game. No textures, no
-ornament, no imitation of Blizzard's UI. (The first direction, a warm dark
-"archive", was rejected by the owner as unappealing.)
+**An atlas, not a brochure.** Readers come to look something up, usually with the
+game open. The site is built around that: a persistent sidebar for moving between
+categories, search always one keystroke away, pages that answer in the first screen,
+coordinates written the way players type them in-game. The front page still shows
+the most interesting finds so it is pleasant to arrive at.
 
 Two registers:
 
-- **World Wiki**: dense and scannable. The key facts of an entity are readable in
-  two seconds at the top; detail tables sit below. Status is always visible.
-- **Journal**: lighter and more visual. Big numbers, a timeline, a map.
+- **World Wiki**: dense and scannable. The key facts of an entity sit in a fact sheet
+  at the side; the main column answers "where" first. Trust is one readable sentence.
+- **Journal**: lighter and more personal. Big numbers, a timeline, class color.
 
-Light by default, dark theme available from the header; the choice is remembered
-per browser and follows the system preference until changed.
+Light by default, dark theme from the sidebar; the choice is remembered per browser
+and follows the system preference until changed.
+
+## Navigation
+
+The sidebar (`Shell`) is the only navigation. Top to bottom:
+
+1. Wordmark (gold book mark, serif name).
+2. Search (`/` focuses it; submits to `/wiki?q=`).
+3. Game version selector (Classic Era now; other versions listed as "soon").
+4. **World**: Zones (`/wiki`), NPCs (`/wiki/npcs`), Creatures (`/wiki/creatures`),
+   Areas (`/wiki/areas`), Flight paths (`/wiki/flight-paths`). Every world entity
+   type gets a category page here; a new type is not done until it has one.
+5. **You**: Journal (`/journal`), Add-on (`/sync`).
+6. Account (email, sign out, or sign in) and the theme toggle.
+
+On phones (below `lg`, 1024px) the sidebar becomes a drawer behind a menu button in a
+slim top bar that also holds the wordmark and a search field. There is no other
+menu anywhere.
+
+Entity URLs are unchanged: `/wiki/{flavor}/zone/{id}` and
+`/wiki/{flavor}/creature/{id}` (NPCs and creatures share the `creature` entity type;
+the page says which it is).
 
 ## Tokens
 
@@ -31,98 +51,113 @@ themes and two widths, and a change is not deployed until it passes.
 
 | Token | Light | Dark | Use |
 |-------|-------|------|-----|
-| `bg` | `#f6f8fa` | `#0b1220` | page background |
-| `surface` | `#ffffff` | `#121b2d` | cards, header, tables |
-| `surface-2` | `#eef2f6` | `#1a2538` | stripes, inputs, map background |
-| `line` | `#d9e0e8` | `#2a3650` | borders |
-| `ink` | `#111827` | `#e8eef8` | body text |
-| `ink-muted` | `#4b5563` | `#b4c0d3` | secondary text |
-| `ink-faint` | `#5b6676` | `#8a98b0` | meta text (still AA on surfaces) |
-| `accent` / `accent-strong` / `accent-ink` | `#0f766e` / `#115e59` / `#ffffff` | `#2dd4bf` / `#5eead4` / `#0b1220` | links, primary button and its text |
-| `ok` on `ok-soft` | `#166534` on `#dcfce7` | `#6ee7a0` on `#10301f` | confirmed |
-| `warn` on `warn-soft` | `#92400e` on `#fef3c7` | `#fcd34d` on `#3a2a08` | disputed |
+| `bg` | `#f5f3ee` | `#121417` | page background (warm off-white) |
+| `surface` | `#ffffff` | `#1a1d22` | cards, sidebar, tables |
+| `surface-2` | `#ede9e1` | `#23272e` | active nav item, notes, hover rows |
+| `line` / `line-strong` | `#ddd8cd` / `#c9c3b6` | `#30353d` / `#434952` | borders; inputs and hovered cards use the strong one |
+| `ink` | `#1c1917` | `#ece9e2` | body text |
+| `ink-muted` | `#57534e` | `#b5b0a6` | secondary text |
+| `ink-faint` | `#6b6660` | `#948f85` | meta text, table headers (still AA) |
+| `accent` / `accent-strong` | `#1e40af` / `#1e3a8a` | `#93b4ff` / `#b7cbff` | links only |
+| `gold` on `gold-soft` | `#875606` on `#fdf3d7` | `#f5c451` on `#3a2f10` | wordmark, active nav icon, role chips, Elite/Rare labels |
+| `btn` / `btn-hover` / `btn-ink` | `#1c1917` / `#292524` / `#ffffff` | `#ece9e2` / `#ffffff` / `#121417` | primary button |
+| `ok` on `ok-soft` | `#166534` on `#dcfce7` | `#86efac` on `#14301f` | confirmed, ingested |
+| `warn` on `warn-soft` | `#92400e` on `#fef3c7` | `#fcd34d` on `#3a2a08` | disputed, update available |
 | `bad` on `bad-soft` | `#991b1b` on `#fee2e2` | `#fca5a5` on `#3c1414` | errors |
 | `info` on `info-soft` | `#1e40af` on `#dbeafe` | `#93c5fd` on `#152a4d` | corrected |
-| `neutral-soft` | `#eef2f6` | `#1a2538` | unconfirmed badge background |
 
-Base element styles live in Tailwind's `base` layer so utilities always win
-(N-0018).
+Cards have a 12px radius, a hairline border and a one-pixel shadow. Base element
+styles live in Tailwind's `base` layer so utilities always win (N-0018); the dense
+table (`.tbl`) and the input (`.field`) are the two component classes.
 
 ## Typography
 
-- **IBM Plex Sans** for everything, 600 weight for headings with slight negative
-  tracking. **IBM Plex Mono** for numbers, identifiers, coordinates, builds.
-- Scale: 12px badges, 13px meta, 14px tables, 16px body, 20px section, 30px page
-  title, 48px on the home page. Line height 1.5 body, 1.2 headings.
-
-Fonts load from Google Fonts with `display=swap`.
+- **Fraunces** (serif, soft axis) for page titles, entity names, zone names on cards
+  and the wordmark. **Inter** for everything else. **JetBrains Mono** for numbers,
+  coordinates, identifiers and builds (`.num`, `.mono`).
+- All three are self-hosted from `apps/web/static/fonts/` (SIL Open Font License),
+  latin and latin-ext subsets, so no request leaves for a font service.
+- Scale: 12px eyebrows and chips, 13px meta, 14px tables and body in cards, 15px
+  body, 17px section headings, 34–40px page titles, 40–52px on the home page.
 
 ## Layout
 
-- Max content width 72rem, 16px side gutters on phones, 24px from `sm` up.
-- Header: site name (serif), primary nav (World Wiki, Journal, Sync), a search box
-  that goes to `/wiki?q=`, theme toggle, account menu. Sticky, with a hairline
-  border; no shadow.
-- Footer: one line of attribution, muted.
-- Wiki entity pages: a two-column layout from `lg` up. Left: header, key facts,
-  sections. Right: a sticky rail with the map panel and "observed by / builds"
-  provenance card. Single column below `lg`.
-- Journal character page: stat tiles row, then timeline on the left and a map or
-  explored-areas card on the right.
+- Sidebar 15.5rem; main column up to 72rem with 16px gutters on phones, 32px from
+  `sm`, 48px from `lg`.
+- Every page starts with `PageHeader`: an eyebrow (or breadcrumbs), the title, an
+  optional one-sentence lede, optional meta line, and a hairline rule.
+- Entity pages (zone, NPC/creature) are two columns from `lg`: content left, a sticky
+  17rem rail right holding the `Infobox` fact sheet and the `Evidence` card.
+- Phones: one column, rail after the content, no horizontal scroll at 360px.
 
 ## Components (`apps/web/src/lib/ui/`)
 
 | Component | Role |
 |-----------|------|
-| `Shell` | header with wordmark, nav, search, theme toggle, account; footer |
-| `Badge` | status and small labels |
-| `Card` | surface with hairline border and optional title |
-| `StatTile` | big number with a label |
-| `FactList` | definition list in a two-column grid |
-| `MapPanel` | SVG map of a uiMap: 10% grid, coordinate labels, points with hover titles and optional links; takes `points: {x, y, label, href?, weight?}` |
-| `EntityHeader` | kind line, title, status badge, subtitle |
-| `DataTable` | dense table with striped rows, mono numerics |
-| `Empty` | empty state with a one-line hint and a call to action |
-| `Button` | primary (gold), secondary (outline), quiet (text) |
-| `Stepper` | numbered steps for the Sync setup |
+| `Shell` | sidebar, phone top bar and drawer, footer, theme toggle, `/` shortcut |
+| `Icon` | the inline SVG icon set, 24-unit, stroke 1.75 |
+| `PageHeader` | eyebrow or breadcrumbs, title, lede, meta, optional right-side slot |
+| `Infobox` | fact sheet: label/value rows, empty values skipped, optional links |
+| `Evidence` | the trust sentence with a check, clock or alert glyph |
+| `Chip` | small label: gold for roles, ok/warn/bad/info for states |
+| `Card` | surface with optional uppercase title |
+| `StatTile` | big mono number with a label (Journal) |
+| `UnitList` | the NPC/creature table: name, level, type, where (zone and coordinates) |
+| `CategoryToolbar` | filter by name, type and sort for category pages (plain GET form) |
+| `UnitCategoryPage` | the NPCs and Creatures pages, parameterised by kind |
+| `Button` | primary (ink), secondary (outline), quiet (text) |
+| `Empty` | dashed empty state with a one-line hint and a call to action |
 
-Components take data, never fetch. Pages fetch in `+page.server.ts`.
+Components take data, never fetch. Pages fetch in `+page.server.ts`; shared loaders
+live in `src/lib/server/wiki-lists.ts` and `category-load.ts`.
 
 ## Page patterns
 
-- **Home**: a short statement of what the site is, live counts (NPCs and creatures,
-  areas, zones, contributors), the most recently observed units (each labelled NPC
-  or Creature) and zones, and a three-step "how it works" with a single call to
-  action.
-- **Wiki index**: search box, then browse by category (NPCs, Creatures, Zones,
-  Areas, Flight points) as dense tables with status. NPCs and Creatures are always
-  two separate tables, never one table with a tag (D-0038). Search applies to all.
-- **NPC / Creature**: the same page shape for both; the kind line opens with "NPC"
-  or "Creature" and the breadcrumb points at that category. Header with level and
-  classification in the kind line, subtitle under the title, role chips; key facts;
-  "Where it was seen" as one map panel per zone with a zone link; health by level;
-  facts table collapsed under details.
-- **Zone**: header with map type and parent link; map panel with every unit
-  position (hover shows the name, click opens it); NPCs table, then Creatures table
-  (name, level, type, spots, status); areas list; flight points list.
-- **Journal index**: character cards with class-tinted accent bar, level, race,
+- **Home**: eyebrow, serif headline, one sentence on where the data comes from, a
+  large search box, a muted count line; then Zones (cards with continent and unit
+  count, most-seen first), Notable finds (rares, elites, bosses), Recently seen
+  (table with kind, level, zone), and a "Add what you see" card with three steps and
+  the add-on button.
+- **Zones** (`/wiki`): zone cards grouped by continent (parent map), each with unit
+  and area counts. With `?q=`, the same page shows search results grouped by
+  category and an empty state that explains names match as typed in-game.
+- **NPCs / Creatures**: toolbar (name filter, type, sort) and the `UnitList` table.
+  NPCs and Creatures are always separate pages, never one list with a tag (D-0038).
+- **Areas / Flight paths**: name filter and a table with the zone (and coordinates
+  for flight paths).
+- **Zone**: breadcrumbs (Zones / continent / zone), title, section chips with counts
+  that jump to NPCs, Creatures, Areas, Flight paths. Tables show coordinates within
+  this zone. Rail: About (kind, part of, counts, map ID) and Evidence.
+- **NPC / Creature**: breadcrumbs (category / home zone / name), serif name,
+  `<subtitle>`, level with Elite/Rare in gold, type and family, role chips. Main:
+  "Where to find them/it" (zone, up to six coordinate spots most-seen first,
+  sightings), Health by level, and "Every recorded fact" collapsed. Rail: fact sheet
+  titled NPC or Creature, then Evidence with the observation count.
+- **Journal index**: character cards with a class-tinted initial, level, race,
   class, realm, last seen.
-- **Journal character**: stat tiles (played, areas explored, deaths, sessions),
-  timeline grouped by day with event glyphs, explored areas.
-- **Sync**: a stepper (Connect folder, Install add-on, Play and log out, Sync),
-  with the current step highlighted; per-client rows under step 2; results under
-  step 4; recent uploads table at the bottom.
-- **Errors**: the error page shows the status, a plain sentence, and a link home.
+- **Journal character**: breadcrumbs, class dot and meta line, four stat tiles,
+  timeline grouped by day with gold glyphs, sessions and privacy in the rail.
+- **Add-on** (`/sync`): a vertical checklist of four cards (Connect folder, Install,
+  Play then log out, Sync); the current step has an ink number, done steps a green
+  check, later steps are faint. Per-client rows under Install; results under Sync;
+  recent uploads table below.
+- **Account / Sign in / Errors**: single narrow column with `PageHeader` and one or
+  two cards. The 404 says "Not on any map we have."
 
 ## Rules
 
 - Every number that could be compared is tabular and monospaced.
-- Status is shown wherever a fact is shown.
+- Coordinates are shown as the game shows them, "47, 60", out of 100.
+- Trust status is a sentence on the entity page (`Evidence`); lists never show it.
 - Links are the accent color, underlined on hover only. Buttons never rely on the
-  link color: their text uses `accent-ink`.
-- No icons from icon fonts; inline SVG only, 16px, stroke 1.5.
-- No animation beyond 150ms color transitions.
+  link color.
+- Gold is a mark, not a text color for body copy.
+- Icons are inline SVG from `Icon`; no icon fonts, no emoji.
+- No animation beyond 150ms color transitions and a 2px arrow nudge on card hover.
+- Separators between inline items are explicit `·` spans with margins (Svelte trims
+  whitespace at block edges, so a bare space inside `{#if}` disappears).
 - Everything works at 360px width without horizontal scroll.
 - Both themes, both widths (1280 and 390), every page: run
-  `COMPENDIUM_MOCK=1 pnpm dev` and `node apps/web/scripts/check-pages.mjs` before
-  any visual change ships. Screenshots land in the scratch folder for a human look.
+  `COMPENDIUM_MOCK=1 pnpm dev --port 5173` and `node apps/web/scripts/check-pages.mjs`
+  before any visual change ships, then look at the screenshots. A page that passes
+  the audit but reads badly has not passed.

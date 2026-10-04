@@ -50,3 +50,16 @@ Decision: Character name and realm by default, with an option to show the accoun
 display name instead.
 Alternatives: display name by default (less recognizable to other players).
 Consequences: None beyond the setting.
+
+## D-0035: Design direction
+Date: 2026-10-04  Status: accepted
+Context: The first slice was unstyled plumbing; the owner wants a very good UI and
+UX next and deferred the direction to the team's recommendation.
+Decision: "An archive, not a game interface" per docs/12: dark by default with a
+light theme, warm paper-and-gold palette, Fraunces for display and Inter for text,
+dense wiki pages with a strict hierarchy, lighter Journal, a guided Sync page.
+Alternatives: game-styled chrome with ornate frames (dates fast, fights dense data);
+uniform spacious layouts (wiki pages become long scrolls); dark only (reference
+sites are read in daylight).
+Consequences: docs/12 is binding on every page; the design lands before Phase 2
+pages so each new entity page is built once.

@@ -3,10 +3,11 @@
   import type { AddonManifest } from "@compendium/schema";
   import type { InstallState, SyncProgress, SyncReport } from "@compendium/sync-core";
   import { connectNew, reconnect, client, installStates, install, uninstall, sync, supportsFolderAccess, type Connection } from "$lib/sync/browser-sync";
-  import Badge from "$lib/ui/Badge.svelte";
   import Button from "$lib/ui/Button.svelte";
   import Card from "$lib/ui/Card.svelte";
-  import Stepper from "$lib/ui/Stepper.svelte";
+  import Chip from "$lib/ui/Chip.svelte";
+  import Icon from "$lib/ui/Icon.svelte";
+  import PageHeader from "$lib/ui/PageHeader.svelte";
 
   let { data } = $props();
 
@@ -87,110 +88,120 @@
   }
 </script>
 
-<svelte:head><title>Sync · WoW Compendium</title></svelte:head>
+<svelte:head><title>Add-on · WoW Compendium</title></svelte:head>
 
-<div class="mx-auto max-w-3xl space-y-8">
-  <header>
-    <h1 class="text-3xl font-medium">Sync</h1>
-    <p class="text-ink-muted">Connect your World of Warcraft folder once. From then on this page installs and updates the add-on and uploads what your characters saw.</p>
-  </header>
+{#snippet stepHead(n: number, title: string, state: "done" | "now" | "todo")}
+  <div class="flex items-center gap-3">
+    <span class="num grid size-7 shrink-0 place-items-center rounded-full text-[13px] font-medium {state === 'done' ? 'bg-ok-soft text-ok' : state === 'now' ? 'bg-btn text-btn-ink' : 'border border-line text-ink-faint'}">{#if state === "done"}<Icon name="check" size={14} />{:else}{n}{/if}</span>
+    <h2 class="text-[17px] font-semibold {state === 'todo' ? 'text-ink-faint' : ''}">{title}</h2>
+  </div>
+{/snippet}
 
-  <Stepper steps={["Connect folder", "Install add-on", "Play, then log out", "Sync"]} current={step} />
+<div class="mx-auto max-w-3xl">
+  <PageHeader eyebrow="Contribute" title="Add-on" lede="Install it once from here. It records what you see while you play, with no interface and no changes to your game. Sync when you have logged out." />
 
   {#if !supported}
-    <Card>
-      <p>This browser can't access folders. Use <strong>Chrome</strong>, <strong>Edge</strong>, or <strong>Brave</strong> for one-click setup. A desktop helper for other browsers is planned.</p>
-    </Card>
+    <Card><p class="text-[14px]">This browser can't open folders. Use <strong>Chrome</strong>, <strong>Edge</strong>, or <strong>Brave</strong> for one-click setup. A desktop helper for other browsers is coming.</p></Card>
   {:else}
-    <Card title="1 · Your WoW folder">
-      {#if !conn}
-        <div class="space-y-3">
-          <Button onclick={connect} disabled={busy !== null}>{needsGesture ? "Resume access to your WoW folder" : "Connect your WoW folder"}</Button>
-          <p class="text-sm text-ink-muted">Pick the folder that contains <code class="mono">_classic_era_</code>. If Chrome offers “Allow on every visit”, choose it so you never see the picker again.</p>
-          <div class="rounded-md border border-line bg-surface-2 px-3 py-2 text-sm">
-            <strong>If the game is installed under Program Files</strong> (the Battle.net default), Chrome refuses to open it: it blocks every folder under Program Files for websites. Two ways around it: the desktop helper, which has no such limit and is coming next, or moving the game folder somewhere else (for example <code class="mono">C:\Games\World of Warcraft</code>) and clicking “Locate” in Battle.net.
-          </div>
-        </div>
-      {:else}
-        <div class="flex items-center justify-between gap-3 text-sm">
-          <div>Connected to <strong>{conn.fs.rootName}</strong> <span class="text-ink-muted">({conn.layout.kind === "root" ? "install root" : "one client folder"})</span></div>
-          <Button variant="quiet" onclick={connect}>Change</Button>
-        </div>
-      {/if}
-    </Card>
-
-    {#if conn}
-      <Card title="2 · Add-on per game client">
-        {#if conn.layout.flavors.length === 0}
-          <p class="text-sm text-warn">No game client folders found in that folder.</p>
-        {/if}
-        <ul class="divide-y divide-line">
-          {#each conn.layout.flavors as f (f.folder)}
-            {@const st = states[f.folder]}
-            <li class="flex flex-wrap items-center gap-3 py-2.5 first:pt-0 last:pb-0">
-              <div class="min-w-0 flex-1">
-                <div class="mono text-sm">{f.folder} <span class="font-sans text-ink-muted">· {f.flavor}</span></div>
-                <div class="text-sm text-ink-muted">
-                  {#if !st}checking…
-                  {:else if !st.installed}not installed
-                  {:else}version <span class="num">{st.version ?? "?"}</span>{#if st.version !== manifest?.version} · <span class="text-warn">update available ({manifest?.version})</span>{/if}{#if realDiff(st).length} · <span class="text-warn">files differ from release</span>{/if}{#if !st.linked} · <span class="text-warn">not linked</span>{/if}{/if}
-                </div>
+    <ol class="space-y-4">
+      <li class="card p-5">
+        {@render stepHead(1, "Connect your World of Warcraft folder", conn ? "done" : "now")}
+        <div class="mt-3 pl-10">
+          {#if !conn}
+            <div class="space-y-3">
+              <Button onclick={connect} disabled={busy !== null}>{needsGesture ? "Resume access to your WoW folder" : "Choose folder"}</Button>
+              <p class="text-[14px] text-ink-muted">Pick the folder that contains <code class="mono">_classic_era_</code>. If Chrome offers “Allow on every visit”, choose it so you never see the picker again.</p>
+              <div class="rounded-lg bg-surface-2 px-3.5 py-2.5 text-[13px] text-ink-muted">
+                <strong class="text-ink">Installed under Program Files?</strong> Chrome refuses to open anything there. Either wait for the desktop helper, which has no such limit and is coming next, or move the game folder (for example to <code class="mono">C:\Games\World of Warcraft</code>) and click “Locate” in Battle.net.
               </div>
-              {#if needsAction(st)}
-                <Button onclick={() => doInstall(f.folder)} disabled={busy !== null}>{st?.installed ? "Update" : "Install"}</Button>
-              {:else if st?.installed}
-                <Badge status="confirmed" label="ready" />
-              {/if}
-              {#if st?.installed}
-                <Button variant="quiet" onclick={() => doUninstall(f.folder)} disabled={busy !== null}>Remove</Button>
-              {/if}
-            </li>
-          {/each}
-        </ul>
-      </Card>
-
-      <Card title="3 · Play">
-        <p class="text-sm text-ink-muted">Start the game and play as you normally would. The add-on has no interface. The game writes its data when you <strong>log out</strong> or type <code class="mono">/reload</code>, so do one of those before syncing.</p>
-      </Card>
-
-      <Card title="4 · Sync">
-        <div class="flex flex-wrap items-center gap-3">
-          <Button onclick={doSync} disabled={busy !== null}>{busy === "sync" ? "Syncing…" : "Sync now"}</Button>
-          <span class="text-sm text-ink-muted">Uploads anything new and marks it acknowledged for the add-on.</span>
+            </div>
+          {:else}
+            <div class="flex flex-wrap items-center justify-between gap-3 text-[14px]">
+              <div>Connected to <strong>{conn.fs.rootName}</strong> <span class="text-ink-muted">({conn.layout.kind === "root" ? "install root" : "one client folder"})</span></div>
+              <Button variant="quiet" onclick={connect}>Change</Button>
+            </div>
+          {/if}
         </div>
-        {#if report}
-          <ul class="mt-3 space-y-1 text-sm">
-            {#each report.results as r}
-              <li class="flex flex-wrap gap-2">
-                <span class="mono text-ink-muted">{r.file.flavor.folder}</span>
-                {#if r.outcome === "uploaded"}<span class="text-ok">uploaded and ingested</span>{#if r.ack}<span class="text-ink-faint">· {Object.keys(r.ack).length} character{Object.keys(r.ack).length === 1 ? "" : "s"} acknowledged</span>{/if}
-                {:else if r.outcome === "already_synced"}<span class="text-ink-muted">already synced</span>
-                {:else if r.outcome === "unparseable"}<span class="text-bad">the data file could not be read. Update the add-on above, play again, log out, and sync.</span> <details class="inline text-ink-faint"><summary class="inline cursor-pointer">details</summary>{r.error}</details>
-                {:else}<span class="text-bad">{r.outcome}{r.error ? `: ${r.error}` : ""}</span>{/if}
-              </li>
-            {/each}
-            {#if report.results.length === 0}<li class="text-ink-muted">No data files found yet. Play a session, log out, then sync.</li>{/if}
-          </ul>
+      </li>
+
+      <li class="card p-5">
+        {@render stepHead(2, "Install the add-on", !conn ? "todo" : anyInstalled ? "done" : "now")}
+        {#if conn}
+          <div class="mt-3 pl-10">
+            {#if conn.layout.flavors.length === 0}<p class="text-[14px] text-warn">No game client folders found in that folder.</p>{/if}
+            <ul class="divide-y divide-line">
+              {#each conn.layout.flavors as f (f.folder)}
+                {@const st = states[f.folder]}
+                <li class="flex flex-wrap items-center gap-3 py-2.5 first:pt-0 last:pb-0">
+                  <div class="min-w-0 flex-1">
+                    <div class="mono text-[13px]">{f.folder} <span class="font-sans text-ink-muted">· {f.flavor}</span></div>
+                    <div class="text-[13px] text-ink-muted">
+                      {#if !st}checking…
+                      {:else if !st.installed}not installed
+                      {:else}version <span class="num">{st.version ?? "?"}</span>{#if st.version !== manifest?.version} · <span class="text-warn">update available ({manifest?.version})</span>{/if}{#if realDiff(st).length} · <span class="text-warn">files differ from release</span>{/if}{#if !st.linked} · <span class="text-warn">not linked</span>{/if}{/if}
+                    </div>
+                  </div>
+                  {#if needsAction(st)}
+                    <Button onclick={() => doInstall(f.folder)} disabled={busy !== null}>{st?.installed ? "Update" : "Install"}</Button>
+                  {:else if st?.installed}
+                    <Chip tone="ok"><Icon name="check" size={12} /> ready</Chip>
+                  {/if}
+                  {#if st?.installed}<Button variant="quiet" onclick={() => doUninstall(f.folder)} disabled={busy !== null}>Remove</Button>{/if}
+                </li>
+              {/each}
+            </ul>
+          </div>
         {/if}
-      </Card>
-    {/if}
+      </li>
+
+      <li class="card p-5">
+        {@render stepHead(3, "Play, then log out", step === 2 ? "now" : step > 2 ? "done" : "todo")}
+        <p class="mt-2 pl-10 text-[14px] text-ink-muted">Play as you normally would. The game saves the add-on's data only when you <strong class="text-ink">log out</strong> or type <code class="mono">/reload</code>, so do one of those before you sync.</p>
+      </li>
+
+      <li class="card p-5">
+        {@render stepHead(4, "Sync", step >= 3 ? "done" : conn && anyInstalled ? "now" : "todo")}
+        <div class="mt-3 pl-10">
+          <div class="flex flex-wrap items-center gap-3">
+            <Button onclick={doSync} disabled={busy !== null || !conn}>{busy === "sync" ? "Syncing…" : "Sync now"}</Button>
+            <span class="text-[14px] text-ink-muted">Uploads anything new and tells the add-on it has been received.</span>
+          </div>
+          {#if report}
+            <ul class="mt-3 space-y-1 text-[14px]">
+              {#each report.results as r}
+                <li class="flex flex-wrap gap-2">
+                  <span class="mono text-ink-muted">{r.file.flavor.folder}</span>
+                  {#if r.outcome === "uploaded"}<span class="text-ok">uploaded and ingested</span>{#if r.ack}<span class="text-ink-faint">· {Object.keys(r.ack).length} character{Object.keys(r.ack).length === 1 ? "" : "s"} acknowledged</span>{/if}
+                  {:else if r.outcome === "already_synced"}<span class="text-ink-muted">already synced</span>
+                  {:else if r.outcome === "unparseable"}<span class="text-bad">the data file could not be read. Update the add-on above, play again, log out, and sync.</span> <details class="inline text-ink-faint"><summary class="inline">details</summary>{r.error}</details>
+                  {:else}<span class="text-bad">{r.outcome}{r.error ? `: ${r.error}` : ""}</span>{/if}
+                </li>
+              {/each}
+              {#if report.results.length === 0}<li class="text-ink-muted">No data files found yet. Play a session, log out, then sync.</li>{/if}
+            </ul>
+          {/if}
+        </div>
+      </li>
+    </ol>
   {/if}
 
-  {#if error}<p class="rounded-md border border-bad/50 bg-surface px-3 py-2 text-sm text-bad">{error}</p>{/if}
-
+  {#if error}<p class="mt-4 rounded-lg border border-bad/40 bg-bad-soft px-3.5 py-2.5 text-[14px] text-bad">{error}</p>{/if}
   {#if log.length}
-    <details class="text-xs text-ink-faint"><summary class="cursor-pointer">Activity log</summary><pre class="mt-2 whitespace-pre-wrap">{log.join("\n")}</pre></details>
+    <details class="mt-4 text-xs text-ink-faint"><summary>Activity log</summary><pre class="mt-2 whitespace-pre-wrap">{log.join("\n")}</pre></details>
   {/if}
 
-  <Card title="Recent uploads">
-    <table class="w-full text-sm">
-      <thead class="text-left text-xs uppercase tracking-wide text-ink-muted"><tr><th class="py-1 font-medium">When</th><th class="font-medium">Client</th><th class="font-medium">Status</th><th class="font-medium">Observations</th></tr></thead>
-      <tbody>
-        {#each data.uploads as u}
-          <tr class="border-t border-line"><td class="py-1.5">{new Date(u.received_at).toLocaleString()}</td><td>{u.flavor}</td><td><Badge status={u.ingest_status} />{#if u.ingest_error}<span class="ml-2 text-bad">{u.ingest_error}</span>{/if}</td><td class="num">{u.observation_count ?? ""}</td></tr>
-        {/each}
-        {#if data.uploads.length === 0}<tr><td colspan="4" class="py-2 text-ink-muted">Nothing uploaded yet.</td></tr>{/if}
-      </tbody>
-    </table>
-  </Card>
+  <section class="mt-10">
+    <h2 class="mb-3 text-[17px] font-semibold">Recent uploads</h2>
+    <div class="card overflow-x-auto">
+      <table class="tbl">
+        <thead><tr><th>When</th><th>Client</th><th>Status</th><th class="r">Observations</th></tr></thead>
+        <tbody>
+          {#each data.uploads as u}
+            <tr><td class="whitespace-nowrap">{new Date(u.received_at).toLocaleString()}</td><td>{u.flavor}</td><td><Chip tone={u.ingest_status === "ingested" ? "ok" : u.ingest_status === "failed" ? "bad" : "neutral"}>{u.ingest_status}</Chip>{#if u.ingest_error}<span class="ml-2 text-bad">{u.ingest_error}</span>{/if}</td><td class="num r">{u.observation_count ?? ""}</td></tr>
+          {/each}
+          {#if data.uploads.length === 0}<tr><td colspan="4" class="text-ink-muted">Nothing uploaded yet.</td></tr>{/if}
+        </tbody>
+      </table>
+    </div>
+  </section>
 </div>

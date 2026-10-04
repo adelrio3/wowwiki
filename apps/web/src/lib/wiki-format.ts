@@ -8,14 +8,6 @@ export const STATUS_LABEL: Record<string, string> = {
   overridden: "corrected",
 };
 
-export const STATUS_CLASS: Record<string, string> = {
-  unconfirmed: "border-stone-600 text-stone-300",
-  confirmed: "border-emerald-700 text-emerald-300",
-  disputed: "border-amber-700 text-amber-300",
-  retired: "border-stone-700 text-stone-500",
-  overridden: "border-sky-700 text-sky-300",
-};
-
 export function reactionLabel(r: number | undefined): string {
   return r === undefined ? "unknown" : (REACTIONS[r] ?? String(r));
 }
@@ -60,4 +52,34 @@ export function kindSignalsFromFacts(facts: Array<{ field: string; value_kind: s
     notAttackable: facts.some((f) => f.field === "attackable" && f.value_num === 0),
     friendlyToAnyone: facts.some((f) => f.field === "reaction" && ((f.value_json as { reaction?: number })?.reaction ?? 0) >= 5),
   };
+}
+
+/** A sentence about how well an entity's facts are supported (D-0039). */
+export function evidence(status: string, contributors: number): { text: string; tone: "ok" | "warn" | "info" | "neutral" } {
+  const n = Math.max(contributors, 1);
+  const players = `${n} player${n === 1 ? "" : "s"}`;
+  switch (status) {
+    case "confirmed": return { text: `Confirmed by ${players}.`, tone: "ok" };
+    case "disputed": return { text: `${players} reported this, and some details disagree.`, tone: "warn" };
+    case "overridden": return { text: "Corrected by a moderator.", tone: "info" };
+    case "retired": return { text: "Not seen in recent builds.", tone: "neutral" };
+    default: return { text: `Reported by ${players}. Not yet confirmed by a second.`, tone: "neutral" };
+  }
+}
+
+/** Map coordinates the way the game shows them: "47, 60" out of 100. */
+export function coord(x: number | null, y: number | null): string {
+  if (x === null || y === null) return "";
+  return `${(x * 100).toFixed(0)}, ${(y * 100).toFixed(0)}`;
+}
+
+export function levelRange(min: number | null, max: number | null): string {
+  if (min === null) return "";
+  return max === null || max === min ? String(min) : `${min}–${max}`;
+}
+
+export const ROLE_LABEL: Record<string, string> = { gossip: "Talks", quest: "Quest giver", quest_end: "Quest turn-in", vendor: "Vendor", trainer: "Trainer", taxi: "Flight master", bank: "Banker", innkeeper: "Innkeeper", stable_master: "Stable master", auctioneer: "Auctioneer", mailbox: "Mail", spirit_healer: "Spirit healer", battlemaster: "Battlemaster", guild_bank: "Guild bank", guild_registrar: "Guild registrar", tabard_vendor: "Tabard vendor", petition_vendor: "Petition vendor" };
+
+export function titleCase(s: string | null | undefined): string {
+  return s ? s[0]!.toUpperCase() + s.slice(1).toLowerCase() : "";
 }

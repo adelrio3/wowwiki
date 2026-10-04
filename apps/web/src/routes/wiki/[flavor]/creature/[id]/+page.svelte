@@ -1,76 +1,81 @@
 <script lang="ts">
-  import Badge from "$lib/ui/Badge.svelte";
-  import Card from "$lib/ui/Card.svelte";
-  import EntityHeader from "$lib/ui/EntityHeader.svelte";
-  import FactList from "$lib/ui/FactList.svelte";
-  import MapPanel from "$lib/ui/MapPanel.svelte";
-  import { CLASSIFICATION_LABEL, reactionLabel } from "$lib/wiki-format";
+  import Chip from "$lib/ui/Chip.svelte";
+  import Evidence from "$lib/ui/Evidence.svelte";
+  import Infobox from "$lib/ui/Infobox.svelte";
+  import PageHeader from "$lib/ui/PageHeader.svelte";
+  import { CLASSIFICATION_LABEL, ROLE_LABEL, coord, levelRange, reactionLabel } from "$lib/wiki-format";
   let { data } = $props();
-  const level = $derived(data.levelMin === null ? "?" : data.levelMin === data.levelMax ? String(data.levelMin) : `${data.levelMin}–${data.levelMax}`);
   const cls = $derived(data.classification && data.classification !== "normal" ? CLASSIFICATION_LABEL[data.classification] ?? data.classification : null);
-  const unit = $derived(data.kind);
-  const kind = $derived(`${unit} · Level ${level}${cls ? ` ${cls}` : ""}${data.creatureType ? ` · ${data.creatureType}` : ""}`);
-  const crumbs = $derived([{ href: "/wiki", label: "World Wiki" }, { label: "Classic Era" }, { href: "/wiki?flavor=" + data.flavor, label: unit === "NPC" ? "NPCs" : "Creatures" }]);
-  const roleLabel: Record<string, string> = { gossip: "Talks", quest: "Quest giver", quest_end: "Quest turn-in", vendor: "Vendor", trainer: "Trainer", taxi: "Flight master", bank: "Banker", innkeeper: "Innkeeper", stable_master: "Stable master", auctioneer: "Auctioneer", mailbox: "Mail", spirit_healer: "Spirit healer", battlemaster: "Battlemaster", guild_bank: "Guild bank", guild_registrar: "Guild registrar", tabard_vendor: "Tabard vendor", petition_vendor: "Petition vendor" };
+  const home = $derived(data.locations[0]?.mapName ?? null);
+  const category = $derived(data.kind === "NPC" ? { href: "/wiki/npcs", label: "NPCs" } : { href: "/wiki/creatures", label: "Creatures" });
 </script>
 
-<svelte:head><title>{data.name} · WoW Compendium</title></svelte:head>
+<svelte:head><title>{data.name} · Classic Era · WoW Compendium</title></svelte:head>
 
-<article class="grid gap-8 lg:grid-cols-[1fr_20rem]">
-  <div class="min-w-0 space-y-8">
-    <EntityHeader {crumbs} {kind} title={data.name} status={data.nameStatus} subtitle={data.subtitle}>
-      {#if data.roles.length}
-        <div class="flex flex-wrap gap-1.5">
-          {#each data.roles as r}<span class="rounded-sm border border-line bg-surface px-2 py-0.5 text-xs">{roleLabel[r] ?? r}</span>{/each}
-        </div>
-      {/if}
-    </EntityHeader>
+<PageHeader crumbs={[category, ...(home && data.locations[0] ? [{ href: `/wiki/${data.flavor}/zone/${data.locations[0].mapId}`, label: home }] : []), { label: data.name }]} title={data.name}>
+  <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[15px] text-ink-muted">
+    {#if data.subtitle}<span class="serif text-[17px] text-ink">&lt;{data.subtitle}&gt;</span>{/if}
+    <span>Level <span class="num text-ink">{levelRange(data.levelMin, data.levelMax) || "?"}</span>{#if cls}<span class="ml-1.5 text-gold">{cls}</span>{/if}</span>
+    {#if data.creatureType}<span>{data.creatureType}{#if data.creatureFamily}<span class="mx-1.5 text-ink-faint">·</span>{data.creatureFamily}{/if}</span>{/if}
+  </div>
+  {#if data.roles.length}
+    <div class="flex flex-wrap gap-1.5 pt-2.5">
+      {#each data.roles as r}<Chip tone="gold">{ROLE_LABEL[r] ?? r}</Chip>{/each}
+    </div>
+  {/if}
+</PageHeader>
 
-    <Card title="Facts">
-      <FactList items={[
-        { label: "Level", value: `${level}${cls ? ` (${cls})` : ""}`, mono: true },
-        { label: "Type", value: data.creatureType ? `${data.creatureType}${data.creatureFamily ? ` · ${data.creatureFamily}` : ""}` : null },
-        { label: "Faction", value: data.tooltipFaction ?? data.factionGroup },
-        { label: "Reaction", value: data.reactions.length ? data.reactions.map(reactionLabel).join(", ") : null },
-        { label: "PvP", value: data.pvp ? "Flagged" : null },
-      ]} />
-      {#if data.health.length}
-        <div class="mt-4">
-          <div class="mb-1 text-xs uppercase tracking-wide text-ink-muted">Health by level</div>
-          <table class="text-sm">
+<div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_17rem]">
+  <div class="min-w-0 space-y-10">
+    <section>
+      <h2 class="mb-3 text-[17px] font-semibold">Where to find {data.kind === "NPC" ? "them" : "it"}</h2>
+      {#if data.locations.length}
+        <div class="card overflow-x-auto">
+          <table class="tbl">
+            <thead><tr><th>Zone</th><th>Coordinates</th><th class="r">Sightings</th></tr></thead>
             <tbody>
-              {#each data.health as h}<tr><td class="num pr-6 text-ink-muted">lvl {h.level}</td><td class="num">{h.max.toLocaleString()}</td></tr>{/each}
+              {#each data.locations as l}
+                <tr>
+                  <td><a class="name" href="/wiki/{data.flavor}/zone/{l.mapId}">{l.mapName}</a></td>
+                  <td class="num text-ink-muted">{#each l.spots as s, i}{#if i > 0}<span class="mx-1.5 text-ink-faint">·</span>{/if}<span title="{s.n} sighting{s.n === 1 ? '' : 's'}">{coord(s.x, s.y)}</span>{/each}</td>
+                  <td class="num r text-ink-muted">{l.sightings}</td>
+                </tr>
+              {/each}
             </tbody>
           </table>
         </div>
+        <p class="mt-2 text-xs text-ink-faint">Coordinates are the ones the game shows, out of 100. The first is where {data.kind === "NPC" ? "they were" : "it was"} seen most.</p>
+      {:else}
+        <p class="text-[14px] text-ink-muted">Seen, but no position was recorded yet.</p>
       {/if}
-    </Card>
-
-    <section class="space-y-4">
-      <h2 class="text-xl font-medium">Where it was seen</h2>
-      {#if !data.byMap.length}
-        <p class="text-sm text-ink-muted">No positions recorded yet.</p>
-      {/if}
-      {#each data.byMap as m}
-        <MapPanel points={m.points} title={m.mapName} caption="Coordinates are percentages of the zone map, as the game shows them. Larger dots were seen more often." />
-        <div class="-mt-2 text-sm"><a href="/wiki/{data.flavor}/zone/{m.mapId}">All creatures in {m.mapName} →</a></div>
-      {/each}
     </section>
 
-    <details class="group rounded-md border border-line bg-surface">
-      <summary class="cursor-pointer px-4 py-2.5 text-sm text-ink-muted">All recorded facts <span class="num">({data.facts.length})</span></summary>
-      <div class="overflow-x-auto border-t border-line">
-        <table class="w-full text-sm">
-          <thead class="text-left text-xs uppercase tracking-wide text-ink-muted"><tr><th class="px-3 py-2 font-medium">Field</th><th class="px-3 py-2 font-medium">Value</th><th class="px-3 py-2 font-medium">Locale</th><th class="px-3 py-2 font-medium">Builds</th><th class="px-3 py-2 font-medium">Contributors</th><th class="px-3 py-2 font-medium">Status</th></tr></thead>
+    {#if data.health.length}
+      <section>
+        <h2 class="mb-3 text-[17px] font-semibold">Health</h2>
+        <div class="card inline-block min-w-[16rem] overflow-x-auto">
+          <table class="tbl">
+            <thead><tr><th>Level</th><th class="r">Max health</th></tr></thead>
+            <tbody>{#each data.health as h}<tr><td class="num">{h.level}</td><td class="num r">{h.max.toLocaleString()}</td></tr>{/each}</tbody>
+          </table>
+        </div>
+      </section>
+    {/if}
+
+    <details class="group">
+      <summary class="text-[14px] text-ink-muted hover:text-ink">Every recorded fact <span class="num">({data.facts.length})</span></summary>
+      <div class="card mt-3 overflow-x-auto">
+        <table class="tbl">
+          <thead><tr><th>Field</th><th>Value</th><th>Locale</th><th>Builds</th><th class="r">Players</th><th>Status</th></tr></thead>
           <tbody>
             {#each data.facts as f}
-              <tr class="border-t border-line even:bg-surface-2/40">
-                <td class="px-3 py-1">{f.field}</td>
-                <td class="num px-3 py-1">{f.value_kind === "json" ? JSON.stringify(f.value_json) : f.value_kind === "text" ? f.value_text : f.value_num}</td>
-                <td class="px-3 py-1 text-ink-muted">{f.locale}</td>
-                <td class="num px-3 py-1">{f.first_build}{f.last_build !== f.first_build ? `–${f.last_build}` : ""}</td>
-                <td class="num px-3 py-1">{f.contributor_count}</td>
-                <td class="px-3 py-1"><Badge status={f.status} /></td>
+              <tr>
+                <td class="mono text-[13px]">{f.field}</td>
+                <td class="num">{f.value_kind === "json" ? JSON.stringify(f.value_json) : f.value_kind === "text" ? f.value_text : f.value_num}</td>
+                <td class="text-ink-muted">{f.locale}</td>
+                <td class="num">{f.first_build}{f.last_build !== f.first_build ? `–${f.last_build}` : ""}</td>
+                <td class="num r">{f.contributor_count}</td>
+                <td class="text-ink-muted">{f.status}</td>
               </tr>
             {/each}
           </tbody>
@@ -79,16 +84,20 @@
     </details>
   </div>
 
-  <aside class="min-w-0 space-y-4 lg:sticky lg:top-20 lg:self-start">
-    <Card title="Provenance">
-      <FactList items={[
-        { label: "Contributors", value: data.contributors, mono: true },
-        { label: "Observations", value: data.observations, mono: true },
-        { label: "Builds", value: data.firstBuild === data.lastBuild ? String(data.firstBuild) : `${data.firstBuild}–${data.lastBuild}`, mono: true },
-        { label: "Expansion", value: data.expansions.join(", ") || "Classic" },
-        { label: "ID", value: data.id, mono: true },
-      ]} />
-      <p class="mt-3 text-xs text-ink-faint">Everything on this page was seen in a player's game client. Nothing is imported.</p>
-    </Card>
+  <aside class="space-y-4 lg:sticky lg:top-6 lg:self-start">
+    <Infobox title={data.kind} rows={[
+      { label: "Level", value: `${levelRange(data.levelMin, data.levelMax) || "?"}${cls ? ` ${cls}` : ""}`, mono: true },
+      { label: "Type", value: data.creatureType },
+      { label: "Family", value: data.creatureFamily },
+      { label: "Faction", value: data.tooltipFaction ?? data.factionGroup },
+      { label: "Reaction", value: data.reactions.length ? data.reactions.map(reactionLabel).join(", ") : null },
+      { label: "PvP", value: data.pvp ? "Flagged" : null },
+      { label: "Seen in", value: data.expansions.length ? `${data.expansions.join(", ")} ${data.patch}` : data.patch },
+      { label: "ID", value: data.id, mono: true },
+    ]} />
+    <div class="card px-4 py-3">
+      <Evidence status={data.nameStatus} contributors={data.contributors} />
+      <p class="mt-2 text-xs text-ink-faint"><span class="num">{data.observations}</span> observation{data.observations === 1 ? "" : "s"} from players' game clients. Nothing is imported.</p>
+    </div>
   </aside>
-</article>
+</div>

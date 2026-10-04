@@ -238,3 +238,64 @@ export async function taxiNodesOnMap(flavor: string, mapId: number) {
   for (const n of names ?? []) if (n.locale === DEFAULT_LOCALE || !byId.has(n.entity_id)) byId.set(n.entity_id, n.value_text ?? "");
   return (pos ?? []).map((p) => ({ entity_id: p.entity_id, name: byId.get(p.entity_id) ?? `#${p.entity_id}`, x: p.cluster_x, y: p.cluster_y }));
 }
+
+export interface ZoneOverview extends Listed {
+  parent: number | null;
+  parentName: string | null;
+  mapType: number | null;
+  units: number;
+  areas: number;
+}
+
+/** Every map with a name, with its parent, type, and how much has been seen there. */
+export async function zoneOverview(flavor: string): Promise<ZoneOverview[]> {
+  if (MOCK) {
+    const units = (id: number) => Object.values(mockPositions).filter((ps) => ps.some((p) => p.map_id === id)).length;
+    return mockListed.map.map((m) => ({ ...m, parent: 1414, parentName: "Kalimdor", mapType: m.entity_id === 1456 ? 3 : 3, units: units(m.entity_id), areas: m.entity_id === 1412 ? 2 : 0 }));
+  }
+  const db = serviceClient();
+  const [{ data: names }, { data: parents }, { data: types }, { data: pos }, { data: areaMaps }] = await Promise.all([
+    db.from("facts").select("entity_id, value_text, locale, status, contributor_count, last_build").eq("flavor", flavor).eq("entity_type", "map").eq("field", "name"),
+    db.from("facts").select("entity_id, value_num").eq("flavor", flavor).eq("entity_type", "map").eq("field", "parent"),
+    db.from("facts").select("entity_id, value_num").eq("flavor", flavor).eq("entity_type", "map").eq("field", "map_type"),
+    db.from("positions").select("entity_id, map_id").eq("flavor", flavor).eq("entity_type", "creature").limit(5000),
+    db.from("facts").select("entity_id, value_num").eq("flavor", flavor).eq("entity_type", "area").eq("field", "map"),
+  ]);
+  const byId = new Map<number, ZoneOverview>();
+  for (const n of names ?? []) {
+    if (byId.has(n.entity_id) && n.locale !== DEFAULT_LOCALE) continue;
+    byId.set(n.entity_id, { entity_id: n.entity_id, name: n.value_text ?? "", status: n.status, contributor_count: n.contributor_count, last_build: n.last_build, parent: null, parentName: null, mapType: null, units: 0, areas: 0 });
+  }
+  for (const p of parents ?? []) { const z = byId.get(p.entity_id); if (z) z.parent = p.value_num; }
+  for (const t of types ?? []) { const z = byId.get(t.entity_id); if (z) z.mapType = t.value_num; }
+  const unitsByMap = new Map<number, Set<number>>();
+  for (const p of pos ?? []) { if (p.map_id === null) continue; (unitsByMap.get(p.map_id) ?? unitsByMap.set(p.map_id, new Set()).get(p.map_id)!).add(p.entity_id); }
+  for (const [m, set] of unitsByMap) { const z = byId.get(m); if (z) z.units = set.size; }
+  const areasByMap = new Map<number, Set<number>>();
+  for (const a of areaMaps ?? []) { if (a.value_num === null) continue; (areasByMap.get(a.value_num) ?? areasByMap.set(a.value_num, new Set()).get(a.value_num)!).add(a.entity_id); }
+  for (const [m, set] of areasByMap) { const z = byId.get(m); if (z) z.areas = set.size; }
+  for (const z of byId.values()) z.parentName = z.parent !== null ? (byId.get(z.parent)?.name ?? null) : null;
+  return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export interface UnitPlace { map_id: number; name: string; x: number | null; y: number | null; sightings: number }
+
+/** Where each unit has been seen: the best-known spot per map, most sightings first. */
+export async function unitPlaces(flavor: string, ids: number[]): Promise<Map<number, UnitPlace[]>> {
+  const out = new Map<number, UnitPlace[]>();
+  if (!ids.length) return out;
+  const rows: Array<{ entity_id: number; map_id: number | null; cluster_x: number | null; cluster_y: number | null; observation_count: number }> = MOCK
+    ? ids.flatMap((id) => (mockPositions[id] ?? []).map((p) => ({ entity_id: id, ...p })))
+    : (await serviceClient().from("positions").select("entity_id, map_id, cluster_x, cluster_y, observation_count").eq("flavor", flavor).eq("entity_type", "creature").in("entity_id", ids).order("observation_count", { ascending: false }).limit(4000)).data ?? [];
+  const mapIds = [...new Set(rows.map((r) => r.map_id).filter((m): m is number => m !== null))];
+  const names = await mapNames(flavor, mapIds);
+  for (const r of rows) {
+    if (r.map_id === null) continue;
+    const list = out.get(r.entity_id) ?? out.set(r.entity_id, []).get(r.entity_id)!;
+    const existing = list.find((p) => p.map_id === r.map_id);
+    if (existing) { existing.sightings += r.observation_count; continue; }
+    list.push({ map_id: r.map_id, name: names[r.map_id] ?? `Map ${r.map_id}`, x: r.cluster_x, y: r.cluster_y, sightings: r.observation_count });
+  }
+  for (const list of out.values()) list.sort((a, b) => b.sightings - a.sightings);
+  return out;
+}

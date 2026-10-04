@@ -1,56 +1,73 @@
 <script lang="ts">
-  import UnitTable from "$lib/ui/UnitTable.svelte";
+  import Empty from "$lib/ui/Empty.svelte";
+  import Icon from "$lib/ui/Icon.svelte";
+  import PageHeader from "$lib/ui/PageHeader.svelte";
+  import UnitList from "$lib/ui/UnitList.svelte";
   let { data } = $props();
-  const total = $derived(data.npcs.length + data.creatures.length + data.maps.length + data.areas.length + data.taxi.length);
+  const r = $derived(data.results);
+  const total = $derived(r ? r.npcs.length + r.creatures.length + r.zones.length + r.areas.length + r.taxi.length : 0);
+  const continents = $derived(Object.entries(Object.groupBy(data.zones, (z) => z.parentName ?? "Other")).sort(([a], [b]) => a.localeCompare(b)));
 </script>
 
-<svelte:head><title>{data.q ? `${data.q} · ` : ""}World Wiki · WoW Compendium</title></svelte:head>
+<svelte:head><title>{data.q ? `“${data.q}” · ` : "Zones · "}Classic Era · WoW Compendium</title></svelte:head>
 
-<div class="space-y-8">
-  <header class="flex flex-wrap items-end justify-between gap-4">
-    <div>
-      <div class="text-sm text-ink-muted">Classic Era</div>
-      <h1 class="text-3xl font-medium">World Wiki</h1>
-    </div>
-    <form class="flex gap-2">
-      <input type="hidden" name="flavor" value={data.flavor} />
-      <input name="q" value={data.q} type="search" placeholder="Search names" class="w-56 rounded-md border border-line bg-surface px-3 py-1.5 text-sm placeholder:text-ink-faint focus:border-accent focus:outline-none" />
-      <button class="rounded-md border border-line px-3 py-1.5 text-sm hover:border-ink-faint">Search</button>
-    </form>
-  </header>
-
-  {#if data.q}
-    <p class="text-sm text-ink-muted">{total} result{total === 1 ? "" : "s"} for “{data.q}”. <a href="/wiki">Clear</a></p>
+{#if r}
+  <PageHeader eyebrow="Search · Classic Era" title={`“${data.q}”`} lede={`${total} result${total === 1 ? "" : "s"} across NPCs, creatures, zones, areas and flight paths.`}>
+    <a href="/wiki" class="text-[13px]">Clear search</a>
+  </PageHeader>
+  {#if !total}
+    <Empty text="Nothing by that name has been seen yet. Names match as players type them in the game, in English." />
   {/if}
-
-  <div class="grid gap-8 lg:grid-cols-[2fr_1fr]">
-    <div class="min-w-0 space-y-8">
-      <UnitTable rows={data.npcs} flavor={data.flavor} title="NPCs" emptyText="No NPCs match." />
-      <UnitTable rows={data.creatures} flavor={data.flavor} title="Creatures" emptyText="No creatures match." />
-    </div>
-
-    <div class="space-y-8">
+  <div class="space-y-10">
+    {#if r.zones.length}
       <section>
-        <h2 class="mb-2 text-xl font-medium">Zones <span class="num text-sm text-ink-faint">{data.maps.length}</span></h2>
-        <ul class="divide-y divide-line rounded-md border border-line bg-surface text-sm">
-          {#each data.maps as m}<li class="px-3 py-1.5"><a href="/wiki/{data.flavor}/zone/{m.entity_id}">{m.name}</a></li>{/each}
-          {#if !data.maps.length}<li class="px-3 py-2 text-ink-muted">None yet.</li>{/if}
+        <h2 class="mb-3 text-[17px] font-semibold">Zones <span class="num text-[13px] font-normal text-ink-faint">{r.zones.length}</span></h2>
+        <ul class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {#each r.zones as z}<li><a href="/wiki/{data.flavor}/zone/{z.entity_id}" class="card flex items-center justify-between px-4 py-3 text-ink hover:border-line-strong hover:no-underline"><span class="font-medium">{z.name}</span><Icon name="arrow" size={16} class="text-ink-faint" /></a></li>{/each}
         </ul>
       </section>
-      <section>
-        <h2 class="mb-2 text-xl font-medium">Areas <span class="num text-sm text-ink-faint">{data.areas.length}</span></h2>
-        <ul class="divide-y divide-line rounded-md border border-line bg-surface text-sm">
-          {#each data.areas as a}<li class="flex justify-between px-3 py-1.5"><span>{a.name}</span><span class="num text-xs text-ink-faint">#{a.entity_id}</span></li>{/each}
-          {#if !data.areas.length}<li class="px-3 py-2 text-ink-muted">None yet.</li>{/if}
-        </ul>
+    {/if}
+    {#if r.npcs.length}
+      <section><h2 class="mb-3 text-[17px] font-semibold">NPCs <span class="num text-[13px] font-normal text-ink-faint">{r.npcs.length}</span></h2><UnitList rows={r.npcs} flavor={data.flavor} /></section>
+    {/if}
+    {#if r.creatures.length}
+      <section><h2 class="mb-3 text-[17px] font-semibold">Creatures <span class="num text-[13px] font-normal text-ink-faint">{r.creatures.length}</span></h2><UnitList rows={r.creatures} flavor={data.flavor} /></section>
+    {/if}
+    {#if r.areas.length || r.taxi.length}
+      <section class="grid gap-6 sm:grid-cols-2">
+        {#if r.areas.length}
+          <div><h2 class="mb-3 text-[17px] font-semibold">Areas <span class="num text-[13px] font-normal text-ink-faint">{r.areas.length}</span></h2><ul class="card divide-y divide-line text-[14px]">{#each r.areas as a}<li class="px-4 py-2">{a.name}</li>{/each}</ul></div>
+        {/if}
+        {#if r.taxi.length}
+          <div><h2 class="mb-3 text-[17px] font-semibold">Flight paths <span class="num text-[13px] font-normal text-ink-faint">{r.taxi.length}</span></h2><ul class="card divide-y divide-line text-[14px]">{#each r.taxi as t}<li class="px-4 py-2">{t.name}</li>{/each}</ul></div>
+        {/if}
       </section>
-      <section>
-        <h2 class="mb-2 text-xl font-medium">Flight points <span class="num text-sm text-ink-faint">{data.taxi.length}</span></h2>
-        <ul class="divide-y divide-line rounded-md border border-line bg-surface text-sm">
-          {#each data.taxi as t}<li class="px-3 py-1.5">{t.name}</li>{/each}
-          {#if !data.taxi.length}<li class="px-3 py-2 text-ink-muted">None yet.</li>{/if}
-        </ul>
-      </section>
-    </div>
+    {/if}
   </div>
-</div>
+{:else}
+  <PageHeader eyebrow="Classic Era" title="Zones" lede="Azeroth, one map at a time. Open a zone to see who lives there, what roams there, and where." />
+  {#if data.zones.length}
+    <div class="space-y-9">
+      {#each continents as [continent, zones]}
+        <section>
+          <h2 class="mb-3 flex items-baseline gap-2 text-[17px] font-semibold">{continent} <span class="num text-[13px] font-normal text-ink-faint">{zones?.length ?? 0}</span></h2>
+          <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {#each zones ?? [] as z (z.entity_id)}
+              <li>
+                <a href="/wiki/{data.flavor}/zone/{z.entity_id}" class="card group block px-4 py-3.5 text-ink hover:border-line-strong hover:no-underline">
+                  <div class="flex items-center justify-between gap-3">
+                    <span class="serif text-[20px]">{z.name}</span>
+                    <Icon name="arrow" size={16} class="text-ink-faint transition-transform group-hover:translate-x-0.5" />
+                  </div>
+                  <div class="mt-1.5 text-[13px] text-ink-muted"><span class="num">{z.units}</span> NPC{z.units === 1 ? "" : "s"} &amp; creatures · <span class="num">{z.areas}</span> area{z.areas === 1 ? "" : "s"}</div>
+                </a>
+              </li>
+            {/each}
+          </ul>
+        </section>
+      {/each}
+    </div>
+  {:else}
+    <Empty text="No zones yet. The first player to install the add-on and log in puts the first zone on the map." href="/sync" action="Get the add-on" />
+  {/if}
+{/if}

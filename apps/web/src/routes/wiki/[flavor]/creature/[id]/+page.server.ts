@@ -21,12 +21,14 @@ export const load: PageServerLoad = async ({ params }) => {
   const reactions = [...new Set(allOf(facts, "reaction").map((f) => (f.value_json as { reaction: number }).reaction))];
   const firstBuild = Math.min(...facts.map((f) => f.first_build));
   const lastBuild = Math.max(...facts.map((f) => f.last_build));
-  const byMap = mapIds.map((mapId) => ({
-    mapId,
-    mapName: maps[mapId] ?? `Map ${mapId}`,
-    points: positions.filter((p) => p.map_id === mapId && p.cluster_x !== null && p.cluster_y !== null).map((p) => ({ x: p.cluster_x!, y: p.cluster_y!, label: `${p.observation_count} sighting${p.observation_count === 1 ? "" : "s"}`, weight: p.observation_count })),
-  }));
+  const locations = mapIds
+    .map((mapId) => {
+      const spots = positions.filter((p) => p.map_id === mapId && p.cluster_x !== null && p.cluster_y !== null).sort((a, b) => b.observation_count - a.observation_count);
+      return { mapId, mapName: maps[mapId] ?? `Map ${mapId}`, sightings: spots.reduce((n, p) => n + p.observation_count, 0), spots: spots.slice(0, 6).map((p) => ({ x: p.cluster_x!, y: p.cluster_y!, n: p.observation_count })) };
+    })
+    .sort((a, b) => b.sightings - a.sightings);
   const kind = unitKind(kindSignalsFromFacts(facts));
+  const patch = builds.find((b) => b.build === lastBuild)?.patch ?? String(lastBuild);
   return {
     flavor,
     id,
@@ -35,8 +37,7 @@ export const load: PageServerLoad = async ({ params }) => {
     nameStatus: name?.status ?? "unconfirmed",
     contributors: Math.max(0, ...facts.map((f) => f.contributor_count)),
     observations: facts.reduce((n, f) => n + f.observation_count, 0),
-    firstBuild,
-    lastBuild,
+    patch,
     expansions: [...new Set(builds.filter((b) => b.build >= firstBuild && b.build <= lastBuild).map((b) => b.expansion))],
     levelMin: pickNum(facts, "level_min")?.value_num ?? null,
     levelMax: pickNum(facts, "level_max")?.value_num ?? null,
@@ -50,7 +51,7 @@ export const load: PageServerLoad = async ({ params }) => {
     reactions,
     health,
     roles,
-    byMap,
+    locations,
     facts,
   };
 };

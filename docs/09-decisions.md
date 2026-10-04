@@ -408,17 +408,9 @@ Retention of raw uploads (D-0023) applies as written; the database itself is the
 continuity, not the code.
 
 ## D-0035: Design direction
-Date: 2026-10-04  Status: accepted
-Context: The first slice was unstyled plumbing; the owner wants a very good UI and
-UX next and deferred the direction to the team's recommendation.
-Decision: "An archive, not a game interface" per docs/12: dark by default with a
-light theme, warm paper-and-gold palette, Fraunces for display and Inter for text,
-dense wiki pages with a strict hierarchy, lighter Journal, a guided Sync page.
-Alternatives: game-styled chrome with ornate frames (dates fast, fights dense data);
-uniform spacious layouts (wiki pages become long scrolls); dark only (reference
-sites are read in daylight).
-Consequences: docs/12 is binding on every page; the design lands before Phase 2
-pages so each new entity page is built once.
+Status: superseded by D-0039. Rejected because both the dark "archive" and the light
+"field guide" were styling passes on the same top-menu layout, which the owner found
+unintuitive to move around in.
 
 ## D-0036: The add-on never changes client settings
 Date: 2026-10-04  Status: accepted
@@ -467,3 +459,32 @@ category; the data model is unchanged. The exclusion is enforced in three places
 because the add-on alone was not enough (N-0019): the add-on skips `Pet` GUIDs and
 player-controlled units, ingest drops `Pet` records, and migration 0002 removed the
 pets that reached the database before this decision.
+
+## D-0039: The site is an atlas with a sidebar, not a brochure with a top menu
+Date: 2026-10-04  Status: accepted
+Context: Two visual passes (D-0035) kept a marketing-style home page, a three-item
+top menu, flat tables with status badges, and an empty coordinate grid in place of a
+map. The owner found the result unintuitive three times running and asked for a
+restart from the drawing board. Readers come to look something up; the front page
+should still surface the most interesting finds.
+Decision: A persistent left sidebar carries everything a reader navigates by: search
+(the `/` key focuses it), the game version, the world categories (Zones, NPCs,
+Creatures, Areas, Flight paths) and the reader's own pages (Journal, Add-on). On
+phones the same sidebar is a drawer behind a menu button. Pages are documents with
+a consistent header and, for entities, a fact sheet at the side. Positions are shown
+as the coordinates players type in-game, in tables, not on a blank grid; a drawn map
+returns only when real map artwork exists. Trust status is a sentence on the entity
+page ("Confirmed by 2 players."), never a badge on every list row. The front page
+opens on search and zones, then shows notable finds (rares, elites, bosses) and what
+was seen most recently. Visuals: warm off-white page, white cards, one link blue,
+gold only as a mark, Fraunces for titles, Inter for text, JetBrains Mono for numbers,
+all self-hosted. Dark theme kept.
+Alternatives: keep the top menu and restyle again (rejected: the menu does not scale
+past three items and hides the categories a wiki is browsed by); a Wowhead-style
+dark gold interface (rejected earlier by the owner as unappealing); a bottom tab bar
+on phones (deferred: a drawer reuses the sidebar unchanged); status badges on rows
+(rejected: noise for readers who do not know the trust model).
+Consequences: docs/12 is rewritten; category pages exist for every world entity
+type and new entity types get one each; the audit script covers every page; the map
+panel component is removed until artwork arrives.
+
