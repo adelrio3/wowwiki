@@ -26,6 +26,8 @@
 
 {#if data.art}
   <MapImage art={data.art} title="Map of {data.name}" class="mb-8" />
+{:else if data.artNote}
+  {@html `<!-- map: ${data.artNote.replace(/-->/g, "")} -->`}
 {/if}
 
 <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_17rem]">

@@ -2,6 +2,7 @@ import { error } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
 import { areasOnMap, artworkFor, creatureSummaries, creaturesOnMap, entityFacts, mapNames, pickNum, pickText, taxiNodesOnMap, unitPlaces } from "$lib/server/db/wiki";
 import { FLAVORS } from "@compendium/schema";
+import { lastMapArtError } from "$lib/server/map-art";
 import { UI_MAP_TYPES } from "@compendium/game-meta";
 
 export const load: PageServerLoad = async ({ params }) => {
@@ -32,6 +33,7 @@ export const load: PageServerLoad = async ({ params }) => {
     parent,
     parentName,
     art,
+    artNote: art ? null : (lastMapArtError.get(`${flavor}:${id}`) ?? null),
     npcs: units.filter((u) => u.kind === "NPC"),
     creatures: units.filter((u) => u.kind === "Creature"),
     areas,

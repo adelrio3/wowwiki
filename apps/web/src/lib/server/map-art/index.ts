@@ -106,16 +106,22 @@ const inFlight = new Set<string>();
  * button (D-0044). One map takes a few seconds; the page waits once, then the
  * stored image serves every later view. Failures leave the page without a map.
  */
+export const lastMapArtError = new Map<string, string>();
+
 export async function ensureMapArt(flavor: string, mapId: number): Promise<boolean> {
   const key = `${flavor}:${mapId}`;
-  if (inFlight.has(key) || !locatorFor(flavor)) return false;
+  if (inFlight.has(key)) return false;
+  if (!locatorFor(flavor)) { lastMapArtError.set(key, "no locator"); return false; }
   inFlight.add(key);
+  const t0 = Date.now();
   try {
     const pending = (await pendingMaps(flavor)).find((p) => p.mapId === mapId);
-    if (!pending) return false;
+    if (!pending) { lastMapArtError.set(key, "no layout pending"); return false; }
     await composeOne(flavor, pending);
+    lastMapArtError.delete(key);
     return true;
   } catch (e) {
+    lastMapArtError.set(key, `${String(e)} after ${Date.now() - t0}ms`);
     console.error(`map ${mapId}: ${String(e)}`);
     return false;
   } finally { inFlight.delete(key); }
