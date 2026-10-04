@@ -573,3 +573,24 @@ Consequences: Four columns on `device_tokens` (helper version, state, last seen,
 pending action), two endpoints, and the helper's heartbeat. A helper that never
 reports shows as "signed in, has not reported yet".
 
+## D-0044: Map layouts are bootstrapped from the client's own tables
+Date: 2026-10-04  Status: accepted; extends D-0041
+Context: D-0041 makes the add-on's catalog the source of each map's layout. That
+catalog arrives only after a contributor syncs with add-on 0.3.0, which the
+helper trouble delayed, so no zone page had a map. The same layout tables live
+inside the client (UiMap, UiMapXMapArt, UiMapArt, UiMapArtStyleLayer,
+UiMapArtTile, WorldMapOverlay, WorldMapOverlayTile) and wago.tools exports them
+per build as plain CSV.
+Decision: `tools/assets layouts` turns those tables into one layout file per
+flavor and build, committed beside the locator. The composer uses the bootstrap
+layout for every map of the build and merges in any pieces contributors' add-ons
+recorded; the add-on catalog remains the live source and the only one stored as
+facts. The layout file is artwork plumbing, never wiki data, like the file name
+list.
+Alternatives: wait for the first catalog sync (left every zone without a map
+for as long as the helper was broken); parsing the client's database format
+ourselves from the content servers (no third party, but a large parser for a
+one-time export; worth doing if wago.tools ever goes away).
+Consequences: Every Classic Era map (54) can be composed before anyone visits
+it; a new build needs `layouts` re-run alongside `locator`.
+

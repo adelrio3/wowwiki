@@ -6,7 +6,9 @@
   "description": "Artwork pipeline: pulls map art from Blizzard's content servers and stores it for the wiki.",
   "scripts": {
     "locator": "tsx src/cli.ts locator",
-    "test": "vitest run"
+    "test": "vitest run",
+    "preview": "tsx src/preview.ts",
+    "layouts": "tsx src/cli.ts layouts"
   },
   "dependencies": {
     "@compendium/map-art": "workspace:*"

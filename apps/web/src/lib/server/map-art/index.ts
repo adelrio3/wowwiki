@@ -10,6 +10,14 @@ import { serviceClient } from "../supabase";
 import { SUPABASE_URL } from "../env";
 
 const locatorFiles = import.meta.glob("./locators/*.json", { eager: true, import: "default" }) as Record<string, Locator>;
+type BootstrapLayouts = Record<string, { name: string; layer: MapLayout["layer"]; overlays: MapOverlay[] }>;
+const layoutFiles = import.meta.glob("./layouts/*.json", { eager: true, import: "default" }) as Record<string, BootstrapLayouts>;
+
+/** Layouts from the client's own tables for a flavor's newest build (D-0044). */
+export function bootstrapLayouts(flavor: string): BootstrapLayouts {
+  const mine = Object.entries(layoutFiles).filter(([path]) => path.includes(`/${flavor}-`)).sort(([a], [b]) => b.localeCompare(a));
+  return mine[0]?.[1] ?? {};
+}
 
 /** The locator for a flavor: the newest build we have one for. */
 export function locatorFor(flavor: string): Locator | undefined {
@@ -35,7 +43,12 @@ async function loadFile(flavor: string, fdid: number, locator: Locator): Promise
 
 export interface PendingMap { mapId: number; layout: MapLayout; hash: string }
 
-/** Maps whose stored art is missing or built from an older layout. */
+/**
+ * Maps whose stored art is missing or built from an older layout. The layout
+ * for a map is the bootstrap one (every map of the build, all pieces) merged
+ * with whatever contributors' add-ons have recorded, so a map exists before
+ * anyone visits it and follows the client if its art changes.
+ */
 export async function pendingMaps(flavor: string, limit = 500): Promise<PendingMap[]> {
   const db = serviceClient();
   const [{ data: facts }, { data: art }] = await Promise.all([
@@ -44,10 +57,14 @@ export async function pendingMaps(flavor: string, limit = 500): Promise<PendingM
   ]);
   const have = new Map((art ?? []).map((a) => [a.entity_id, a.layout_hash]));
   const byMap = new Map<number, MapLayout>();
+  for (const [id, b] of Object.entries(bootstrapLayouts(flavor))) byMap.set(Number(id), { layer: b.layer, overlays: [...b.overlays] });
   for (const f of facts ?? []) {
     const l = byMap.get(f.entity_id) ?? byMap.set(f.entity_id, { layer: undefined as unknown as MapLayout["layer"], overlays: [] }).get(f.entity_id)!;
-    if (f.field === "art_layer") l.layer = f.value_json as MapLayout["layer"];
-    else l.overlays.push(f.value_json as MapOverlay);
+    if (f.field === "art_layer") { if (!l.layer) l.layer = f.value_json as MapLayout["layer"]; }
+    else {
+      const o = f.value_json as MapOverlay;
+      if (!l.overlays.some((x) => x.t.join(",") === o.t.join(","))) l.overlays.push(o);
+    }
   }
   const out: PendingMap[] = [];
   for (const [mapId, layout] of byMap) {
@@ -75,3 +92,26 @@ export async function composeOne(flavor: string, p: PendingMap): Promise<{ mapId
   if (rowErr) throw new Error(`artwork row: ${rowErr.message}`);
   return { mapId: p.mapId, pieces: p.layout.overlays.length };
 }
+
+const inFlight = new Set<string>();
+
+/**
+ * Compose a map on first view when it is missing, so no one has to press a
+ * button (D-0044). One map takes a few seconds; the page waits once, then the
+ * stored image serves every later view. Failures leave the page without a map.
+ */
+export async function ensureMapArt(flavor: string, mapId: number): Promise<boolean> {
+  const key = `${flavor}:${mapId}`;
+  if (inFlight.has(key) || !locatorFor(flavor)) return false;
+  inFlight.add(key);
+  try {
+    const pending = (await pendingMaps(flavor)).find((p) => p.mapId === mapId);
+    if (!pending) return false;
+    await composeOne(flavor, pending);
+    return true;
+  } catch (e) {
+    console.error(`map ${mapId}: ${String(e)}`);
+    return false;
+  } finally { inFlight.delete(key); }
+}
+

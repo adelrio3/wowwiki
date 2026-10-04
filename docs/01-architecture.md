@@ -102,6 +102,9 @@ Two sources (D-0019, D-0041):
    add-on records each map's layout (which client files, where each explored piece
    goes). `tools/assets` builds a per-build *locator* from the content servers'
    indexes (where each file sits in which archive, N-0020) and commits it.
+   `tools/assets layouts` turns the client's own map layout tables (exported per
+   build by wago.tools) into a bootstrap layout file so every map of a build can
+   be composed before any contributor's catalog arrives (D-0044).
    `packages/map-art` decodes the container and texture formats and composes a map
    in pure JavaScript. The site's Admin page composes pending maps in batches: each
    source file is fetched once with a ranged request, kept in the bucket under

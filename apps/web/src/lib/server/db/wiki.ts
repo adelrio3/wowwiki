@@ -2,7 +2,7 @@
 import { serviceClient } from "../supabase";
 import { DEFAULT_LOCALE } from "@compendium/game-meta";
 import { MOCK, mockArtwork, mockCreatureFacts, mockListed, mockMaps, mockPositions, mockSummaries } from "./mock";
-import { publicUrl } from "../map-art";
+import { ensureMapArt, publicUrl } from "../map-art";
 import { kindSignalsFromFacts, unitKind } from "$lib/wiki-format";
 
 export interface FactRow {
@@ -306,7 +306,13 @@ export interface Artwork { url: string; width: number; height: number; pieces: n
 /** The composed image for an entity, when one has been made (D-0041). */
 export async function artworkFor(flavor: string, entityType: string, entityId: number, kind = "map"): Promise<Artwork | null> {
   if (MOCK) return mockArtwork[entityId] ?? null;
-  const { data } = await serviceClient().from("artwork").select("path, width, height, pieces, layout_hash").eq("flavor", flavor).eq("entity_type", entityType).eq("entity_id", entityId).eq("kind", kind).maybeSingle();
-  return data ? { url: publicUrl(data.path, data.layout_hash), width: data.width, height: data.height, pieces: data.pieces } : null;
+  const read = async () => {
+    const { data } = await serviceClient().from("artwork").select("path, width, height, pieces, layout_hash").eq("flavor", flavor).eq("entity_type", entityType).eq("entity_id", entityId).eq("kind", kind).maybeSingle();
+    return data ? { url: publicUrl(data.path, data.layout_hash), width: data.width, height: data.height, pieces: data.pieces } : null;
+  };
+  const existing = await read();
+  if (existing || entityType !== "map" || kind !== "map") return existing;
+  // First view of a map that has a layout but no image yet: compose it now.
+  return (await ensureMapArt(flavor, entityId)) ? read() : null;
 }
 
