@@ -1,6 +1,6 @@
 {
   "name": "helper",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "private": true,
   "type": "module",
   "description": "WoW Compendium Helper: a Windows tray app that installs the add-on and syncs in the background.",

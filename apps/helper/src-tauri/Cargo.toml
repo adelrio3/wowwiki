@@ -1,6 +1,6 @@
 [package]
 name = "wowcompendium-helper"
-version = "0.1.3"
+version = "0.1.4"
 description = "WoW Compendium Helper"
 edition = "2021"
 

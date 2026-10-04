@@ -3,7 +3,7 @@
 //! shared with the site (docs/04, D-0018).
 use std::sync::Mutex;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
-use tauri::tray::TrayIconBuilder;
+use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Emitter, Manager, State, WindowEvent, Wry};
 
 struct Tray {
@@ -77,6 +77,14 @@ fn detect_wow_folder() -> Option<String> {
     None
 }
 
+fn show_window(app: &AppHandle) {
+    if let Some(w) = app.get_webview_window("main") {
+        let _ = w.show();
+        let _ = w.unminimize();
+        let _ = w.set_focus();
+    }
+}
+
 fn build_tray(app: &AppHandle) -> tauri::Result<Tray> {
     let status = MenuItem::with_id(app, "status", "Starting…", false, None::<&str>)?;
     let sync = MenuItem::with_id(app, "sync", "Sync now", true, None::<&str>)?;
@@ -94,7 +102,17 @@ fn build_tray(app: &AppHandle) -> tauri::Result<Tray> {
         .icon(app.default_window_icon().cloned().expect("window icon"))
         .tooltip("WoW Compendium Helper")
         .menu(&menu)
-        .show_menu_on_left_click(true)
+        // Windows convention: right click for the menu, double click to open the window.
+        .show_menu_on_left_click(false)
+        .on_tray_icon_event(|tray, event| {
+            if let TrayIconEvent::DoubleClick { button: MouseButton::Left, .. } = event {
+                show_window(tray.app_handle());
+            }
+            if let TrayIconEvent::Click { button: MouseButton::Left, button_state: MouseButtonState::Up, .. } = event {
+                // a single left click also opens it; the menu stays on the right button
+                show_window(tray.app_handle());
+            }
+        })
         .on_menu_event(|app, event| {
             let id = event.id().as_ref().to_string();
             if id == "quit" {

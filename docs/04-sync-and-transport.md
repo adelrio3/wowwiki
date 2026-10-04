@@ -178,7 +178,8 @@ Behavior:
   On a change to `WoWCompendium.lua`, wait five seconds for the file to settle,
   then run the standard upload flow and write the ack file. A ten-minute timer is
   the safety net.
-- **Status**: tray icon with a menu: status line, Sync now, Pause/Resume, Choose
+- **Status**: tray icon; a left click or double click opens the status window,
+  the right button opens a menu: status line, Sync now, Pause/Resume, Choose
   game folder, Sign in (or "Signed in"), Open WoW Compendium, Status window, Quit.
   The status window (D-0042) shows sign-in state, folder and add-on version per
   client, and the last activity; closing it hides it, the tray keeps the helper

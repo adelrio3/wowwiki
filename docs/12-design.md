@@ -103,7 +103,7 @@ table (`.tbl`) and the input (`.field`) are the two component classes.
 | `Card` | surface with optional uppercase title |
 | `StatTile` | big mono number with a label (Journal) |
 | `UnitList` | the NPC/creature table: name, level, type, where (zone and coordinates) |
-| `MapImage` | a composed zone map at its true aspect ratio, with optional pins |
+| `MapImage` | a composed zone map at its true aspect ratio, with optional pins drawn in map units (0.45% of the map width, a little larger with sightings) so they scale with the map and stay on the exact spot |
 | `CategoryToolbar` | filter by name, type and sort for category pages (plain GET form) |
 | `UnitCategoryPage` | the NPCs and Creatures pages, parameterised by kind |
 | `Button` | primary (ink), secondary (outline), quiet (text) |
