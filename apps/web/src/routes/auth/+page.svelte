@@ -14,7 +14,7 @@
     {#if form?.sent}
       <p class="text-[15px] text-ok">Check your email for the link. It opens this site signed in.</p>
     {:else}
-      <form method="post" use:enhance class="space-y-3">
+      <form method="post" action="?/link{page.url.search ? '&' + page.url.search.slice(1) : ''}" use:enhance class="space-y-3">
         <label class="block text-[13px] font-medium text-ink-muted" for="email">Email</label>
         <input id="email" name="email" type="email" required placeholder="you@example.com" class="field" />
         <div class="flex items-center gap-3 pt-1">

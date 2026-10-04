@@ -13,7 +13,7 @@ export const actions: Actions = {
     const next = url.searchParams.get("next");
     throw redirect(303, next && next.startsWith("/") ? next : "/sync");
   },
-  default: async ({ request, locals, url, cookies }) => {
+  link: async ({ request, locals, url, cookies }) => {
     const form = await request.formData();
     const email = String(form.get("email") ?? "").trim();
     if (!email) return fail(400, { error: "email required" });
