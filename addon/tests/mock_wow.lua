@@ -66,9 +66,16 @@ function M.install()
     GetPlayerMapPosition = function() return { GetXY = function() return M.mapPos.x, M.mapPos.y end } end,
     GetMapInfo = function(id) return { mapID = id, name = "Mulgore", mapType = 3, parentMapID = 1414 } end,
     GetAreaInfo = function(id) return M.areaNames[id] end,
+    GetMapChildrenInfo = function() return { { mapID = 1414, name = "Kalimdor", mapType = 2 }, { mapID = 1412, name = "Mulgore", mapType = 3 } } end,
+    GetMapArtLayers = function(id) if id == 946 then error("no art") end return { { layerWidth = 1002, layerHeight = 668, tileWidth = 256, tileHeight = 256 } } end,
+    GetMapArtLayerTextures = function(id) if id == 946 then error("no art") end local t = {} for i = 1, 12 do t[i] = id * 100 + i end return t end,
+    GetMapArtID = function(id) return id + 5000 end,
   }
   _G.UnitPosition = function() return M.worldPos.y, M.worldPos.x, 0, M.worldPos.inst end
-  _G.C_MapExplorationInfo = { GetExploredAreaIDsAtPosition = function() return M.areaIDs end }
+  _G.C_MapExplorationInfo = {
+    GetExploredAreaIDsAtPosition = function() return M.areaIDs end,
+    GetExploredMapTextures = function(id) if id ~= 1412 then return {} end return { { textureWidth = 256, textureHeight = 256, offsetX = 300, offsetY = 200, fileDataIDs = { 272173 } } } end,
+  }
   _G.C_TaxiMap = { GetTaxiNodesForMap = function()
     return { { nodeID = 22, name = "Thunder Bluff, Mulgore", position = { GetXY = function() return 0.39, 0.27 end }, faction = 1, isUndiscovered = false } }
   end }

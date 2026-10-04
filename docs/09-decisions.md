@@ -504,3 +504,33 @@ thing already answers "where").
 Consequences: The zone page layout leads with the map; position data is reached
 through the entity, never the zone.
 
+## D-0041: Map art comes from Blizzard's content servers, laid out by the add-on, copied to our storage
+Date: 2026-10-04  Status: accepted; narrows D-0019
+Context: D-0019 had zone maps coming from an extraction tool the owner runs against
+the installed client. In practice the tool crashed on the full export and showed
+nothing on a narrower filter. Meanwhile the content servers the game itself
+downloads from answer plain HTTPS requests with no sign-in (N-0020). The owner
+wants the site to hold its own copies of every asset rather than reference
+Blizzard's servers at page view.
+Decision: The add-on records, for every map the client knows, which client files make
+up the base map and where each explored-area picture is drawn (a client catalog,
+like flight nodes). The site fetches each file once from Blizzard's content servers
+using a per-build locator built offline, keeps the original file in our bucket,
+composes the finished map, stores it as an image, and records it in `artwork`.
+Pages serve only our copies; nothing on a page points at Blizzard. Composition runs
+from the Admin page in small batches inside the site's own serverless function. The
+owner never runs an extraction tool. Blizzard's API remains the first source for
+icons and other media that it does serve (D-0019).
+Alternatives: owner-run extraction (D-0019 path, rejected after it failed in
+practice and because it does not survive patches without more owner labour);
+reading the layout tables from the client data files (needs a parser for the
+database format; the add-on already has the layout through documented API calls);
+hot-linking Blizzard's servers (rejected by the owner, and the files for an old
+build disappear after patches); a third-party mirror of client files (adds a
+dependency on someone else's service).
+Consequences: A new build needs a new locator file, produced by `tools/assets`
+and committed; until then maps of that build are not composed. A zone map only
+shows the areas some contributor has explored; it fills in as players explore.
+Storage: a composed map is about 200 KB, a source tile about 35 KB; all of Classic
+Era fits in well under a quarter of a gigabyte including source copies.
+

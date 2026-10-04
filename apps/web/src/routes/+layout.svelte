@@ -4,6 +4,6 @@
   let { data, children } = $props();
 </script>
 
-<Shell user={data.user}>
+<Shell user={data.user} isAdmin={data.isAdmin}>
   {@render children()}
 </Shell>

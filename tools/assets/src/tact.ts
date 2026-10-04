@@ -6,7 +6,7 @@
  *   -> ranged GET from the archive -> BLTE decode.
  * Read-only, public endpoints, no authentication. See docs/11 N-0020.
  */
-import { inflateSync } from "node:zlib";
+import { blteDecode } from "@compendium/map-art";
 import { mkdirSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -54,38 +54,6 @@ function parseConfig(text: string): Record<string, string[]> {
     if (k && v !== undefined) out[k.trim()] = v.trim().split(" ");
   }
   return out;
-}
-
-/** Decode a BLTE container into the plain file bytes. */
-export function blteDecode(buf: Buffer): Buffer {
-  if (buf.toString("ascii", 0, 4) !== "BLTE") throw new Error("not BLTE");
-  const headerSize = buf.readUInt32BE(4);
-  const chunks: Array<{ csize: number; dsize: number }> = [];
-  let pos = 8;
-  if (headerSize === 0) {
-    chunks.push({ csize: buf.length - 8, dsize: 0 });
-  } else {
-    const flags = buf.readUInt8(8);
-    const count = (buf.readUInt8(9) << 16) | (buf.readUInt8(10) << 8) | buf.readUInt8(11);
-    if (flags !== 0x0f && flags !== 0x10) throw new Error(`unexpected BLTE flags ${flags}`);
-    pos = 12;
-    for (let i = 0; i < count; i++) {
-      chunks.push({ csize: buf.readUInt32BE(pos), dsize: buf.readUInt32BE(pos + 4) });
-      pos += 24; // csize, dsize, 16-byte checksum
-    }
-    pos = headerSize;
-  }
-  const parts: Buffer[] = [];
-  for (const c of chunks) {
-    const mode = String.fromCharCode(buf[pos]!);
-    const body = buf.subarray(pos + 1, pos + c.csize);
-    if (mode === "N") parts.push(Buffer.from(body));
-    else if (mode === "Z") parts.push(inflateSync(body));
-    else if (mode === "E") throw new Error("encrypted chunk (needs TACT key)");
-    else throw new Error(`unknown BLTE chunk mode ${mode}`);
-    pos += c.csize;
-  }
-  return Buffer.concat(parts);
 }
 
 export interface Build {
@@ -258,13 +226,15 @@ export class Casc {
     const index = await ArchiveIndex.load(build, 24, onProgress);
     return new Casc(build, enc, root, index);
   }
-  async file(fdid: number): Promise<Buffer> {
+  /** Where a file sits on the content servers, or undefined when the build lacks it. */
+  locate(fdid: number): { hash: string; offset: number; size: number } | undefined {
     const ckey = this.root.ckey(fdid);
-    if (!ckey) throw new Error(`FileDataID ${fdid} not in root`);
-    const ekey = this.enc.ekey(ckey);
-    if (!ekey) throw new Error(`no encoding for ${fdid}`);
-    const loc = this.index.locate(ekey);
-    if (!loc) throw new Error(`FileDataID ${fdid} not in any archive`);
+    const ekey = ckey && this.enc.ekey(ckey);
+    return ekey ? this.index.locate(ekey) : undefined;
+  }
+  async file(fdid: number): Promise<Buffer> {
+    const loc = this.locate(fdid);
+    if (!loc) throw new Error(`FileDataID ${fdid} not available in this build`);
     const raw = await fetchBytes(`https://${this.build.cdnHost}/${this.build.cdnPath}/data/${hexPath(loc.hash)}`, { offset: loc.offset, size: loc.size });
     return blteDecode(raw);
   }

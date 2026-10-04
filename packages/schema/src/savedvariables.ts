@@ -98,14 +98,38 @@ export const CreatureRecordSchema = z.object({
 });
 export type CreatureRecord = z.infer<typeof CreatureRecordSchema>;
 
+/** Base map art layer: tile grid and the client files that fill it (D-0041). */
+export const MapArtSchema = z.object({
+  w: z.number().int(),
+  h: z.number().int(),
+  tw: z.number().int(),
+  th: z.number().int(),
+  /** FileDataIDs, row-major */
+  t: luaArray(z.number().int()),
+  /** C_Map.GetMapArtID */
+  aid: z.number().int().optional(),
+});
+/** One explored-area picture and where the client draws it, in layer pixels. */
+export const MapOverlaySchema = z.object({
+  w: z.number().int(),
+  h: z.number().int(),
+  x: z.number().int(),
+  y: z.number().int(),
+  /** FileDataIDs, row-major over 256 px tiles */
+  t: luaArray(z.number().int()),
+});
 export const MapRecordSchema = z.object({
   id: z.number().int(),
   name: z.string().optional(),
   /** Enum.UIMapType */
   type: z.number().int().optional(),
   parent: z.number().int().optional(),
+  art: MapArtSchema.optional(),
+  ovl: luaArray(MapOverlaySchema).optional(),
   ft: z.number().int(),
 });
+export type MapArt = z.infer<typeof MapArtSchema>;
+export type MapOverlay = z.infer<typeof MapOverlaySchema>;
 
 export const AreaRecordSchema = z.object({
   /** areaID from C_MapExplorationInfo.GetExploredAreaIDsAtPosition */

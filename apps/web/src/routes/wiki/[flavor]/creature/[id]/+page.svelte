@@ -2,6 +2,7 @@
   import Chip from "$lib/ui/Chip.svelte";
   import Evidence from "$lib/ui/Evidence.svelte";
   import Infobox from "$lib/ui/Infobox.svelte";
+  import MapImage from "$lib/ui/MapImage.svelte";
   import PageHeader from "$lib/ui/PageHeader.svelte";
   import { CLASSIFICATION_LABEL, ROLE_LABEL, coord, levelRange, reactionLabel } from "$lib/wiki-format";
   let { data } = $props();
@@ -29,6 +30,9 @@
   <div class="min-w-0 space-y-10">
     <section>
       <h2 class="mb-3 text-[17px] font-semibold">Where to find {data.kind === "NPC" ? "them" : "it"}</h2>
+      {#if data.homeArt && data.locations[0]}
+        <MapImage art={data.homeArt} title="{data.name} in {data.locations[0].mapName}" pins={data.locations[0].spots.map((s) => ({ x: s.x, y: s.y, label: `${coord(s.x, s.y)} · ${s.n} sighting${s.n === 1 ? "" : "s"}`, weight: s.n }))} class="mb-4" />
+      {/if}
       {#if data.locations.length}
         <div class="card overflow-x-auto">
           <table class="tbl">

@@ -103,6 +103,7 @@ table (`.tbl`) and the input (`.field`) are the two component classes.
 | `Card` | surface with optional uppercase title |
 | `StatTile` | big mono number with a label (Journal) |
 | `UnitList` | the NPC/creature table: name, level, type, where (zone and coordinates) |
+| `MapImage` | a composed zone map at its true aspect ratio, with optional pins |
 | `CategoryToolbar` | filter by name, type and sort for category pages (plain GET form) |
 | `UnitCategoryPage` | the NPCs and Creatures pages, parameterised by kind |
 | `Button` | primary (ink), secondary (outline), quiet (text) |
@@ -127,15 +128,17 @@ live in `src/lib/server/wiki-lists.ts` and `category-load.ts`.
   for flight paths).
 - **Zone**: breadcrumbs (Zones / continent / zone), title, section chips with counts
   that jump to NPCs, Creatures, Areas, Flight paths. When map art exists, the zone
-  map is the first thing on the page, full width, with nothing drawn on it and no
-  switch to draw anything (D-0040). Tables show coordinates within this zone. Rail:
+  map (`MapImage`) is the first thing on the page, full width, with nothing drawn
+  on it and no switch to draw anything (D-0040); the Evidence card says how many
+  explored areas it shows. Tables show coordinates within this zone. Rail:
   About (kind, part of, counts, map ID) and Evidence.
 - **NPC / Creature**: breadcrumbs (category / home zone / name), serif name,
   `<subtitle>`, level with Elite/Rare in gold, type and family, role chips. Main:
   "Where to find them/it" (zone, up to six coordinate spots most-seen first,
   sightings), Health by level, and "Every recorded fact" collapsed. When map art
-  exists, a small map of the home zone with this entity's spots marked sits above
-  the location table; this is the only place pins are drawn (D-0040). Rail: fact
+  exists, a map of the home zone with this entity's spots marked (gold dots, larger
+  with more sightings) sits above the location table; this is the only place pins
+  are drawn (D-0040). Rail: fact
   sheet titled NPC or Creature, then Evidence with the observation count.
 - **Journal index**: character cards with a class-tinted initial, level, race,
   class, realm, last seen.
@@ -147,6 +150,8 @@ live in `src/lib/server/wiki-lists.ts` and `category-load.ts`.
   recent uploads table below.
 - **Account / Sign in / Errors**: single narrow column with `PageHeader` and one or
   two cards. The 404 says "Not on any map we have."
+- **Admin** (owners and admins only, linked from the sidebar): maintenance cards
+  with a count, a button, and a log. First card: compose pending zone maps.
 
 ## Rules
 

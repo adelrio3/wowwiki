@@ -201,6 +201,18 @@ test("locating records map, area, zone text, taxi catalog, explored set, and zon
   mock.subzone = "Bloodhoof Village"; mock.areaIDs = { 222 }
 end)
 
+test("login catalogs every map's art layout and this character's explored pieces", function()
+  loadAddon(); player(); login()
+  mock.runTimers()
+  local maps = NS.session.world.maps
+  assert(maps["1412"] and maps["1412"].art, "Mulgore has art")
+  eq(maps["1412"].art.w, 1002); eq(maps["1412"].art.tw, 256); eq(#maps["1412"].art.t, 12); eq(maps["1412"].art.t[1], 141201); eq(maps["1412"].art.aid, 6412)
+  eq(#maps["1412"].ovl, 1); eq(maps["1412"].ovl[1].x, 300); eq(maps["1412"].ovl[1].t[1], 272173)
+  assert(maps["1414"] and maps["1414"].art, "Kalimdor has art"); eq(maps["1414"].ovl, nil)
+  assert(maps["946"] and not maps["946"].art, "cosmic map recorded without art, no error")
+  eq(NS.session.errors and #NS.session.errors or 0, 0)
+end)
+
 test("discovery messages become area_discovered events", function()
   loadAddon(); player(); login()
   mock.fire("CHAT_MSG_SYSTEM", "Discovered Brambleblade Ravine: 25 experience gained")

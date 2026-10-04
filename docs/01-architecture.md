@@ -90,21 +90,23 @@ consuming a queue table. The raw-upload-first design makes that swap painless.
 - `sync-core`: the shared sync protocol (component 8). Exports a browser adapter
   (`@compendium/sync-core/browser`) and an in-memory adapter for tests.
 
-### 6. Asset pipeline (`tools/assets/`)
+### 6. Asset pipeline (`tools/assets/`, `packages/map-art/`)
 
-Two sources, in order of preference (decision D-0019):
+Two sources (D-0019, D-0041):
 
-1. **Blizzard's API and media servers.** The Game Data API has media endpoints for
-   items, spells, achievements, creature displays, instances, classes, and races,
-   returning image URLs on Blizzard's render servers. Classic Era has its own API
-   namespace (`static-classic1x-<region>`) with item and creature media. An admin job
-   fetches media for IDs the wiki knows, stores copies in the `assets` bucket keyed by
-   entity ID, and refreshes periodically. Requires a Blizzard developer client ID and
-   secret; rate limit 36,000 requests per hour.
-2. **Extraction from the game client.** For what the API does not provide, above all
-   zone map images and minimap tiles, an admin-only command-line tool run by the owner
-   against their own installed client extracts files using an open-source CASC
-   extractor library and uploads them keyed by file data ID.
+1. **Blizzard's API and media servers** for what they serve: items, spells,
+   achievements, creature displays, instances, classes, races. An admin job fetches
+   media for IDs the wiki knows and stores copies in the `assets` bucket keyed by
+   entity ID. Requires a developer client; rate limit 36,000 requests per hour.
+2. **Blizzard's content servers** for what the API lacks, above all zone maps. The
+   add-on records each map's layout (which client files, where each explored piece
+   goes). `tools/assets` builds a per-build *locator* from the content servers'
+   indexes (where each file sits in which archive, N-0020) and commits it.
+   `packages/map-art` decodes the container and texture formats and composes a map
+   in pure JavaScript. The site's Admin page composes pending maps in batches: each
+   source file is fetched once with a ranged request, kept in the bucket under
+   `source/<flavor>/<fdid>.blp`, and the finished map is stored as
+   `maps/<flavor>/<mapId>.jpg` with a row in `artwork`. Pages serve only our copies.
 
 Neither source contributes facts; artwork only. Pages render without art gracefully.
 

@@ -17,6 +17,17 @@ end
 local DISCOVER_XP = patternFrom(ERR_ZONE_EXPLORED_XP)
 local DISCOVER = patternFrom(ERR_ZONE_EXPLORED)
 
+-- Map art layout: which client files make up the map and where the explored
+-- pieces go. The site fetches the files from Blizzard and composes them
+-- (D-0041). Overlays depend on what this character has explored, so they are
+-- refreshed on every visit and after each discovery.
+local function recordMapArt(rec, mapID)
+  local art = compat.mapArt(mapID)
+  if art then rec.art = art end
+  local ovl = compat.exploredTextures(mapID)
+  if ovl and #ovl > 0 then rec.ovl = ovl end
+end
+
 local function recordMap(mapID)
   local rec = store.map(mapID)
   if not rec then return end
@@ -26,7 +37,17 @@ local function recordMap(mapID)
     rec.type = info.mapType
     rec.parent = info.parentMapID
   end
+  recordMapArt(rec, mapID)
   return rec
+end
+
+-- Once per session: every map the client knows, with its art layout and this
+-- character's explored pieces. A client catalog, like flight nodes.
+local function recordMapCatalog()
+  if not throttle.allow("mapcatalog", 3600) then return end
+  local ids = compat.allMapIDs()
+  if not ids then return end
+  for _, id in ipairs(ids) do recordMap(id) end
 end
 
 local function recordInstance()
@@ -116,8 +137,10 @@ NS.on("PLAYER_LOGIN", function()
   -- Give the map a moment to settle after login.
   if C_Timer and C_Timer.After then
     C_Timer.After(2, function() locate("login") end)
+    C_Timer.After(8, recordMapCatalog)
   else
     locate("login")
+    recordMapCatalog()
   end
 end)
 NS.on("ZONE_CHANGED_NEW_AREA", function() locate("new_area") end)
@@ -138,6 +161,10 @@ local function discovery(text)
   if areaIDs and areaIDs[1] then d.area = areaIDs[1] end
   store.event("area_discovered", d, true)
   locate("discovery")
+  if map then
+    local rec = store.map(map)
+    if rec then recordMapArt(rec, map) end
+  end
 end
 NS.on("UI_INFO_MESSAGE", function(_, text) discovery(text) end)
 NS.on("CHAT_MSG_SYSTEM", function(text) discovery(text) end)

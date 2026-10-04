@@ -2,6 +2,7 @@
   import Evidence from "$lib/ui/Evidence.svelte";
   import Infobox from "$lib/ui/Infobox.svelte";
   import PageHeader from "$lib/ui/PageHeader.svelte";
+  import MapImage from "$lib/ui/MapImage.svelte";
   import UnitList from "$lib/ui/UnitList.svelte";
   import { coord, titleCase } from "$lib/wiki-format";
   let { data } = $props();
@@ -22,6 +23,10 @@
     {/each}
   </nav>
 </PageHeader>
+
+{#if data.art}
+  <MapImage art={data.art} title="Map of {data.name}" class="mb-8" />
+{/if}
 
 <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_17rem]">
   <div class="min-w-0 space-y-10">
@@ -62,7 +67,7 @@
     ]} />
     <div class="card px-4 py-3">
       <Evidence status={data.status} contributors={data.contributors} />
-      <p class="mt-2 text-xs text-ink-faint">Everything here was seen in a player's game client. Nothing is imported.</p>
+      <p class="mt-2 text-xs text-ink-faint">Everything here was seen in a player's game client. Nothing is imported.{#if data.art}{" "}The map shows the <span class="num">{data.art.pieces}</span> area{data.art.pieces === 1 ? "" : "s"} players have explored so far.{/if}</p>
     </div>
   </aside>
 </div>

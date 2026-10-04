@@ -49,8 +49,11 @@ Add modules in this order, each with ingest, aggregation, wiki pages, Journal vi
 6. Taxi, character, social, PvP, mail.
 
 The helper (`apps/helper`) comes first in this phase (D-0037): the Tauri adapter
-over the same sync core, device sign-in, watcher, tray, and updater. Capture
-modules follow.
+over the same sync core, device sign-in, watcher, tray, and updater. It became
+urgent on 2026-10-04 when the owner moved the game back under Program Files, where
+the browser path cannot reach; nothing new can be verified in the live game until
+it ships. Zone maps (D-0041) are built and wait on the first sync through it.
+Capture modules follow.
 
 Exit: every entity type in `03` has a page; the owner's Journal has the full event
 set; the verification checklist is fully green; the helper syncs the owner's data

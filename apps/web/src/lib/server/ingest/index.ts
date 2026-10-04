@@ -254,6 +254,9 @@ export function observationsFor(s: Session, c: Ctx): ObservationRow[] {
     if (m.name) push("map", m.id, "", "name", { text: m.name }, m.ft);
     if (m.type !== undefined) push("map", m.id, "", "map_type", { num: m.type }, m.ft);
     if (m.parent !== undefined) push("map", m.id, "", "parent", { num: m.parent }, m.ft);
+    // Map art layout is a client catalog (D-0041): the base layer once, each explored piece as its own fact.
+    if (m.art) push("map", m.id, "", "art_layer", { json: { w: m.art.w, h: m.art.h, tw: m.art.tw, th: m.art.th, t: m.art.t, aid: m.art.aid ?? null } }, m.ft, undefined, "client_catalog");
+    for (const o of m.ovl ?? []) push("map", m.id, "", "art_overlay", { json: { w: o.w, h: o.h, x: o.x, y: o.y, t: o.t } }, m.ft, undefined, "client_catalog");
   }
   for (const a of Object.values(w.areas)) {
     if (a.name) push("area", a.id, "", "name", { text: a.name }, a.ft);

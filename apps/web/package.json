@@ -16,7 +16,8 @@
     "@compendium/sync-core": "workspace:*",
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.58.0",
-    "zod": "^3.25.76"
+    "zod": "^3.25.76",
+    "@compendium/map-art": "workspace:*"
   },
   "devDependencies": {
     "@netlify/functions": "^3.1.10",

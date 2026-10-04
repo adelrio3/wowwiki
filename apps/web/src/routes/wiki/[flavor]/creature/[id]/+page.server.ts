@@ -1,6 +1,6 @@
 import { error } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
-import { allOf, buildsFor, entityFacts, entityPositions, mapNames, pickNum, pickText } from "$lib/server/db/wiki";
+import { allOf, artworkFor, buildsFor, entityFacts, entityPositions, mapNames, pickNum, pickText } from "$lib/server/db/wiki";
 import { FLAVORS } from "@compendium/schema";
 import { kindSignalsFromFacts, unitKind } from "$lib/wiki-format";
 
@@ -28,6 +28,7 @@ export const load: PageServerLoad = async ({ params }) => {
     })
     .sort((a, b) => b.sightings - a.sightings);
   const kind = unitKind(kindSignalsFromFacts(facts));
+  const homeArt = locations[0] ? await artworkFor(flavor, "map", locations[0].mapId) : null;
   const patch = builds.find((b) => b.build === lastBuild)?.patch ?? String(lastBuild);
   return {
     flavor,
@@ -52,6 +53,7 @@ export const load: PageServerLoad = async ({ params }) => {
     health,
     roles,
     locations,
+    homeArt,
     facts,
   };
 };

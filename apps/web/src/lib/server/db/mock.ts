@@ -102,3 +102,10 @@ export const mockUploads = [
   { id: "u1", flavor: "era", received_at: t, ingest_status: "ingested", ingest_error: null, observation_count: 212, byte_size: 41022 },
   { id: "u0", flavor: "era", received_at: "2026-10-03T22:35:00.000Z", ingest_status: "failed", ingest_error: "raw file missing", observation_count: null, byte_size: 3900 },
 ];
+
+/** A stand-in map image (our own drawing, not game art) so layouts can be checked without a database. */
+export const mockArtwork: Record<number, { url: string; width: number; height: number; pieces: number }> = {
+  1412: { url: "/mock/map.svg", width: 1002, height: 668, pieces: 9 },
+  1456: { url: "/mock/map.svg", width: 1002, height: 668, pieces: 1 },
+};
+

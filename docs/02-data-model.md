@@ -70,7 +70,7 @@ ID across flavors may describe different things, so every entity key is `(flavor
 | item | itemID from item link | Variants (suffix, bonus IDs, enchants) stored as attributes of an observed item instance. |
 | quest | questID | |
 | spell | spellID | |
-| map | uiMapID (`C_Map`) | Zones, subzones, continents, instance maps. |
+| map | uiMapID (`C_Map`) | Zones, subzones, continents, instance maps. Fields include `art_layer` (one JSON: layer size, tile size, tile FileDataIDs) and `art_overlay` (one JSON per explored piece: size, offset, FileDataIDs), both `client_catalog` source; overlays are a set, never a dispute. |
 | area | areaID | Subzone names, discovered via `C_Map.GetAreaInfo` / zone text. |
 | faction | factionID | Reputations. |
 | instance | instanceID from `GetInstanceInfo` | Dungeons, raids, battlegrounds. |
@@ -227,3 +227,13 @@ An active session produces on the order of a few thousand observations. A heavy 
 over a year is low millions of observation rows. Postgres handles this comfortably with
 partitioning by flavor and indexing on `(entity_type, entity_id)`. Raw uploads are
 compressed text in Storage. Data size is not a constraint for the foreseeable future.
+
+### Artwork (`artwork`)
+
+One row per composed image the site serves (D-0041): flavor, entity type and ID,
+kind (`map`), object path in the public `assets` bucket, width, height, the client
+build the files came from, a hash of the layout facts that produced it, and the
+number of explored pieces composed. Unique per (flavor, entity, kind). Public read.
+Never a source of facts. Source files are kept beside the images under
+`source/<flavor>/<fdid>.blp` so a map can be recomposed without the content servers.
+

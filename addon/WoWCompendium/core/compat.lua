@@ -142,3 +142,50 @@ compat.interactionRoles = {
   [22] = "stable_master",
   [23] = "battlemaster",
 }
+
+-- Map art (docs/03 "Map art catalog", D-0041). All pcall'd: the map API
+-- throws on maps without art. Returns { w, h, tw, th, t = {fileDataID,...} }
+-- for the base layer, or nil.
+function compat.mapArt(mapID)
+  if not (C_Map and C_Map.GetMapArtLayers and C_Map.GetMapArtLayerTextures and mapID) then return nil end
+  local ok, layers = pcall(C_Map.GetMapArtLayers, mapID)
+  if not ok or type(layers) ~= "table" or not layers[1] then return nil end
+  local l = layers[1]
+  local ok2, tiles = pcall(C_Map.GetMapArtLayerTextures, mapID, 1)
+  if not ok2 or type(tiles) ~= "table" or #tiles == 0 then return nil end
+  local art = { w = l.layerWidth, h = l.layerHeight, tw = l.tileWidth, th = l.tileHeight, t = {} }
+  for i, id in ipairs(tiles) do art.t[i] = id end
+  if C_Map.GetMapArtID then
+    local ok3, aid = pcall(C_Map.GetMapArtID, mapID)
+    if ok3 then art.aid = aid end
+  end
+  return art
+end
+
+-- Explored-area overlay pictures the client would draw for this character on
+-- this map: { { w, h, x, y, t = {fileDataID,...} }, ... } or nil.
+function compat.exploredTextures(mapID)
+  if not (C_MapExplorationInfo and C_MapExplorationInfo.GetExploredMapTextures and mapID) then return nil end
+  local ok, list = pcall(C_MapExplorationInfo.GetExploredMapTextures, mapID)
+  if not ok or type(list) ~= "table" then return nil end
+  local out = {}
+  for _, o in ipairs(list) do
+    if type(o) == "table" and o.fileDataIDs then
+      local ov = { w = o.textureWidth, h = o.textureHeight, x = o.offsetX, y = o.offsetY, t = {} }
+      for i, id in ipairs(o.fileDataIDs) do ov.t[i] = id end
+      out[#out + 1] = ov
+    end
+  end
+  return out
+end
+
+-- Every map the client knows, as { mapID, ... }. 946 is the cosmic root.
+function compat.allMapIDs()
+  if not (C_Map and C_Map.GetMapChildrenInfo) then return nil end
+  local ok, children = pcall(C_Map.GetMapChildrenInfo, 946, nil, true)
+  if not ok or type(children) ~= "table" then return nil end
+  local ids = { 946 }
+  for _, c in ipairs(children) do if c.mapID then ids[#ids + 1] = c.mapID end end
+  return ids
+end
+

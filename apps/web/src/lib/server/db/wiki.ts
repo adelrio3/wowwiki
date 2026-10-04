@@ -1,7 +1,8 @@
 /** Read helpers for World Wiki pages. Public data only; uses the service client for speed. */
 import { serviceClient } from "../supabase";
 import { DEFAULT_LOCALE } from "@compendium/game-meta";
-import { MOCK, mockCreatureFacts, mockListed, mockMaps, mockPositions, mockSummaries } from "./mock";
+import { MOCK, mockArtwork, mockCreatureFacts, mockListed, mockMaps, mockPositions, mockSummaries } from "./mock";
+import { publicUrl } from "../map-art";
 import { kindSignalsFromFacts, unitKind } from "$lib/wiki-format";
 
 export interface FactRow {
@@ -299,3 +300,13 @@ export async function unitPlaces(flavor: string, ids: number[]): Promise<Map<num
   for (const list of out.values()) list.sort((a, b) => b.sightings - a.sightings);
   return out;
 }
+
+export interface Artwork { url: string; width: number; height: number; pieces: number }
+
+/** The composed image for an entity, when one has been made (D-0041). */
+export async function artworkFor(flavor: string, entityType: string, entityId: number, kind = "map"): Promise<Artwork | null> {
+  if (MOCK) return mockArtwork[entityId] ?? null;
+  const { data } = await serviceClient().from("artwork").select("path, width, height, pieces, layout_hash").eq("flavor", flavor).eq("entity_type", entityType).eq("entity_id", entityId).eq("kind", kind).maybeSingle();
+  return data ? { url: publicUrl(data.path, data.layout_hash), width: data.width, height: data.height, pieces: data.pieces } : null;
+}
+

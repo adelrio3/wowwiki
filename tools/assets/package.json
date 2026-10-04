@@ -5,11 +5,11 @@
   "type": "module",
   "description": "Artwork pipeline: pulls map art from Blizzard's content servers and stores it for the wiki.",
   "scripts": {
-    "maps": "tsx src/cli.ts",
+    "locator": "tsx src/cli.ts locator",
     "test": "vitest run"
   },
   "dependencies": {
-    "sharp": "^0.34.3"
+    "@compendium/map-art": "workspace:*"
   },
   "devDependencies": {
     "tsx": "^4.20.5",

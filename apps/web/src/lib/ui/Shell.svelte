@@ -6,7 +6,7 @@
   import Icon from "./Icon.svelte";
   import { currentTheme, setTheme, type Theme } from "./theme";
 
-  let { user, children }: { user: { email?: string } | null; children: Snippet } = $props();
+  let { user, isAdmin = false, children }: { user: { email?: string } | null; isAdmin?: boolean; children: Snippet } = $props();
   let theme = $state<Theme>("light");
   let open = $state(false);
   let searchEl = $state<HTMLInputElement | null>(null);
@@ -93,6 +93,7 @@
     <div class="mt-auto space-y-1 border-t border-line pt-3">
       {#if user}
         <a href="/account" class="{item} {active('/account') ? 'bg-surface-2 text-ink' : 'text-ink-muted hover:bg-surface-2 hover:text-ink'}"><Icon name="account" size={16} class="text-ink-faint" /><span class="truncate">{user.email}</span></a>
+        {#if isAdmin}<a href="/admin" class="{item} {active('/admin') ? 'bg-surface-2 text-ink' : 'text-ink-muted hover:bg-surface-2 hover:text-ink'}"><Icon name="sparkle" size={16} class="text-ink-faint" /><span>Admin</span></a>{/if}
         <form method="post" action="/auth/signout"><button class="{item} w-full text-ink-muted hover:bg-surface-2 hover:text-ink"><span class="w-4"></span>Sign out</button></form>
       {:else}
         <a href="/auth" class="{item} text-ink-muted hover:bg-surface-2 hover:text-ink"><Icon name="account" size={16} class="text-ink-faint" /><span>Sign in</span></a>

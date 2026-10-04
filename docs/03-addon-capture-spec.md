@@ -91,6 +91,23 @@ deletes sessions with `seq <= ack`. Unacknowledged sessions survive.
 
 Notation: `event → API → fields`. Dedupe key in brackets.
 
+### Map art catalog (`zones.lua`)
+
+A client catalog (D-0041), recorded once per session eight seconds after login for
+every map from `C_Map.GetMapChildrenInfo(946, nil, true)` plus 946, and refreshed for
+a map on each visit and after each discovery:
+
+- Base layer: `C_Map.GetMapArtLayers(mapID)[1]` (`layerWidth`, `layerHeight`,
+  `tileWidth`, `tileHeight`) and `C_Map.GetMapArtLayerTextures(mapID, 1)` (tile
+  FileDataIDs, row-major), plus `C_Map.GetMapArtID`. Stored as `maps[id].art`.
+  `VERIFIED` present on era 1.15.9; field names `VERIFY` on first real upload.
+- Explored pieces: `C_MapExplorationInfo.GetExploredMapTextures(mapID)` entries
+  (`textureWidth`, `textureHeight`, `offsetX`, `offsetY`, `fileDataIDs`). Stored as
+  `maps[id].ovl`. Only what this character has explored; the server unions
+  contributors.
+- Maps without art (the cosmic map, some instances) throw inside the API; every call
+  is pcall'd and the map is recorded without art.
+
 ### Creatures (`units.lua`)
 
 Sight: the client exposes nearby units only through nameplates (N-0016), and the
