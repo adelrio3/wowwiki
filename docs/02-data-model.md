@@ -237,3 +237,10 @@ number of explored pieces composed. Unique per (flavor, entity, kind). Public re
 Never a source of facts. Source files are kept beside the images under
 `source/<flavor>/<fdid>.blp` so a map can be recomposed without the content servers.
 
+### Helper state on `device_tokens`
+
+Each device token row also carries what that helper last reported (D-0043):
+`helper_version`, `state` (JSON: folder, clients, last sync, last error, paused,
+game running), `last_seen_at`, and `pending_action` (`sync` or null), which the
+site sets and the helper clears when it collects it.
+

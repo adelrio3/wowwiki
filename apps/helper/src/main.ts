@@ -100,6 +100,7 @@ async function signIn() {
       state.signingIn = null;
       log("Signed in.");
       await notify("WoW Compendium Helper", "Signed in. Syncing starts now.");
+      void report();
       void cycle("signed in");
       return;
     }
@@ -127,6 +128,7 @@ async function cycle(reason: string) {
     const c = client();
     state.manifest = await c.manifest();
     const gameRunning = await invoke<boolean>("game_running").catch(() => false);
+    lastGameRunning = gameRunning;
     let linkToken: string | null = null;
     for (const f of state.layout.flavors) {
       const st = await inspectInstall(state.fs, f, state.manifest);
@@ -156,7 +158,25 @@ async function cycle(reason: string) {
     log(`Sync failed: ${msg}`);
     if (/401/.test(msg)) { state.settings!.deviceToken = null; await saveSettings(state.settings!); await setStatus("setup", "Signed out: sign in again"); }
     else await setStatus("error", "Sync failed");
-  } finally { state.busy = false; render(); }
+  } finally { state.busy = false; render(); void report(); }
+}
+
+// ---------------------------------------------------------------- reporting
+// The site is the helper's dashboard (D-0043): report state after every cycle
+// and as a heartbeat, and pick up anything the site asked for.
+let lastGameRunning = false;
+async function report(): Promise<void> {
+  const s = state.settings;
+  if (!s?.deviceToken) return;
+  const clients = (state.layout?.flavors ?? []).map((f) => { const st = state.installs[f.folder]; return { folder: f.folder, flavor: f.flavor, installed: !!st?.installed, version: st?.version ?? null, linked: !!st?.linked, needsUpdate: !!st && !!state.manifest && (st.version !== state.manifest.version || st.differing.some((d) => !d.startsWith("Compendium_"))) }; });
+  const body = { helperVersion: __HELPER_VERSION__, state: { folder: s.wowFolder, clients, lastSync: state.lastSync?.toISOString() ?? null, lastError: state.status === "error" ? state.statusText : null, paused: s.paused, gameRunning: lastGameRunning, status: state.statusText } };
+  try {
+    const r = await tauriFetch(`${s.siteUrl}/api/helper/status`, { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${s.deviceToken}` }, body: JSON.stringify(body) });
+    if (r.status === 401) { s.deviceToken = null; await saveSettings(s); await setStatus("setup", "Signed out: sign in again"); return; }
+    if (!r.ok) return;
+    const { pendingAction } = (await r.json()) as { pendingAction: string | null };
+    if (pendingAction === "sync") { log("The site asked for a sync."); void cycle("asked from the site"); }
+  } catch { /* offline: try again next heartbeat */ }
 }
 
 // ---------------------------------------------------------------- watching
@@ -241,5 +261,6 @@ async function boot() {
   try { if (!(await autostartEnabled())) await enableAutostart(); } catch { /* optional */ }
   await cycle("startup");
   setInterval(() => void cycle("timer"), 10 * 60 * 1000);
+  setInterval(() => { if (!state.busy) void report(); }, 20 * 1000);
 }
 void boot();

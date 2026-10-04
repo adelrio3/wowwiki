@@ -182,6 +182,12 @@ Behavior:
   alive. The helper registers itself to start with Windows, minimized.
 - **Updater**: deferred; the Add-on page links to the latest GitHub release and the
   helper reports its version. Tauri's updater joins once releases settle.
+- **Reporting** (D-0043): `POST /api/helper/status` with the device token after
+  every cycle and every twenty seconds: helper version and a state object (folder,
+  clients with add-on version, linked and update-needed flags, last upload, last
+  problem, paused, game running). The reply carries any pending action the site
+  asked for (`sync`), which the helper runs at once. The Add-on page shows a card
+  per helper from this state and folds the browser path away while a helper exists.
 - **Coexistence**: if both the browser and the helper are active, uploads dedupe by
   hash and acks are idempotent, so nothing conflicts. Each computer running the
   helper is its own device token; the same account can have several.

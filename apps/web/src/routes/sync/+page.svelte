@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, untrack } from "svelte";
   import type { AddonManifest } from "@compendium/schema";
   import type { InstallState, SyncProgress, SyncReport } from "@compendium/sync-core";
   import { connectNew, reconnect, client, installStates, install, uninstall, sync, supportsFolderAccess, type Connection } from "$lib/sync/browser-sync";
@@ -9,7 +9,20 @@
   import Icon from "$lib/ui/Icon.svelte";
   import PageHeader from "$lib/ui/PageHeader.svelte";
 
-  let { data } = $props();
+  import { enhance } from "$app/forms";
+  import { onDestroy } from "svelte";
+  import type { HelperDevice } from "$lib/server/db/helpers";
+  let { data, form } = $props();
+
+  // Helpers: the site is their dashboard (D-0043). Refresh while the page is open.
+  let helpers = $state<HelperDevice[]>(untrack(() => data.helpers));
+  const hasHelper = $derived(helpers.length > 0);
+  const timer = setInterval(async () => {
+    try { const r = await fetch("/api/helper/devices"); if (r.ok) helpers = ((await r.json()) as { helpers: HelperDevice[] }).helpers; } catch { /* keep the last state */ }
+  }, 10000);
+  onDestroy(() => clearInterval(timer));
+  const ago = (iso: string | null | undefined) => { if (!iso) return "never"; const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000); return s < 60 ? "just now" : s < 3600 ? `${Math.floor(s / 60)} min ago` : s < 86400 ? `${Math.floor(s / 3600)} h ago` : new Date(iso).toLocaleDateString(); };
+  let browserOpen = $state(false);
 
   let supported = $state(true);
   let conn = $state<Connection | null>(null);
@@ -100,25 +113,65 @@
 <div class="mx-auto max-w-3xl">
   <PageHeader eyebrow="Contribute" title="Add-on" lede="It records what you see while you play, with no interface and no changes to your game. Two ways to install it and sync: the helper, or this page." />
 
-  <section class="card mb-8 p-5">
-    <div class="flex flex-wrap items-start justify-between gap-4">
-      <div class="min-w-0 max-w-xl">
-        <h2 class="text-[17px] font-semibold">The helper <span class="ml-1 rounded-md bg-gold-soft px-1.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-gold">Recommended on Windows</span></h2>
-        <p class="mt-1 text-[14px] text-ink-muted">A small app that sits in your tray. It finds your game folder, installs and updates the add-on, and uploads new data whenever the game saves it. Works wherever the game is installed, Program Files included. Sign in once; nothing else to do.</p>
-        <ol class="mt-3 space-y-1 text-[14px] text-ink-muted">
-          <li><span class="num mr-1.5 text-ink-faint">1</span>Download and run the installer. Windows shows a warning because the app is not signed: click <strong class="text-ink">More info</strong>, then <strong class="text-ink">Run anyway</strong>.</li>
-          <li><span class="num mr-1.5 text-ink-faint">2</span>In the helper window click <strong class="text-ink">Sign in</strong>. Your browser opens this site; approve the code it shows.</li>
-          <li><span class="num mr-1.5 text-ink-faint">3</span>That is all. Play, log out, and the helper syncs on its own.</li>
-        </ol>
+  {#if hasHelper}
+    <section class="mb-8 space-y-3">
+      {#each helpers as h (h.id)}
+        {@const st = h.state}
+        {@const clients = st.clients ?? []}
+        {@const allGood = h.online && !!st.folder && clients.length > 0 && clients.every((c) => c.installed && c.linked && !c.needsUpdate) && !st.lastError}
+        <div class="card p-5">
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 class="text-[17px] font-semibold">{h.name}</h2>
+              <p class="mt-0.5 text-[13px] text-ink-muted">{h.online ? "Running" : h.lastSeenAt ? `Last seen ${ago(h.lastSeenAt)}` : "Signed in, has not reported yet"}{h.helperVersion ? ` · helper ${h.helperVersion}` : ""}{st.paused ? " · paused" : ""}</p>
+            </div>
+            <form method="post" action="?/helperSync" use:enhance><input type="hidden" name="device" value={h.id} /><Button type="submit" variant="secondary" disabled={!h.online}>{clients.some((c) => !c.installed || c.needsUpdate) ? "Install add-on and sync" : "Sync now"}</Button></form>
+          </div>
+          {#if form?.requested === h.id || h.pendingAction}<p class="mt-2 text-[13px] text-ink-muted">Asked. The helper picks this up within about twenty seconds.</p>{/if}
+          <dl class="mt-3 grid gap-x-6 gap-y-1.5 text-[14px] sm:grid-cols-[max-content_1fr]">
+            <dt class="text-ink-muted">Game folder</dt><dd class="mono text-[13px]">{st.folder ?? "not found yet: choose it in the helper window"}</dd>
+            {#each clients as c (c.folder)}
+              <dt class="text-ink-muted">Add-on in <span class="mono">{c.folder}</span></dt>
+              <dd>{#if !c.installed}<span class="text-warn">not installed</span>{:else}<span class="num">{c.version ?? "?"}</span>{#if c.needsUpdate}<span class="ml-2 text-warn">update waiting</span>{/if}{#if !c.linked}<span class="ml-2 text-warn">not linked to your account</span>{/if}{/if}{#if (!c.installed || c.needsUpdate) && st.gameRunning} <span class="text-ink-faint">· installs when the game is closed</span>{/if}</dd>
+            {/each}
+            <dt class="text-ink-muted">Last upload</dt><dd>{ago(st.lastSync ?? h.lastUsedAt)}</dd>
+            {#if st.lastError}<dt class="text-ink-muted">Last problem</dt><dd class="text-bad">{st.lastError}</dd>{/if}
+          </dl>
+          {#if allGood}<p class="mt-3 text-[14px] text-ok">Everything is set. Play, log out, and the helper uploads on its own.</p>{/if}
+        </div>
+      {/each}
+      <p class="text-[13px] text-ink-faint">Add another computer by installing the helper there and signing in. Remove one from the Account page.</p>
+    </section>
+  {:else}
+    <section class="card mb-8 p-5">
+      <div class="flex flex-wrap items-start justify-between gap-4">
+        <div class="min-w-0 max-w-xl">
+          <h2 class="text-[17px] font-semibold">The helper <span class="ml-1 rounded-md bg-gold-soft px-1.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-gold">Recommended on Windows</span></h2>
+          <p class="mt-1 text-[14px] text-ink-muted">A small app that sits in your tray. It finds your game folder, installs and updates the add-on, and uploads new data whenever the game saves it. Works wherever the game is installed, Program Files included. Sign in once; nothing else to do.</p>
+          <ol class="mt-3 space-y-1 text-[14px] text-ink-muted">
+            <li><span class="num mr-1.5 text-ink-faint">1</span>Download and run the installer. Windows shows a warning because the app is not signed: click <strong class="text-ink">More info</strong>, then <strong class="text-ink">Run anyway</strong>.</li>
+            <li><span class="num mr-1.5 text-ink-faint">2</span>In the helper window click <strong class="text-ink">Sign in</strong>. Your browser opens this site; approve the code it shows.</li>
+            <li><span class="num mr-1.5 text-ink-faint">3</span>That is all. Play, log out, and the helper syncs on its own. This page then shows what it is doing.</li>
+          </ol>
+        </div>
+        <Button href="https://github.com/adelrio3/wowwiki/releases/latest/download/WoWCompendiumHelper-Setup.exe">Download the helper for Windows</Button>
       </div>
-      <Button href="https://github.com/adelrio3/wowwiki/releases/latest/download/WoWCompendiumHelper-Setup.exe">Download the helper for Windows</Button>
-    </div>
-  </section>
+    </section>
+  {/if}
 
-  <h2 class="mb-3 text-[17px] font-semibold">Or sync from this page</h2>
-  <p class="mb-4 text-[14px] text-ink-muted">Works in Chrome, Edge and Brave when the game is installed outside Program Files.</p>
+  {#if hasHelper}
+    <details class="mb-4" bind:open={browserOpen}>
+      <summary class="text-[14px] text-ink-muted">Sync from this page instead</summary>
+      <p class="mb-4 mt-2 text-[14px] text-ink-muted">Works in Chrome, Edge and Brave when the game is installed outside Program Files. Not needed while a helper is running.</p>
+    </details>
+  {:else}
+    <h2 class="mb-3 text-[17px] font-semibold">Or sync from this page</h2>
+    <p class="mb-4 text-[14px] text-ink-muted">Works in Chrome, Edge and Brave when the game is installed outside Program Files.</p>
+  {/if}
 
-  {#if !supported}
+  {#if hasHelper && !browserOpen}
+    <!-- browser path collapsed -->
+  {:else if !supported}
     <Card><p class="text-[14px]">This browser can't open folders. Use <strong>Chrome</strong>, <strong>Edge</strong>, or <strong>Brave</strong> for one-click setup. A desktop helper for other browsers is coming.</p></Card>
   {:else}
     <ol class="space-y-4">

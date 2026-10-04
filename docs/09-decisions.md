@@ -549,3 +549,25 @@ notifications only (disappear, cannot be read back).
 Consequences: One window to keep in the design's register; the native side stays
 tiny because the window is ordinary web content.
 
+## D-0043: The site is the helper's dashboard
+Date: 2026-10-04  Status: accepted
+Context: With the helper installed, the Add-on page still led with the browser
+folder steps, which cannot work under Program Files, so a player with a running
+helper saw a page that looked broken and could not tell what the helper had done.
+Decision: The helper reports its state to the site after every cycle and as a
+twenty-second heartbeat: game folder, add-on version and link state per client,
+last upload, last problem, paused, whether the game is running. The Add-on page
+shows one card per signed-in helper with that state, refreshed every ten seconds,
+and a button that asks the helper to act now (install or update the add-on if
+needed, then sync); the helper picks the request up on its next heartbeat. When
+at least one helper exists, the browser path is folded away under "Sync from this
+page instead" and is never required. The only friction left is the one the game
+imposes: the add-on can be written only while the game is closed, and the page
+says so.
+Alternatives: detecting the helper from the browser (no clean way for a web page
+to see a desktop app); a local port the site talks to (firewall prompts, mixed
+content); keeping the browser steps visible (what the owner called friction).
+Consequences: Four columns on `device_tokens` (helper version, state, last seen,
+pending action), two endpoints, and the helper's heartbeat. A helper that never
+reports shows as "signed in, has not reported yet".
+
