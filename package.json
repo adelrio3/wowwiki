@@ -1,0 +1,18 @@
+{
+  "name": "wow-compendium",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.28.0",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "build": "pnpm --filter web build",
+    "dev": "pnpm --filter web dev",
+    "test": "vitest run",
+    "test:lua": "lua5.1 addon/tests/run.lua",
+    "check": "pnpm -r --if-present check"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}

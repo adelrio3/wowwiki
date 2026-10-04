@@ -1,0 +1,34 @@
+-- GUID parsing and identity generation.
+local _, NS = ...
+local ids = {}
+NS.ids = ids
+
+-- Creature-0-<server>-<instance>-<zoneUid>-<npcID>-<spawnUid>
+function ids.parse(guid)
+  if type(guid) ~= "string" then return nil end
+  local kind, server, inst, zone, id, spawn = string.match(guid, "^(%a+)%-0%-(%d+)%-(%d+)%-(%d+)%-(%d+)%-(%x+)$")
+  if kind then
+    return { kind = kind, server = tonumber(server), instance = tonumber(inst), zoneUid = tonumber(zone), id = tonumber(id), spawn = spawn }
+  end
+  local realm, uid = string.match(guid, "^Player%-(%d+)%-(%x+)$")
+  if realm then return { kind = "Player", realm = tonumber(realm), uid = uid } end
+  local irealm, iuid = string.match(guid, "^Item%-(%d+)%-0%-(%x+)$")
+  if irealm then return { kind = "Item", realm = tonumber(irealm), uid = iuid } end
+  return nil
+end
+
+function ids.isCreature(parsed)
+  return parsed and (parsed.kind == "Creature" or parsed.kind == "Vehicle" or parsed.kind == "Pet")
+end
+
+-- Random UUID v4. math.random is seeded by the client; mix in time for safety.
+function ids.uuid()
+  local seed = (NS.now() or 0) + math.floor((GetTime and GetTime() or 0) * 1000)
+  math.randomseed(seed % 2147483647)
+  math.random(); math.random(); math.random()
+  local template = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx"
+  return (string.gsub(template, "[xy]", function(c)
+    local v = (c == "x") and math.random(0, 15) or math.random(8, 11)
+    return string.format("%x", v)
+  end))
+end

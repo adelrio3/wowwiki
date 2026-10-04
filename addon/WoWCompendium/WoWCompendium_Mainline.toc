@@ -1,0 +1,22 @@
+## Interface: 120100
+## Title: WoW Compendium
+## Notes: Silent recorder for the WoW Compendium wiki and journal. No in-game interface.
+## Author: WoW Compendium
+## Version: 0.1.0
+## SavedVariables: WoWCompendiumDB
+## X-Toc: Mainline
+## X-Website: https://wow-wiki.netlify.app
+
+Compendium_Link.lua
+Compendium_Ack.lua
+core/init.lua
+core/compat.lua
+core/ids.lua
+core/throttle.lua
+core/store.lua
+core/session.lua
+core/link.lua
+core/ack.lua
+core/login.lua
+modules/units.lua
+modules/zones.lua

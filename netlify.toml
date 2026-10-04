@@ -1,0 +1,16 @@
+# Netlify build configuration. The site lives in apps/web; the repository root
+# is the pnpm workspace. Netlify installs the workspace from the root and
+# builds inside apps/web. Do not configure these values in the Netlify UI.
+
+[build]
+  base = "apps/web"
+  command = "pnpm run build"
+  publish = "build"
+
+[build.environment]
+  NODE_VERSION = "22"
+  PNPM_FLAGS = "--frozen-lockfile"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"

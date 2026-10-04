@@ -1,0 +1,144 @@
+-- Creatures: everything the client shows about units the player sees or
+-- interacts with (docs/03 "Creatures"). Players are not recorded here in 0.1.
+local _, NS = ...
+local store, ids, compat, throttle = NS.store, NS.ids, NS.compat, NS.throttle
+
+-- Per-session memory, reset on PLAYER_LOGIN: spawn UIDs per npcID, tooltip
+-- scanned per npcID.
+local spawns = {}
+local tipDone = {}
+
+NS.on("PLAYER_LOGIN", function()
+  spawns = {}
+  tipDone = {}
+end)
+
+local function levelKey(unit)
+  local lvl = UnitLevel(unit)
+  if lvl == nil then return nil end
+  return tostring(lvl), lvl
+end
+
+local function scanTooltip(rec, unit)
+  local lines = compat.unitTooltip(unit)
+  if not lines then return end
+  -- Line 2 is "Level N ..." for most units, or the subtitle for NPCs with a
+  -- title ("Warrior Trainer", "Innkeeper"). Line 3 is usually the faction.
+  local l2, l3 = lines[2], lines[3]
+  if l2 and l2 ~= "" and not string.find(l2, "^" .. (LEVEL or "Level")) then
+    rec.sub = l2
+    if l3 and l3 ~= "" and not string.find(l3, "^" .. (LEVEL or "Level")) then rec.tf = l3 end
+  elseif l3 and l3 ~= "" and l3 ~= (PVP or "PvP") then
+    rec.tf = l3
+  end
+end
+
+-- Full snapshot of a unit token; `kind` is how we came to see it.
+local function snapshot(unit, kind)
+  if not UnitExists(unit) then return end
+  local guid = UnitGUID(unit)
+  local p = ids.parse(guid)
+  if not ids.isCreature(p) then return end
+  local rec = store.creature(p.id)
+  if not rec then return end
+  rec.gt = p.kind
+  rec.n = (rec.n or 0) + 1
+  rec.name = UnitName(unit) or rec.name
+
+  local lkey, lvl = levelKey(unit)
+  if lvl then
+    if not rec.lmin or lvl < rec.lmin then rec.lmin = lvl end
+    if not rec.lmax or lvl > rec.lmax then rec.lmax = lvl end
+  end
+  rec.cls = UnitClassification(unit) or rec.cls
+  rec.ct = UnitCreatureType(unit) or rec.ct
+  local fam = UnitCreatureFamily(unit)
+  if fam then rec.cf = fam end
+  local rx = UnitReaction("player", unit)
+  if rx then rec.rx = rx end
+  local fg = UnitFactionGroup(unit)
+  if fg then rec.fg = fg end
+  if UnitIsPVP and UnitIsPVP(unit) then rec.pvp = true end
+  if UnitIsCivilian and UnitIsCivilian(unit) then rec.civ = true end
+  if UnitSex then rec.sex = UnitSex(unit) end
+  if UnitPowerType then rec.pt = UnitPowerType(unit) end
+
+  -- Health and power only when full (undamaged), keyed by level.
+  if lkey then
+    local hp, hpMax = UnitHealth(unit), UnitHealthMax(unit)
+    if hpMax and hpMax > 0 and hp == hpMax then
+      rec.hp = rec.hp or {}
+      rec.hp[lkey] = hpMax
+    end
+    local pwMax = UnitPowerMax and UnitPowerMax(unit)
+    if pwMax and pwMax > 0 then
+      rec.pw = rec.pw or {}
+      rec.pw[lkey] = pwMax
+    end
+  end
+
+  -- Distinct spawns.
+  local set = spawns[p.id]
+  if not set then set = {} spawns[p.id] = set end
+  local newSpawn = not set[p.spawn]
+  if newSpawn then
+    set[p.spawn] = true
+    rec.sp = (rec.sp or 0) + 1
+  end
+
+  -- Position: once per spawn per kind; interact kind always.
+  if kind == "interact" or newSpawn then
+    store.addPos(rec, store.pos(kind))
+  end
+
+  -- Tooltip once per npcID per session, never for nameplates.
+  if kind ~= "nameplate" and not tipDone[p.id] then
+    tipDone[p.id] = true
+    scanTooltip(rec, unit)
+  end
+  return rec
+end
+
+NS.on("PLAYER_TARGET_CHANGED", function()
+  snapshot("target", "target")
+end)
+
+NS.on("UPDATE_MOUSEOVER_UNIT", function()
+  if UnitExists("mouseover") and not UnitIsUnit("mouseover", "player") then
+    if throttle.allow("mouseover:" .. (UnitGUID("mouseover") or "?"), 5) then
+      snapshot("mouseover", "mouseover")
+    end
+  end
+end)
+
+NS.on("NAME_PLATE_UNIT_ADDED", function(unit)
+  snapshot(unit, "nameplate")
+end)
+
+-- Interaction frames reveal roles (vendor, trainer, taxi, ...) and give a
+-- close-range position for the NPC.
+local function interaction(role)
+  if not UnitExists("npc") then return end
+  local rec = snapshot("npc", "interact")
+  if rec and role then
+    rec.roles = rec.roles or {}
+    rec.roles[role] = true
+  end
+end
+
+NS.on("PLAYER_INTERACTION_MANAGER_FRAME_SHOW", function(kind)
+  interaction(compat.interactionRoles[kind])
+end)
+NS.on("GOSSIP_SHOW", function() interaction("gossip") end)
+NS.on("QUEST_GREETING", function() interaction("quest") end)
+NS.on("QUEST_DETAIL", function() interaction("quest") end)
+NS.on("QUEST_PROGRESS", function() interaction("quest_end") end)
+NS.on("QUEST_COMPLETE", function() interaction("quest_end") end)
+NS.on("MERCHANT_SHOW", function() interaction("vendor") end)
+NS.on("TRAINER_SHOW", function() interaction("trainer") end)
+NS.on("TAXIMAP_OPENED", function() interaction("taxi") end)
+NS.on("BANKFRAME_OPENED", function() interaction("bank") end)
+NS.on("PET_STABLE_SHOW", function() interaction("stable_master") end)
+NS.on("AUCTION_HOUSE_SHOW", function() interaction("auctioneer") end)
+NS.on("TRADE_SKILL_SHOW", function() interaction(nil) end)
+NS.on("MAIL_SHOW", function() interaction(nil) end)

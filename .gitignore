@@ -1,0 +1,12 @@
+node_modules/
+.pnpm-store/
+dist/
+build/
+.svelte-kit/
+.netlify/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+coverage/
