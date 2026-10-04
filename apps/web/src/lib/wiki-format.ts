@@ -30,10 +30,31 @@ export const CLASSIFICATION_LABEL: Record<string, string> = {
   minus: "Minor",
 };
 
-/** Presentation label: the data model has one "creature" type; readers see NPC vs Creature. */
-export function unitKind(opts: { roles: string[]; reactions: number[]; subtitle?: string | null }): "NPC" | "Creature" {
-  if (opts.roles.length || opts.subtitle) return "NPC";
-  // 5+ is friendly; a unit friendly to the observer and without hostility signals reads as an NPC
-  if (opts.reactions.length && opts.reactions.every((r) => r >= 5)) return "NPC";
+/**
+ * NPC or creature (D-0038). An NPC is a person in the world: anyone with an
+ * interaction role or a tooltip title, anyone the game flags as a civilian or
+ * as not attackable, or anyone some observer saw as friendly. Everything else
+ * is a creature. Signals are observer-relative, so any single positive signal
+ * from any contributor is enough.
+ */
+export interface KindSignals {
+  roles: string[];
+  subtitle?: string | null;
+  civilian?: boolean;
+  notAttackable?: boolean;
+  friendlyToAnyone?: boolean;
+}
+export function unitKind(s: KindSignals): "NPC" | "Creature" {
+  if (s.roles.length || s.subtitle || s.civilian || s.notAttackable || s.friendlyToAnyone) return "NPC";
   return "Creature";
+}
+
+export function kindSignalsFromFacts(facts: Array<{ field: string; value_kind: string; value_num: number | null; value_text: string | null; value_json: unknown }>): KindSignals {
+  return {
+    roles: facts.filter((f) => f.field.startsWith("role:")).map((f) => f.field.slice(5)),
+    subtitle: facts.find((f) => f.field === "subtitle")?.value_text ?? null,
+    civilian: facts.some((f) => f.field === "civilian" && f.value_num === 1),
+    notAttackable: facts.some((f) => f.field === "attackable" && f.value_num === 0),
+    friendlyToAnyone: facts.some((f) => f.field === "reaction" && ((f.value_json as { reaction?: number })?.reaction ?? 0) >= 5),
+  };
 }

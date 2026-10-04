@@ -156,7 +156,8 @@ export function computeFacts(ref: EntityRef, obs: Obs[], trusted: Set<string>): 
     const contributorsOf = (accounts: Set<string>) => [...accounts].reduce((n, a) => n + weight(a), 0);
     const total = [...g.values.values()].reduce((n, v) => n + contributorsOf(v.accounts), 0);
     // Multi-valued fields (health by level, roles, reaction) are sets, not disputes.
-    const multiValued = g.field === "health" || g.field === "power" || g.field.startsWith("role:") || g.field === "reaction";
+    // Observer-relative fields (reaction, attackable, civilian) legitimately differ by faction.
+    const multiValued = g.field === "health" || g.field === "power" || g.field.startsWith("role:") || g.field === "reaction" || g.field === "attackable" || g.field === "civilian";
     for (const [vh, v] of g.values) {
       const contributors = contributorsOf(v.accounts);
       let status: FactRowOut["status"] = contributors >= CONFIRM_THRESHOLD ? "confirmed" : "unconfirmed";

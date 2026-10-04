@@ -4,11 +4,11 @@
   import EntityHeader from "$lib/ui/EntityHeader.svelte";
   import FactList from "$lib/ui/FactList.svelte";
   import MapPanel from "$lib/ui/MapPanel.svelte";
-  import { CLASSIFICATION_LABEL, reactionLabel, unitKind } from "$lib/wiki-format";
+  import { CLASSIFICATION_LABEL, reactionLabel } from "$lib/wiki-format";
   let { data } = $props();
   const level = $derived(data.levelMin === null ? "?" : data.levelMin === data.levelMax ? String(data.levelMin) : `${data.levelMin}–${data.levelMax}`);
   const cls = $derived(data.classification && data.classification !== "normal" ? CLASSIFICATION_LABEL[data.classification] ?? data.classification : null);
-  const unit = $derived(unitKind({ roles: data.roles, reactions: data.reactions, subtitle: data.subtitle }));
+  const unit = $derived(data.kind);
   const kind = $derived(`${unit} · Level ${level}${cls ? ` ${cls}` : ""}${data.creatureType ? ` · ${data.creatureType}` : ""}`);
   const crumbs = $derived([{ href: "/wiki", label: "World Wiki" }, { label: "Classic Era" }, { href: "/wiki?flavor=" + data.flavor, label: unit === "NPC" ? "NPCs" : "Creatures" }]);
   const roleLabel: Record<string, string> = { gossip: "Talks", quest: "Quest giver", quest_end: "Quest turn-in", vendor: "Vendor", trainer: "Trainer", taxi: "Flight master", bank: "Banker", innkeeper: "Innkeeper", stable_master: "Stable master", auctioneer: "Auctioneer", mailbox: "Mail", spirit_healer: "Spirit healer", battlemaster: "Battlemaster", guild_bank: "Guild bank", guild_registrar: "Guild registrar", tabard_vendor: "Tabard vendor", petition_vendor: "Petition vendor" };

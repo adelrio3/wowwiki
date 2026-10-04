@@ -147,10 +147,17 @@ test("targeting a creature records it once per spawn with health, tooltip, and p
   mock.units.target = { guid = "Creature-0-5162-1-56-2958-0000407711", name = "Prairie Wolf", level = 6, health = 10, healthMax = 90, reaction = 2 }
   mock.fire("PLAYER_TARGET_CHANGED")
   eq(NS.session.world.creatures["2958"].hp, nil)
-  -- players are ignored
+  -- players and player pets are ignored
   mock.units.target = { guid = "Player-5149-04E19732", name = "Rhinhaus", level = 10 }
   mock.fire("PLAYER_TARGET_CHANGED")
   eq(NS.session.world.creatures["Rhinhaus"], nil)
+  mock.units.target = { guid = "Pet-0-5162-1-56-2955-00009999AA", name = "Bitey", level = 5, health = 1, healthMax = 1 }
+  mock.fire("PLAYER_TARGET_CHANGED")
+  eq(NS.session.world.creatures["2955"], nil, "pets never recorded")
+  -- attackable flag recorded
+  mock.units.target = { guid = "Creature-0-5162-1-56-3222-0000000001", name = "Brave Wildrunner", level = 14, health = 1, healthMax = 1, attackable = false, reaction = 5 }
+  mock.fire("PLAYER_TARGET_CHANGED")
+  eq(NS.session.world.creatures["3222"].atk, false)
 end)
 
 test("interaction frames add roles to the npc; stale npc never gets quest roles", function()

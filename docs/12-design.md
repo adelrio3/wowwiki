@@ -42,7 +42,7 @@ themes and two widths, and a change is not deployed until it passes.
 | `ok` on `ok-soft` | `#166534` on `#dcfce7` | `#6ee7a0` on `#10301f` | confirmed |
 | `warn` on `warn-soft` | `#92400e` on `#fef3c7` | `#fcd34d` on `#3a2a08` | disputed |
 | `bad` on `bad-soft` | `#991b1b` on `#fee2e2` | `#fca5a5` on `#3c1414` | errors |
-| `info` on `info-soft` | `#1e40af` on `#dbeafe` | `#93c5fd` on `#152a4d` | corrected, NPC label |
+| `info` on `info-soft` | `#1e40af` on `#dbeafe` | `#93c5fd` on `#152a4d` | corrected |
 | `neutral-soft` | `#eef2f6` | `#1a2538` | unconfirmed badge background |
 
 Base element styles live in Tailwind's `base` layer so utilities always win
@@ -90,17 +90,21 @@ Components take data, never fetch. Pages fetch in `+page.server.ts`.
 
 ## Page patterns
 
-- **Home**: a short statement of what the site is, live counts (creatures, areas,
-  zones, contributors), the most recently observed creatures and zones, and a
-  three-step "how it works" with a single call to action.
-- **Wiki index**: search box, then browse by kind (Zones, Creatures, Areas, Flight
-  points) as dense tables with status and contributor count. Search applies to all.
-- **Creature**: header with level and classification in the kind line, subtitle
-  under the title, role chips; key facts; "Where it was seen" as one map panel per
-  zone with a zone link; health by level; facts table collapsed under details.
-- **Zone**: header with map type and parent link; map panel with every creature
-  position (hover shows the name, click opens it); creatures table (name, level,
-  type, status); areas list; flight points list.
+- **Home**: a short statement of what the site is, live counts (NPCs and creatures,
+  areas, zones, contributors), the most recently observed units (each labelled NPC
+  or Creature) and zones, and a three-step "how it works" with a single call to
+  action.
+- **Wiki index**: search box, then browse by category (NPCs, Creatures, Zones,
+  Areas, Flight points) as dense tables with status. NPCs and Creatures are always
+  two separate tables, never one table with a tag (D-0038). Search applies to all.
+- **NPC / Creature**: the same page shape for both; the kind line opens with "NPC"
+  or "Creature" and the breadcrumb points at that category. Header with level and
+  classification in the kind line, subtitle under the title, role chips; key facts;
+  "Where it was seen" as one map panel per zone with a zone link; health by level;
+  facts table collapsed under details.
+- **Zone**: header with map type and parent link; map panel with every unit
+  position (hover shows the name, click opens it); NPCs table, then Creatures table
+  (name, level, type, spots, status); areas list; flight points list.
 - **Journal index**: character cards with class-tinted accent bar, level, race,
   class, realm, last seen.
 - **Journal character**: stat tiles (played, areas explored, deaths, sessions),

@@ -2,6 +2,7 @@ import { error } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
 import { allOf, buildsFor, entityFacts, entityPositions, mapNames, pickNum, pickText } from "$lib/server/db/wiki";
 import { FLAVORS } from "@compendium/schema";
+import { kindSignalsFromFacts, unitKind } from "$lib/wiki-format";
 
 export const load: PageServerLoad = async ({ params }) => {
   const flavor = params.flavor;
@@ -25,10 +26,12 @@ export const load: PageServerLoad = async ({ params }) => {
     mapName: maps[mapId] ?? `Map ${mapId}`,
     points: positions.filter((p) => p.map_id === mapId && p.cluster_x !== null && p.cluster_y !== null).map((p) => ({ x: p.cluster_x!, y: p.cluster_y!, label: `${p.observation_count} sighting${p.observation_count === 1 ? "" : "s"}`, weight: p.observation_count })),
   }));
+  const kind = unitKind(kindSignalsFromFacts(facts));
   return {
     flavor,
     id,
-    name: name?.value_text ?? `Creature #${id}`,
+    kind,
+    name: name?.value_text ?? `${kind} #${id}`,
     nameStatus: name?.status ?? "unconfirmed",
     contributors: Math.max(0, ...facts.map((f) => f.contributor_count)),
     observations: facts.reduce((n, f) => n + f.observation_count, 0),

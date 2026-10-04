@@ -150,6 +150,8 @@ Use these words exactly, in docs and code.
 | **Contributor** | A Compendium account, as the source of observations. |
 | **Character** | One in-game character, identified by its player GUID plus name, realm, region, flavor. |
 | **Entity** | A thing in the world with a stable in-game ID: creature, item, quest, spell, zone, etc. |
+| **NPC** | A person in the world: anyone a player could talk to or who stands around a settlement, whether friendly or hostile to the observer. One of the two wiki categories built from the `creature` entity type. |
+| **Creature** | A beast or monster that exists to be fought. The other wiki category. Player pets are neither; they are never wiki data. |
 | **Scene** | A recorded sequence of NPC speech lines that occurred together in one place and time window. |
 | **Lore text** | Readable in-world text: books, signs, plaques, letters, pages. |
 | **Ack file** | The small Lua file the web app writes into the add-on folder to tell the add-on what has been uploaded. |

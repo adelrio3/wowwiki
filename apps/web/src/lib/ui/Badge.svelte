@@ -11,8 +11,6 @@
     received: "bg-neutral-soft text-ink-muted",
     ingesting: "bg-warn-soft text-warn",
     duplicate: "bg-neutral-soft text-ink-muted",
-    npc: "bg-info-soft text-info",
-    creature: "bg-neutral-soft text-ink-muted",
   };
   const text: Record<string, string> = { overridden: "corrected" };
 </script>

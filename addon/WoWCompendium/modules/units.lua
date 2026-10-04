@@ -65,6 +65,8 @@ local function snapshot(unit, kind)
   if fg then rec.fg = fg end
   if UnitIsPVP and UnitIsPVP(unit) then rec.pvp = true end
   if UnitIsCivilian and UnitIsCivilian(unit) then rec.civ = true end
+  -- Attackable is a strong NPC/creature signal: friendly townsfolk cannot be attacked.
+  if UnitCanAttack then rec.atk = UnitCanAttack("player", unit) and true or false end
   if UnitSex then rec.sex = UnitSex(unit) end
   if UnitPowerType then rec.pt = UnitPowerType(unit) end
 

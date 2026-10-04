@@ -55,7 +55,7 @@ export type Position = z.infer<typeof PositionSchema>;
 
 export const CreatureRecordSchema = z.object({
   id: z.number().int(),
-  /** GUID type: Creature, Vehicle, Pet */
+  /** GUID type: Creature or Vehicle (player pets are never recorded, D-0038) */
   gt: z.enum(["Creature", "Vehicle", "Pet"]).default("Creature"),
   name: z.string().optional(),
   /** level range seen this session; -1 means boss (skull) */
@@ -73,6 +73,8 @@ export const CreatureRecordSchema = z.object({
   fg: z.string().optional(),
   pvp: z.boolean().optional(),
   civ: z.boolean().optional(),
+  /** UnitCanAttack("player", unit) */
+  atk: z.boolean().optional(),
   sex: z.number().int().optional(),
   /** power type id */
   pt: z.number().int().optional(),

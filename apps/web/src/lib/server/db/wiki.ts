@@ -2,6 +2,7 @@
 import { serviceClient } from "../supabase";
 import { DEFAULT_LOCALE } from "@compendium/game-meta";
 import { MOCK, mockCreatureFacts, mockListed, mockMaps, mockPositions, mockSummaries } from "./mock";
+import { kindSignalsFromFacts, unitKind } from "$lib/wiki-format";
 
 export interface FactRow {
   field: string;
@@ -190,8 +191,8 @@ export interface CreatureListed extends Listed {
   level_max: number | null;
   creature_type: string | null;
   classification: string | null;
-  /** true when any interaction role or a subtitle was observed */
-  npc: boolean;
+  /** NPC or Creature per docs/03 presentation rule (D-0038) */
+  kind: "NPC" | "Creature";
 }
 
 /** Names plus level/type/classification for a set of creature ids. */
@@ -202,20 +203,25 @@ export async function creatureSummaries(flavor: string, ids: number[]): Promise<
   const db = serviceClient();
   const { data } = await db
     .from("facts")
-    .select("entity_id, field, locale, value_text, value_num, status, contributor_count, last_build")
+    .select("entity_id, field, locale, value_text, value_num, value_json, status, contributor_count, last_build")
     .eq("flavor", flavor)
     .eq("entity_type", "creature")
-    .or("field.in.(name,level_min,level_max,creature_type,classification,subtitle),field.like.role:*")
+    .or("field.in.(name,level_min,level_max,creature_type,classification,subtitle,civilian,attackable,reaction),field.like.role:*")
     .in("entity_id", ids);
-  for (const id of ids) out.set(id, { entity_id: id, name: `#${id}`, status: "unconfirmed", contributor_count: 0, last_build: 0, level_min: null, level_max: null, creature_type: null, classification: null, npc: false });
+  for (const id of ids) out.set(id, { entity_id: id, name: `#${id}`, status: "unconfirmed", contributor_count: 0, last_build: 0, level_min: null, level_max: null, creature_type: null, classification: null, kind: "Creature" });
+  const byEntity = new Map<number, typeof data>();
   for (const r of data ?? []) {
+    byEntity.set(r.entity_id, [...(byEntity.get(r.entity_id) ?? []), r]);
     const c = out.get(r.entity_id)!;
-    if (r.field === "subtitle" || r.field.startsWith("role:")) c.npc = true;
-    else if (r.field === "name" && (r.locale === DEFAULT_LOCALE || c.name.startsWith("#"))) { c.name = r.value_text ?? c.name; c.status = r.status; c.contributor_count = r.contributor_count; c.last_build = r.last_build; }
+    if (r.field === "name" && (r.locale === DEFAULT_LOCALE || c.name.startsWith("#"))) { c.name = r.value_text ?? c.name; c.status = r.status; c.contributor_count = r.contributor_count; c.last_build = r.last_build; }
     else if (r.field === "level_min") c.level_min = r.value_num;
     else if (r.field === "level_max") c.level_max = r.value_num;
     else if (r.field === "creature_type" && (r.locale === DEFAULT_LOCALE || !c.creature_type)) c.creature_type = r.value_text;
     else if (r.field === "classification") c.classification = r.value_text;
+  }
+  for (const [id, rows] of byEntity) {
+    const c = out.get(id)!;
+    c.kind = unitKind(kindSignalsFromFacts((rows ?? []).map((r) => ({ field: r.field, value_kind: "", value_num: r.value_num, value_text: r.value_text, value_json: (r as { value_json?: unknown }).value_json ?? null }))));
   }
   return out;
 }

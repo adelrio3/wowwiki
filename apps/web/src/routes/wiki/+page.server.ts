@@ -11,6 +11,6 @@ export const load: PageServerLoad = async ({ url }) => {
     listEntities(flavor, "taxi_node", 100, q),
   ]);
   const summaries = await creatureSummaries(flavor, creatureNames.map((c) => c.entity_id));
-  const creatures = creatureNames.map((c) => summaries.get(c.entity_id)!).sort((a, b) => a.name.localeCompare(b.name));
-  return { flavor, q, creatures, maps, areas: areas.sort((a, b) => a.name.localeCompare(b.name)), taxi: taxi.sort((a, b) => a.name.localeCompare(b.name)) };
+  const units = creatureNames.map((c) => summaries.get(c.entity_id)!).sort((a, b) => a.name.localeCompare(b.name));
+  return { flavor, q, npcs: units.filter((u) => u.kind === "NPC"), creatures: units.filter((u) => u.kind === "Creature"), maps, areas: areas.sort((a, b) => a.name.localeCompare(b.name)), taxi: taxi.sort((a, b) => a.name.localeCompare(b.name)) };
 };

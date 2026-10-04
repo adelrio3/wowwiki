@@ -298,6 +298,7 @@ function creatureObservations(cr: CreatureRecord, push: Push): void {
   if (cr.fg) push("creature", id, "", "faction_group", { text: cr.fg }, t);
   if (cr.pvp !== undefined) push("creature", id, "", "pvp", { bool: cr.pvp }, t);
   if (cr.civ !== undefined) push("creature", id, "", "civilian", { bool: cr.civ }, t);
+  if (cr.atk !== undefined) push("creature", id, "", "attackable", { bool: cr.atk }, t);
   if (cr.sex !== undefined) push("creature", id, "", "sex", { num: cr.sex }, t);
   if (cr.pt !== undefined) push("creature", id, "", "power_type", { num: cr.pt }, t);
   if (cr.sub) push("creature", id, "", "subtitle", { text: cr.sub }, t);

@@ -443,3 +443,24 @@ Alternatives: ask every player to move their game folder (works, but a hurdle);
 browser-only until Phase 4 (leaves most players unable to start).
 Consequences: Phase 2 ordering in docs/08 changes; the Sync page explains both
 paths.
+
+## D-0038: NPCs and creatures are separate wiki categories; pets are never recorded
+Date: 2026-10-04  Status: accepted
+Context: The first wiki listed every unit in one "Creatures and NPCs" table with an
+NPC tag decided by roles alone, so guards, bankers and apothecaries the player had
+not interacted with showed as creatures, and player pets appeared as wiki units.
+Decision: The wiki has two categories, NPCs and Creatures, always presented as
+separate tables and breadcrumbs. An NPC is a person in the world: anyone a player
+could talk to or who stands around a settlement, regardless of whether the observer
+can attack them. A Creature is a beast or monster to fight. The category is derived
+at read time from the union of all contributors' signals (role, subtitle, civilian,
+not attackable, friendly reaction), so one data model `creature` entity serves both.
+The add-on skips `Pet` GUIDs entirely.
+Alternatives: a separate `npc` entity type in the data model (rejected: Blizzard
+uses one ID space, and the category can flip as more contributors report; a stored
+type would need migrations for a presentation choice); roles-only classification
+(rejected: misses every uninteracted townsperson); recording pets with an owner flag
+(rejected: a pet is a player's possession, not a fact about the world).
+Consequences: Units captured before 0.2.1 lack the attackable signal and may show
+as creatures until re-observed. Section headings, counts and breadcrumbs name the
+category; the data model is unchanged.

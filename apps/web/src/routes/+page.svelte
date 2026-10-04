@@ -21,7 +21,7 @@
   </section>
 
   <section class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-    <StatTile value={data.counts.creatures} label="creatures observed" />
+    <StatTile value={data.counts.creatures} label="NPCs and creatures observed" />
     <StatTile value={data.counts.zones} label="zones visited" />
     <StatTile value={data.counts.areas} label="areas mapped" />
     <StatTile value={data.counts.contributors} label="contributors" />
@@ -31,10 +31,10 @@
     <div>
       <h2 class="mb-3 text-xl font-medium">Recently observed</h2>
       <ul class="divide-y divide-line rounded-md border border-line bg-surface">
-        {#each data.creatures as c}
-          <li class="flex items-center justify-between px-4 py-2 text-sm"><a href="/wiki/era/creature/{c.entity_id}">{c.name}</a><Badge status={c.status} /></li>
+        {#each data.units as c}
+          <li class="flex items-center justify-between gap-2 px-4 py-2 text-sm"><span class="min-w-0 truncate"><a href="/wiki/era/creature/{c.entity_id}">{c.name}</a><span class="ml-2 text-xs text-ink-muted">{c.kind}</span></span><Badge status={c.status} /></li>
         {/each}
-        {#if !data.creatures.length}<li class="px-4 py-3 text-sm text-ink-muted">The record is empty. Someone has to go first.</li>{/if}
+        {#if !data.units.length}<li class="px-4 py-3 text-sm text-ink-muted">The record is empty. Someone has to go first.</li>{/if}
       </ul>
     </div>
     <div>

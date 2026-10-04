@@ -17,8 +17,9 @@ function ids.parse(guid)
   return nil
 end
 
+-- World units only. "Pet" GUIDs are player-owned and never wiki data (D-0038).
 function ids.isCreature(parsed)
-  return parsed and (parsed.kind == "Creature" or parsed.kind == "Vehicle" or parsed.kind == "Pet")
+  return parsed and (parsed.kind == "Creature" or parsed.kind == "Vehicle")
 end
 
 -- Random UUID v4. The client seeds math.random itself and does not expose

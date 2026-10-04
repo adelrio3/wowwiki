@@ -1,9 +1,7 @@
 <script lang="ts">
-  import Badge from "$lib/ui/Badge.svelte";
-  import Empty from "$lib/ui/Empty.svelte";
-  import { CLASSIFICATION_LABEL } from "$lib/wiki-format";
+  import UnitTable from "$lib/ui/UnitTable.svelte";
   let { data } = $props();
-  const total = $derived(data.creatures.length + data.maps.length + data.areas.length + data.taxi.length);
+  const total = $derived(data.npcs.length + data.creatures.length + data.maps.length + data.areas.length + data.taxi.length);
 </script>
 
 <svelte:head><title>{data.q ? `${data.q} · ` : ""}World Wiki · WoW Compendium</title></svelte:head>
@@ -26,28 +24,10 @@
   {/if}
 
   <div class="grid gap-8 lg:grid-cols-[2fr_1fr]">
-    <section class="min-w-0">
-      <h2 class="mb-2 text-xl">Creatures and NPCs <span class="num text-sm text-ink-faint">{data.creatures.length}</span></h2>
-      {#if data.creatures.length}
-        <div class="overflow-x-auto rounded-md border border-line bg-surface">
-          <table class="w-full text-sm">
-            <thead class="text-left text-xs uppercase tracking-wide text-ink-muted"><tr><th class="px-3 py-2 font-medium">Name</th><th class="px-3 py-2 font-medium">Level</th><th class="px-3 py-2 font-medium">Type</th><th class="px-3 py-2 font-medium">Status</th></tr></thead>
-            <tbody>
-              {#each data.creatures as c}
-                <tr class="border-t border-line even:bg-surface-2/40">
-                  <td class="px-3 py-1.5"><a href="/wiki/{data.flavor}/creature/{c.entity_id}">{c.name}</a>{#if c.npc}<Badge status="npc" label="NPC" class="ml-2" />{/if}{#if c.classification && c.classification !== "normal"}<span class="ml-2 text-xs text-ink-muted">{CLASSIFICATION_LABEL[c.classification] ?? c.classification}</span>{/if}</td>
-                  <td class="num px-3 py-1.5">{c.level_min === null ? "" : c.level_min === c.level_max ? c.level_min : `${c.level_min}–${c.level_max}`}</td>
-                  <td class="px-3 py-1.5 text-ink-muted">{c.creature_type ?? ""}</td>
-                  <td class="px-3 py-1.5"><Badge status={c.status} /></td>
-                </tr>
-              {/each}
-            </tbody>
-          </table>
-        </div>
-      {:else}
-        <Empty text="No creatures match." />
-      {/if}
-    </section>
+    <div class="min-w-0 space-y-8">
+      <UnitTable rows={data.npcs} flavor={data.flavor} title="NPCs" emptyText="No NPCs match." />
+      <UnitTable rows={data.creatures} flavor={data.flavor} title="Creatures" emptyText="No creatures match." />
+    </div>
 
     <div class="space-y-8">
       <section>

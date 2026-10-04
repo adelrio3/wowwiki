@@ -1,9 +1,8 @@
 <script lang="ts">
-  import Badge from "$lib/ui/Badge.svelte";
   import Card from "$lib/ui/Card.svelte";
   import EntityHeader from "$lib/ui/EntityHeader.svelte";
   import MapPanel from "$lib/ui/MapPanel.svelte";
-  import { CLASSIFICATION_LABEL } from "$lib/wiki-format";
+  import UnitTable from "$lib/ui/UnitTable.svelte";
   let { data } = $props();
   const kind = $derived(`${data.mapType ? data.mapType[0]!.toUpperCase() + data.mapType.slice(1) : "Map"} · Classic Era`);
 </script>
@@ -17,31 +16,10 @@
 
   <div class="grid gap-8 lg:grid-cols-[1fr_20rem]">
     <div class="min-w-0 space-y-8">
-      <MapPanel points={data.points} title="Creatures seen in {data.name}" caption="Hover a dot for the creature; click to open it. Coordinates are percentages of the zone map." />
+      <MapPanel points={data.points} title="NPCs and creatures seen in {data.name}" caption="Hover a dot for the name; click to open it. Coordinates are percentages of the zone map." />
 
-      <section>
-        <h2 class="mb-2 text-xl">Creatures and NPCs <span class="num text-sm text-ink-faint">{data.creatures.length}</span></h2>
-        {#if data.creatures.length}
-          <div class="overflow-x-auto rounded-md border border-line bg-surface">
-            <table class="w-full text-sm">
-              <thead class="text-left text-xs uppercase tracking-wide text-ink-muted"><tr><th class="px-3 py-2 font-medium">Name</th><th class="px-3 py-2 font-medium">Level</th><th class="px-3 py-2 font-medium">Type</th><th class="px-3 py-2 font-medium">Spots</th><th class="px-3 py-2 font-medium">Status</th></tr></thead>
-              <tbody>
-                {#each data.creatures as c}
-                  <tr class="border-t border-line even:bg-surface-2/40">
-                    <td class="px-3 py-1.5"><a href="/wiki/{data.flavor}/creature/{c.entity_id}">{c.name}</a>{#if c.npc}<Badge status="npc" label="NPC" class="ml-2" />{/if}{#if c.classification && c.classification !== "normal"}<span class="ml-2 text-xs text-ink-muted">{CLASSIFICATION_LABEL[c.classification] ?? c.classification}</span>{/if}</td>
-                    <td class="num px-3 py-1.5">{c.level_min === null ? "" : c.level_min === c.level_max ? c.level_min : `${c.level_min}–${c.level_max}`}</td>
-                    <td class="px-3 py-1.5 text-ink-muted">{c.creature_type ?? ""}</td>
-                    <td class="num px-3 py-1.5">{c.positions.length}</td>
-                    <td class="px-3 py-1.5"><Badge status={c.status} /></td>
-                  </tr>
-                {/each}
-              </tbody>
-            </table>
-          </div>
-        {:else}
-          <p class="text-sm text-ink-muted">No creature positions recorded here yet.</p>
-        {/if}
-      </section>
+      <UnitTable rows={data.npcs} flavor={data.flavor} title="NPCs" emptyText="No NPC positions recorded here yet." showSpots />
+      <UnitTable rows={data.creatures} flavor={data.flavor} title="Creatures" emptyText="No creature positions recorded here yet." showSpots />
     </div>
 
     <aside class="min-w-0 space-y-4 lg:sticky lg:top-20 lg:self-start">

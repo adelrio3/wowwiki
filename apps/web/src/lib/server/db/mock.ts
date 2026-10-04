@@ -39,6 +39,7 @@ export const mockCreatureFacts: Record<number, FactRow[]> = {
 };
 
 export const mockPositions: Record<number, PositionRow[]> = {
+  3222: [{ map_id: 1412, cluster_x: 0.47, cluster_y: 0.6, observation_count: 2, contributor_count: 1 }],
   2995: [{ map_id: 1456, cluster_x: 0.46, cluster_y: 0.5, observation_count: 4, contributor_count: 1 }],
   2955: [
     { map_id: 1412, cluster_x: 0.52, cluster_y: 0.86, observation_count: 9, contributor_count: 1 },
@@ -53,6 +54,7 @@ export const mockListed = {
     { entity_id: 2995, name: "Tal", status: "confirmed", contributor_count: 1, last_build: 70003 },
     { entity_id: 2955, name: "Plainstrider", status: "unconfirmed", contributor_count: 1, last_build: 70003 },
     { entity_id: 2958, name: "Prairie Wolf", status: "disputed", contributor_count: 3, last_build: 70003 },
+    { entity_id: 3222, name: "Brave Wildrunner", status: "unconfirmed", contributor_count: 1, last_build: 70003 },
   ] as Listed[],
   map: [
     { entity_id: 1412, name: "Mulgore", status: "confirmed", contributor_count: 1, last_build: 70003 },
@@ -66,9 +68,10 @@ export const mockListed = {
 };
 
 export const mockSummaries: CreatureListed[] = [
-  { entity_id: 2995, name: "Tal", status: "confirmed", contributor_count: 1, last_build: 70003, level_min: 55, level_max: 55, creature_type: "Humanoid", classification: "elite", npc: true },
-  { entity_id: 2955, name: "Plainstrider", status: "unconfirmed", contributor_count: 1, last_build: 70003, level_min: 1, level_max: 2, creature_type: "Beast", classification: "normal", npc: false },
-  { entity_id: 2958, name: "Prairie Wolf", status: "disputed", contributor_count: 3, last_build: 70003, level_min: 6, level_max: 7, creature_type: "Beast", classification: "normal", npc: false },
+  { entity_id: 2995, name: "Tal", status: "confirmed", contributor_count: 1, last_build: 70003, level_min: 55, level_max: 55, creature_type: "Humanoid", classification: "elite", kind: "NPC" },
+  { entity_id: 2955, name: "Plainstrider", status: "unconfirmed", contributor_count: 1, last_build: 70003, level_min: 1, level_max: 2, creature_type: "Beast", classification: "normal", kind: "Creature" },
+  { entity_id: 2958, name: "Prairie Wolf", status: "disputed", contributor_count: 3, last_build: 70003, level_min: 6, level_max: 7, creature_type: "Beast", classification: "normal", kind: "Creature" },
+  { entity_id: 3222, name: "Brave Wildrunner", status: "unconfirmed", contributor_count: 1, last_build: 70003, level_min: 14, level_max: 14, creature_type: "Humanoid", classification: "normal", kind: "NPC" },
 ];
 
 export const mockCharacters = [

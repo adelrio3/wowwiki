@@ -96,15 +96,23 @@ Notation: `event → API → fields`. Dedupe key in brackets.
 Sight: the client exposes nearby units only through nameplates (N-0016), and the
 add-on never changes the player's nameplate or other settings (D-0036). Friendly NPC
 coverage comes from mouseover, targeting, interaction, speech, and the combat log
-during normal play. Presentation: the wiki labels a unit "NPC" when it has any
-interaction role or subtitle or is friendly, and "Creature" otherwise; the data
-model keeps Blizzard's single `creature` entity type for both.
+during normal play.
+
+Categories (D-0038): the wiki presents **NPCs** and **Creatures** as two separate
+categories built from one `creature` entity type. A unit is an NPC when any of these
+hold: it has an interaction role (vendor, trainer, quest giver, flight master, ...),
+it has a tooltip subtitle, it is a civilian, it cannot be attacked by the observer
+(`UnitCanAttack`, recorded as `atk`), or any contributor saw it at reaction friendly or
+better. Otherwise it is a Creature. Signals are unioned across contributors, so a
+Horde guard seen as hostile by an Alliance player is still an NPC once a Horde player
+reports it friendly or unattackable. Player pets (`Pet` GUIDs) are never recorded as
+wiki units; they belong to a player, not to the world.
 
 Triggers: `PLAYER_TARGET_CHANGED`, `UPDATE_MOUSEOVER_UNIT`, `NAME_PLATE_UNIT_ADDED`,
 `UNIT_TARGET` for party/raid targets, `GOSSIP_SHOW`/`MERCHANT_SHOW`/`QUEST_DETAIL`
 (the interacted `npc` unit token), combat log source/dest GUIDs.
 
-For each unit with a `Creature`/`Vehicle`/`Pet` GUID:
+For each unit with a `Creature` or `Vehicle` GUID (`Pet` is skipped, D-0038):
 
 - Identity: npcID, GUID type, spawn UID (for dedupe within session) `[npcID]`.
 - Attributes: `UnitName`, `UnitLevel` (-1 means skull; record as `boss`),
