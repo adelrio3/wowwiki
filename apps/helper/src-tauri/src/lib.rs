@@ -80,6 +80,7 @@ fn detect_wow_folder() -> Option<String> {
 fn build_tray(app: &AppHandle) -> tauri::Result<Tray> {
     let status = MenuItem::with_id(app, "status", "Starting…", false, None::<&str>)?;
     let sync = MenuItem::with_id(app, "sync", "Sync now", true, None::<&str>)?;
+    let install = MenuItem::with_id(app, "install", "Install or update the add-on", true, None::<&str>)?;
     let pause = MenuItem::with_id(app, "pause", "Pause syncing", true, None::<&str>)?;
     let folder = MenuItem::with_id(app, "folder", "Choose game folder…", true, None::<&str>)?;
     let signin = MenuItem::with_id(app, "signin", "Sign in…", true, None::<&str>)?;
@@ -88,7 +89,7 @@ fn build_tray(app: &AppHandle) -> tauri::Result<Tray> {
     let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
     let sep = PredefinedMenuItem::separator(app)?;
     let sep2 = PredefinedMenuItem::separator(app)?;
-    let menu = Menu::with_items(app, &[&status, &sep, &sync, &pause, &folder, &signin, &site, &show, &sep2, &quit])?;
+    let menu = Menu::with_items(app, &[&status, &sep, &sync, &install, &pause, &folder, &signin, &site, &show, &sep2, &quit])?;
     TrayIconBuilder::with_id("main")
         .icon(app.default_window_icon().cloned().expect("window icon"))
         .tooltip("WoW Compendium Helper")

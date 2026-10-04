@@ -116,6 +116,37 @@ async function signOut() {
   await setStatus("setup", "Not signed in");
 }
 
+// ---------------------------------------------------------------- install
+// Writing the add-on's files is safe while the game runs: the game reads
+// add-ons at login, so a running game just needs a logout and login (D-0043,
+// revised). Only the SavedVariables file is the game's to write.
+async function installClient(folder: string): Promise<boolean> {
+  const s = state.settings!;
+  if (!s.deviceToken) { log("Sign in first: the add-on must be linked to your account."); return false; }
+  if (!state.fs || !state.layout) { log("Choose the game folder first."); return false; }
+  const f = state.layout.flavors.find((x) => x.folder === folder);
+  if (!f) return false;
+  try {
+    const c = client();
+    state.manifest = state.manifest ?? (await c.manifest());
+    const r = await tauriFetch(`${s.siteUrl}/api/sync/link`, { headers: { authorization: `Bearer ${s.deviceToken}` } });
+    if (!r.ok) throw new Error(`cannot read the account link (${r.status}); sign in again`);
+    const linkToken = ((await r.json()) as { linkToken: string }).linkToken;
+    const before = state.installs[folder];
+    await installAddon(state.fs, f, state.manifest, (p) => c.addonFile(state.manifest!.version, p), { accountToken: linkToken, preserveLinkAndAck: true });
+    state.installs[folder] = await inspectInstall(state.fs, f, state.manifest);
+    log(`${folder}: add-on ${state.manifest.version} ${before?.installed ? "updated" : "installed"}.`);
+    if (await invoke<boolean>("game_running").catch(() => false)) log("The game is running: the add-on loads the next time you log in.");
+    render();
+    return true;
+  } catch (e) { log(`${folder}: install failed: ${String(e)}`); render(); return false; }
+}
+
+async function installAll(): Promise<void> {
+  for (const f of state.layout?.flavors ?? []) await installClient(f.folder);
+  void report();
+}
+
 // ---------------------------------------------------------------- sync
 async function cycle(reason: string) {
   const s = state.settings!;
@@ -129,22 +160,11 @@ async function cycle(reason: string) {
     state.manifest = await c.manifest();
     const gameRunning = await invoke<boolean>("game_running").catch(() => false);
     lastGameRunning = gameRunning;
-    let linkToken: string | null = null;
     for (const f of state.layout.flavors) {
       const st = await inspectInstall(state.fs, f, state.manifest);
       state.installs[f.folder] = st;
       const needs = !st.installed || st.version !== state.manifest.version || !st.linked || st.differing.some((d) => !d.startsWith("Compendium_"));
-      if (needs) {
-        if (gameRunning) { log(`${f.folder}: add-on ${st.installed ? "update" : "install"} waits until the game is closed.`); continue; }
-        if (!linkToken) {
-          const r = await tauriFetch(`${s.siteUrl}/api/sync/link`, { headers: { authorization: `Bearer ${s.deviceToken}` } });
-          if (!r.ok) throw new Error(`cannot read the account link (${r.status}); sign in again`);
-          linkToken = ((await r.json()) as { linkToken: string }).linkToken;
-        }
-        await installAddon(state.fs, f, state.manifest, (p) => c.addonFile(state.manifest!.version, p), { accountToken: linkToken, preserveLinkAndAck: true });
-        state.installs[f.folder] = await inspectInstall(state.fs, f, state.manifest);
-        log(`${f.folder}: add-on ${state.manifest.version} ${st.installed ? "updated" : "installed"}.`);
-      }
+      if (needs) await installClient(f.folder);
     }
     const report = await runSync(state.fs, c, { onProgress: (p) => { if (p.phase === "uploading" || p.phase === "failed") log(`${p.file.flavor.folder}: ${p.phase}${p.message ? " – " + p.message : ""}`); } });
     state.lastReport = report; state.lastSync = new Date();
@@ -207,24 +227,21 @@ function render() {
   if (!s) { app.innerHTML = "<p class='muted'>Starting…</p>"; return; }
   const dot = state.status === "idle" ? "ok" : state.status === "syncing" ? "busy" : state.status === "error" ? "bad" : "";
   const flavors = state.layout?.flavors ?? [];
+  const step = (n: number, done: boolean, title: string, right: string) => `<div class="row"><span><span class="num ${done ? "ok" : "muted"}" style="display:inline-block;width:1.4em">${done ? "✓" : n}</span>${title}</span><span>${right}</span></div>`;
   app.innerHTML = `
-    <h1><span class="mark">&#9632;</span> WoW Compendium Helper <span class="faint" style="margin-left:auto">${s.paused ? "paused" : ""}</span></h1>
+    <h1><span class="mark">&#9632;</span> WoW Compendium Helper <span class="faint" style="margin-left:auto">${__HELPER_VERSION__}${s.paused ? " · paused" : ""}</span></h1>
+    <div class="card"><h2>Setup</h2>
+      ${step(1, !!s.wowFolder && !!state.fs, s.wowFolder ? `<span class="mono">${esc(s.wowFolder)}</span>` : "Game folder not found yet", `<button id="folder" class="secondary">${s.wowFolder ? "Change" : "Choose folder"}</button>`)}
+      ${step(2, !!s.deviceToken, s.deviceToken ? "Signed in" : state.signingIn ? `Approve code <span class="mono">${esc(state.signingIn.code)}</span> in your browser` : "Not signed in", s.deviceToken ? `<button id="signout" class="secondary">Sign out</button>` : state.signingIn ? `<button id="reopen" class="secondary">Open page</button>` : `<button id="signin">Sign in</button>`)}
+      ${flavors.length ? flavors.map((f) => { const st = state.installs[f.folder]; const current = !!st?.installed && !!state.manifest && st.version === state.manifest.version && st.linked; return step(3, current, `Add-on in <span class="mono">${esc(f.folder)}</span>: <span class="${current ? "ok" : "warn"}">${st ? (st.installed ? `${st.version ?? "?"}${!st.linked ? ", not linked" : ""}${state.manifest && st.version !== state.manifest.version ? `, update to ${state.manifest.version}` : ""}` : "not installed") : "checking…"}</span>`, `<button class="install" data-folder="${esc(f.folder)}" ${!s.deviceToken || !state.fs ? "disabled" : ""}>${st?.installed ? (current ? "Reinstall" : "Update add-on") : "Install add-on"}</button>`); }).join("") : step(3, false, "Add-on: waiting for the game folder", "")}
+    </div>
     <div class="card"><h2>Status</h2>
       <div class="row"><span><span class="dot ${dot}"></span>${esc(state.statusText)}</span><span><button id="sync" ${state.busy || !s.deviceToken || !state.fs ? "disabled" : ""}>Sync now</button> <button id="pause" class="secondary">${s.paused ? "Resume" : "Pause"}</button></span></div>
+      ${!s.deviceToken ? `<div class="faint">Sign in to enable installing and syncing.</div>` : ""}
     </div>
-    <div class="card"><h2>Account</h2>
-      ${s.deviceToken
-        ? `<div class="row"><span class="ok">Signed in</span><button id="signout" class="secondary">Sign out</button></div>`
-        : state.signingIn
-          ? `<div>Approve this code in your browser:</div><div class="code">${esc(state.signingIn.code)}</div><div class="row"><span class="faint">The page opened in your browser. If not, click the button.</span><button id="reopen" class="secondary">Open page</button></div>`
-          : `<div class="row"><span class="muted">Not signed in</span><button id="signin">Sign in</button></div>`}
-    </div>
-    <div class="card"><h2>Game folder</h2>
-      <div class="row"><span class="mono">${esc(s.wowFolder ?? "Not found yet")}</span><button id="folder" class="secondary">${s.wowFolder ? "Change" : "Choose"}</button></div>
-      ${flavors.map((f) => { const st = state.installs[f.folder]; return `<div class="row"><span class="mono">${esc(f.folder)}</span><span class="faint">${st ? (st.installed ? `add-on ${st.version ?? "?"}${state.manifest && st.version !== state.manifest.version ? " (update pending)" : ""}` : "add-on not installed") : "checking…"}</span></div>`; }).join("")}
-    </div>
-    <div class="card"><h2>Activity</h2><pre class="log">${esc(state.log.slice(-12).join("\n")) || "Nothing yet."}</pre></div>
+    <div class="card"><h2>Activity</h2><pre class="log">${esc(state.log.slice(-14).join("\n")) || "Nothing yet."}</pre></div>
     <div class="faint">Closing this window keeps the helper running in the tray. Use the tray menu to quit.</div>`;
+  app.querySelectorAll<HTMLButtonElement>("button.install").forEach((b) => b.addEventListener("click", () => void installClient(b.dataset.folder!).then(() => report())));
   app.querySelector("#sync")?.addEventListener("click", () => void cycle("sync now"));
   app.querySelector("#pause")?.addEventListener("click", () => void togglePause());
   app.querySelector("#signin")?.addEventListener("click", () => void signIn());
@@ -249,6 +266,7 @@ async function boot() {
     switch (e.payload) {
       case "sync": void cycle("tray"); break;
       case "pause": void togglePause(); break;
+      case "install": void installAll(); break;
       case "folder": void chooseFolder(); break;
       case "signin": if (state.settings?.deviceToken) void getCurrentWindow().show(); else void signIn(); break;
       case "site": void openUrl(state.settings!.siteUrl); break;
