@@ -80,7 +80,13 @@ export async function composeOne(flavor: string, p: PendingMap): Promise<{ mapId
   const locator = locatorFor(flavor);
   if (!locator) throw new Error(`no locator for ${flavor}`);
   const db = serviceClient();
-  const canvas = await composeMap(p.layout, (fdid) => loadFile(flavor, fdid, locator));
+  // Fetch every file up front, eight at a time, so a map with thirty pieces is
+  // one short burst instead of a chain of round trips inside the time budget.
+  const ids = [...new Set([...p.layout.layer.t, ...p.layout.overlays.flatMap((o) => o.t)])];
+  const files = new Map<number, Buffer>();
+  let next = 0;
+  await Promise.all(Array.from({ length: 8 }, async () => { while (next < ids.length) { const id = ids[next++]!; files.set(id, await loadFile(flavor, id, locator)); } }));
+  const canvas = await composeMap(p.layout, async (fdid) => files.get(fdid)!);
   const jpg = encodeJpeg(canvas);
   const path = mapArtPath(flavor, p.mapId);
   const { error: upErr } = await db.storage.from(BUCKET).upload(path, jpg, { contentType: "image/jpeg", upsert: true, cacheControl: "31536000" });
