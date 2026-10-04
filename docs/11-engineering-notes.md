@@ -191,3 +191,19 @@ in `exports`, or Vite refuses the deep import.
 Why: No build step for packages; one source of truth.
 Verified: `pnpm build` succeeds; the deep import failure before adding
 `./browser` to `exports` is the regression to watch for.
+
+## N-0014: The client has no math.randomseed
+Area: addon
+Problem: The first real-client run produced a SavedVariables file with no
+`identity`, and the site rejected it as unparseable. `ids.uuid()` called
+`math.randomseed`, which exists in standard Lua and in the test mock but not in the
+game client, so the identity line threw and the rest of initialization never ran.
+Solution: Never call `math.randomseed` (the client seeds itself); guard any optional
+standard-library function with an existence check. `initDb()` now assigns `NS.db`
+first, generates the identity inside `pcall` with a never-nil fallback, and errors
+thrown before the database exists are kept and copied into `db.errors` once it does,
+so the next failure of this kind is visible in the uploaded file.
+Why: The mock must match the client's missing functions as well as its present ones;
+initialization must degrade, never abort.
+Verified: `addon/tests/mock_wow.lua` now removes `math.randomseed`; the suite passes
+with the fix and fails without it. Owner's second sync (pending).

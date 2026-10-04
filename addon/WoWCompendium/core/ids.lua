@@ -21,11 +21,13 @@ function ids.isCreature(parsed)
   return parsed and (parsed.kind == "Creature" or parsed.kind == "Vehicle" or parsed.kind == "Pet")
 end
 
--- Random UUID v4. math.random is seeded by the client; mix in time for safety.
+-- Random UUID v4. The client seeds math.random itself and does not expose
+-- math.randomseed (N-0014), so never call it unguarded.
 function ids.uuid()
-  local seed = (NS.now() or 0) + math.floor((GetTime and GetTime() or 0) * 1000)
-  math.randomseed(seed % 2147483647)
-  math.random(); math.random(); math.random()
+  if math.randomseed then
+    local seed = (NS.now() or 0) + math.floor((GetTime and GetTime() or 0) * 1000)
+    pcall(math.randomseed, seed % 2147483647)
+  end
   local template = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx"
   return (string.gsub(template, "[xy]", function(c)
     local v = (c == "x") and math.random(0, 15) or math.random(8, 11)

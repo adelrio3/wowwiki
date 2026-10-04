@@ -19,6 +19,8 @@ M.registered = {}
 M.unknownEvents = { LEARNED_SPELL_IN_TAB = true, HARDCORE_DEATH = true }
 
 function M.install()
+  -- The real client does not expose math.randomseed (N-0014).
+  math.randomseed = nil
   _G.WOW_PROJECT_ID = 2
   _G.LEVEL = "Level"
   _G.PVP = "PvP"

@@ -131,6 +131,7 @@
             <span class="text-stone-400">{r.file.flavor.folder}</span>:
             {#if r.outcome === "uploaded"}uploaded and ingested{#if r.ack} · acknowledged {Object.keys(r.ack).length} character(s){/if}
             {:else if r.outcome === "already_synced"}already synced
+            {:else if r.outcome === "unparseable"}<span class="text-red-400">the data file could not be read. Update the add-on above, play again, log out, and sync.</span> <details class="inline text-stone-500"><summary class="inline cursor-pointer">details</summary>{r.error}</details>
             {:else}<span class="text-red-400">{r.outcome}{r.error ? ": " + r.error : ""}</span>{/if}
           </div>
         {/each}

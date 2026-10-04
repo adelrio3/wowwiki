@@ -35,10 +35,14 @@ NS.frame:SetScript("OnEvent", function(_, event, ...)
   if not list then return end
   for i = 1, #list do
     local ok, err = pcall(list[i], ...)
-    if not ok and NS.db then
-      NS.db.errors = NS.db.errors or {}
-      local key = event
-      NS.db.errors[key] = tostring(err)
+    if not ok then
+      local target = NS.db or NS.earlyErrors
+      if not target then
+        NS.earlyErrors = {}
+        target = NS.earlyErrors
+      end
+      target.errors = target.errors or {}
+      target.errors[event] = tostring(err)
     end
   end
 end)
@@ -91,11 +95,26 @@ function NS.initDb()
     for k in pairs(db) do db[k] = nil end
     db.schema = NS.schema
   end
-  db.addonVersion = NS.version()
-  db.identity = db.identity or NS.ids.uuid()
+  NS.db = db
+  if NS.earlyErrors and NS.earlyErrors.errors then
+    db.errors = db.errors or {}
+    for k, v in pairs(NS.earlyErrors.errors) do db.errors[k] = v end
+    NS.earlyErrors = nil
+  end
   db.characters = db.characters or {}
   db.ack = db.ack or {}
-  NS.db = db
+  db.addonVersion = NS.version()
+  if not db.identity then
+    local ok, id = pcall(NS.ids.uuid)
+    if ok and id then
+      db.identity = id
+    else
+      -- Last resort: still unique enough to tell installs apart; never nil.
+      db.identity = string.format("fallback-%d-%d", NS.now() or 0, math.random(1, 1000000000))
+      db.errors = db.errors or {}
+      db.errors.uuid = tostring(id)
+    end
+  end
   return db
 end
 
