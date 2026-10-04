@@ -12,6 +12,7 @@
   import { enhance } from "$app/forms";
   import { onDestroy } from "svelte";
   import type { HelperDevice } from "$lib/server/db/helpers";
+  import { HELPER_DOWNLOAD_URL, HELPER_VERSION } from "$lib/config";
   let { data, form } = $props();
 
   // Helpers: the site is their dashboard (D-0043). Refresh while the page is open.
@@ -123,7 +124,7 @@
           <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 class="text-[17px] font-semibold">{h.name}</h2>
-              <p class="mt-0.5 text-[13px] text-ink-muted">{h.online ? "Running" : h.lastSeenAt ? `Last seen ${ago(h.lastSeenAt)}` : "Signed in, has not reported yet"}{h.helperVersion ? ` · helper ${h.helperVersion}` : ""}{st.paused ? " · paused" : ""}</p>
+              <p class="mt-0.5 text-[13px] text-ink-muted">{h.online ? "Running" : h.lastSeenAt ? `Last seen ${ago(h.lastSeenAt)}` : "Signed in, has not reported yet"}{h.helperVersion ? ` · helper ${h.helperVersion}` : ""}{st.paused ? " · paused" : ""}{#if h.helperVersion && h.helperVersion !== HELPER_VERSION} · <a href={HELPER_DOWNLOAD_URL}>update to {HELPER_VERSION}</a>{:else if !h.helperVersion} · <a href={HELPER_DOWNLOAD_URL}>install the latest helper</a> if this one is older than {HELPER_VERSION}{/if}</p>
             </div>
             <form method="post" action="?/helperSync" use:enhance><input type="hidden" name="device" value={h.id} /><Button type="submit" variant="secondary" disabled={!h.online}>{clients.some((c) => !c.installed || c.needsUpdate) ? "Install add-on and sync" : "Sync now"}</Button></form>
           </div>
@@ -140,7 +141,10 @@
           {#if allGood}<p class="mt-3 text-[14px] text-ok">Everything is set. Play, log out, and the helper uploads on its own.</p>{/if}
         </div>
       {/each}
-      <p class="text-[13px] text-ink-faint">Add another computer by installing the helper there and signing in. Remove one from the Account page.</p>
+      <div class="card flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+        <p class="text-[14px] text-ink-muted">Another computer, or a fresh copy of the helper (version <span class="num">{HELPER_VERSION}</span>, Windows). Remove a helper from the Account page.</p>
+        <Button href={HELPER_DOWNLOAD_URL} variant="secondary">Download the helper</Button>
+      </div>
     </section>
   {:else}
     <section class="card mb-8 p-5">
@@ -154,7 +158,7 @@
             <li><span class="num mr-1.5 text-ink-faint">3</span>That is all. Play, log out, and the helper syncs on its own. This page then shows what it is doing.</li>
           </ol>
         </div>
-        <Button href="https://github.com/adelrio3/wowwiki/releases/latest/download/WoWCompendiumHelper-Setup.exe">Download the helper for Windows</Button>
+        <Button href={HELPER_DOWNLOAD_URL}>Download the helper for Windows</Button>
       </div>
     </section>
   {/if}
