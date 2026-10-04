@@ -126,13 +126,17 @@ live in `src/lib/server/wiki-lists.ts` and `category-load.ts`.
 - **Areas / Flight paths**: name filter and a table with the zone (and coordinates
   for flight paths).
 - **Zone**: breadcrumbs (Zones / continent / zone), title, section chips with counts
-  that jump to NPCs, Creatures, Areas, Flight paths. Tables show coordinates within
-  this zone. Rail: About (kind, part of, counts, map ID) and Evidence.
+  that jump to NPCs, Creatures, Areas, Flight paths. When map art exists, the zone
+  map is the first thing on the page, full width, with nothing drawn on it and no
+  switch to draw anything (D-0040). Tables show coordinates within this zone. Rail:
+  About (kind, part of, counts, map ID) and Evidence.
 - **NPC / Creature**: breadcrumbs (category / home zone / name), serif name,
   `<subtitle>`, level with Elite/Rare in gold, type and family, role chips. Main:
   "Where to find them/it" (zone, up to six coordinate spots most-seen first,
-  sightings), Health by level, and "Every recorded fact" collapsed. Rail: fact sheet
-  titled NPC or Creature, then Evidence with the observation count.
+  sightings), Health by level, and "Every recorded fact" collapsed. When map art
+  exists, a small map of the home zone with this entity's spots marked sits above
+  the location table; this is the only place pins are drawn (D-0040). Rail: fact
+  sheet titled NPC or Creature, then Evidence with the observation count.
 - **Journal index**: character cards with a class-tinted initial, level, race,
   class, realm, last seen.
 - **Journal character**: breadcrumbs, class dot and meta line, four stat tiles,

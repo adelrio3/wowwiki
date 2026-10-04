@@ -488,3 +488,19 @@ Consequences: docs/12 is rewritten; category pages exist for every world entity
 type and new entity types get one each; the audit script covers every page; the map
 panel component is removed until artwork arrives.
 
+## D-0040: Zone maps are clean; pins appear only on entity pages
+Date: 2026-10-04  Status: accepted
+Context: Zone pages will show the real zone artwork as their most important
+content. Every NPC and creature seen in a zone has positions, which over time means
+an unreadable number of pins.
+Decision: The zone map is shown with nothing drawn on it, and there is no switch to
+overlay positions. Pins are drawn only on pages about one thing: an NPC or creature
+page shows its spots on a small map of its zone; later, a quest or object page does
+the same. Artwork comes from the owner's installed client via wow.export (D-0019),
+matched to zones by the map art file identifiers the add-on records.
+Alternatives: an off-by-default "show positions" switch (rejected by the owner: too
+many pins to be useful); clustering or heatmaps on the zone map (deferred; a page per
+thing already answers "where").
+Consequences: The zone page layout leads with the map; position data is reached
+through the entity, never the zone.
+
