@@ -26,7 +26,19 @@ export async function fetchFromCdn(l: Locator, fdid: number, fetchImpl: typeof f
   if (!entry) throw new Error(`file ${fdid} not in locator for build ${l.build}`);
   const [hash, offset, size] = entry;
   const url = `https://${l.cdnHost}/${l.cdnPath}/data/${hash.slice(0, 2)}/${hash.slice(2, 4)}/${hash}`;
-  const res = await fetchImpl(url, { headers: { Range: `bytes=${offset}-${offset + size - 1}` } });
-  if (!res.ok) throw new Error(`cdn ${res.status} for ${fdid}`);
-  return blteDecode(Buffer.from(await res.arrayBuffer()));
+  // Connection-level failures happen now and then from serverless hosts; three tries cover them.
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetchImpl(url, { headers: { Range: `bytes=${offset}-${offset + size - 1}` } });
+      if (res.status === 404 || res.status === 416) throw new Error(`cdn ${res.status} for ${fdid}`);
+      if (!res.ok) throw Object.assign(new Error(`cdn ${res.status} for ${fdid}`), { retry: true });
+      return blteDecode(Buffer.from(await res.arrayBuffer()));
+    } catch (e) {
+      lastError = e;
+      if ((e as { retry?: boolean }).retry === false || /cdn 40[46]/.test(String(e))) break;
+      await new Promise((r) => setTimeout(r, 300 * (attempt + 1)));
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
 }
