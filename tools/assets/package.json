@@ -1,0 +1,19 @@
+{
+  "name": "@compendium/assets",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Artwork pipeline: pulls map art from Blizzard's content servers and stores it for the wiki.",
+  "scripts": {
+    "maps": "tsx src/cli.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "sharp": "^0.34.3"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}

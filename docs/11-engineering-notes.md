@@ -283,3 +283,33 @@ Why: Add-on versions in the field lag the site, and raw uploads are retained and
 re-ingested. The add-on is the first filter, never the only one.
 Verified: ingest test drops a `Pet` record; classifier test; live facts query
 showed exactly the five pet entities that migration 0002 targets.
+
+## N-0020: Reading game files straight from Blizzard's content servers
+Area: assets
+Problem: Zone map art lives inside the game client's data, which the API does not
+serve. Asking the owner to run an extraction tool failed in practice (18,000-file
+export crashed; a narrower filter showed nothing).
+Solution: `tools/assets` reads the client's content delivery (TACT/CASC) directly
+over HTTPS, no sign-in: `versions` and `cdns` from `us.version.battle.net/<product>`,
+build and CDN configs, the encoding file (content key to encoded key), the root
+file (FileDataID to content key), and the per-archive `.index` files, then a ranged
+GET into the archive and a BLTE decode (plain or zlib chunks). Textures are BLP2
+(DXT1/3/5 or palettized) and are decoded in `blp.ts`. Details that cost time:
+- The merged `archive-group` index named in the CDN config is not published
+  (403). Fetch every archive's own `.index` (about 1,400 files, ~100 MB, cached) and
+  look keys up by binary-searching each index's table of block last-keys.
+- The root file is version 2 (header `TSFM`, header size 24, version at +8). Each
+  block header is 17 bytes: record count, locale flags, then content flags split
+  over 4 + 4 + 1 bytes. Name hashes follow the content keys when the header's
+  total and named counts are equal.
+- In the encoding header the ESpec block size is at byte 18, not 19.
+- A zone map is two layers: twelve 256 px base tiles (parchment, outline and the
+  neighbours' names) and one picture per explored area placed by offsets that only
+  the client knows (`C_MapExplorationInfo.GetExploredMapTextures`). The listfile
+  names (`interface/worldmap/<zone>/<zone>N.blp`) are correct and N runs row-major
+  in a 4 x 3 grid; the composed map is 1002 x 668.
+Why: Removes all owner labour from artwork, survives patches, works for every
+flavor, and uses only Blizzard's own files.
+Verified: Barrens and Mulgore base maps and the Bloodhoof Village overlay decoded
+and stitched on 2026-10-04 against build 1.15.9.70003.
+
