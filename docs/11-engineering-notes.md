@@ -328,3 +328,19 @@ check catches API misuse before CI.
 Verified: 2026-10-04, first helper commit checked clean on the host, then built on
 `windows-latest`.
 
+## N-0022: The helper's uploads were rejected as cross-site form posts
+Area: helper, web
+Problem: The first real helper sync failed with "403 Cross-site POST form
+submissions are forbidden". The upload is a multipart form post, and SvelteKit
+checks the `Origin` header of form posts against the site. The helper's window
+is a Tauri webview whose origin is `http://tauri.localhost` (Windows), so the
+site refused it. JSON posts (device sign-in, status) passed because the check
+applies only to form content types.
+Solution: `kit.csrf.trustedOrigins` in `apps/web/svelte.config.js` lists the
+Tauri webview origins. The check stays on for everything else.
+Why: Disabling the check would expose the account forms; trusting the webview
+origin only lets the helper, which authenticates with a device token anyway, post
+its files.
+Verified: a multipart post with `Origin: http://tauri.localhost` to the upload
+endpoint answers 401 (needs a token) instead of 403, 2026-10-04.
+

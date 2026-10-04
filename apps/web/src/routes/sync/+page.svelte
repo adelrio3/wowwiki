@@ -119,25 +119,40 @@
       {#each helpers as h (h.id)}
         {@const st = h.state}
         {@const clients = st.clients ?? []}
-        {@const allGood = h.online && !!st.folder && clients.length > 0 && clients.every((c) => c.installed && c.linked && !c.needsUpdate) && !st.lastError}
+        {@const allGood = h.online && !!st.folder && clients.length > 0 && clients.every((c) => c.installed && c.linked && !c.needsUpdate) && !st.lastError && !st.paused}
+        {@const asked = form?.requested === h.id ? form.action : h.pendingAction}
         <div class="card p-5">
           <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 class="text-[17px] font-semibold">{h.name}</h2>
-              <p class="mt-0.5 text-[13px] text-ink-muted">{h.online ? "Running" : h.lastSeenAt ? `Last seen ${ago(h.lastSeenAt)}` : "Signed in, has not reported yet"}{h.helperVersion ? ` · helper ${h.helperVersion}` : ""}{st.paused ? " · paused" : ""}{#if h.helperVersion && h.helperVersion !== HELPER_VERSION} · <a href={HELPER_DOWNLOAD_URL}>update to {HELPER_VERSION}</a>{:else if !h.helperVersion} · <a href={HELPER_DOWNLOAD_URL}>install the latest helper</a> if this one is older than {HELPER_VERSION}{/if}</p>
+              <p class="mt-0.5 text-[13px] text-ink-muted">{h.online ? (st.paused ? "Paused" : st.busy ? "Syncing…" : "Running") : h.lastSeenAt ? `Last seen ${ago(h.lastSeenAt)}` : "Signed in, has not reported yet"}{h.helperVersion ? ` · helper ${h.helperVersion}` : ""}{#if h.helperVersion && h.helperVersion !== HELPER_VERSION} · <a href={HELPER_DOWNLOAD_URL}>update to {HELPER_VERSION}</a>{:else if !h.helperVersion} · <a href={HELPER_DOWNLOAD_URL}>install the latest helper</a> if this one is older than {HELPER_VERSION}{/if}</p>
             </div>
-            <form method="post" action="?/helperSync" use:enhance><input type="hidden" name="device" value={h.id} /><Button type="submit" variant="secondary" disabled={!h.online}>{clients.some((c) => !c.installed || c.needsUpdate) ? "Install add-on and sync" : "Sync now"}</Button></form>
+            <div class="flex flex-wrap gap-2">
+              <form method="post" action="?/helper" use:enhance><input type="hidden" name="device" value={h.id} /><input type="hidden" name="action" value="sync" /><Button type="submit" disabled={!h.online || !!st.paused || !!st.busy}>{st.busy ? "Syncing…" : "Sync now"}</Button></form>
+              <form method="post" action="?/helper" use:enhance><input type="hidden" name="device" value={h.id} /><input type="hidden" name="action" value={st.paused ? "resume" : "pause"} /><Button type="submit" variant="secondary" disabled={!h.online}>{st.paused ? "Resume" : "Pause"}</Button></form>
+            </div>
           </div>
-          {#if form?.requested === h.id || h.pendingAction}<p class="mt-2 text-[13px] text-ink-muted">Asked. The helper picks this up within about twenty seconds.</p>{/if}
-          <dl class="mt-3 grid gap-x-6 gap-y-1.5 text-[14px] sm:grid-cols-[max-content_1fr]">
+          {#if asked}<p class="mt-2 text-[13px] text-ink-muted">Asked the helper to {asked === "sync" ? "sync" : asked === "pause" ? "pause" : asked === "resume" ? "resume" : "install the add-on"}. It picks this up within about twenty seconds; this page updates on its own.</p>{/if}
+          <dl class="mt-3 grid gap-x-6 gap-y-2 text-[14px] sm:grid-cols-[max-content_1fr]">
+            <dt class="text-ink-muted">Status</dt><dd>{st.status ?? (h.online ? "Running" : "Not reported")}</dd>
             <dt class="text-ink-muted">Game folder</dt><dd class="mono text-[13px]">{st.folder ?? "not found yet: choose it in the helper window"}</dd>
             {#each clients as c (c.folder)}
               <dt class="text-ink-muted">Add-on in <span class="mono">{c.folder}</span></dt>
-              <dd>{#if !c.installed}<span class="text-warn">not installed</span>{:else}<span class="num">{c.version ?? "?"}</span>{#if c.needsUpdate}<span class="ml-2 text-warn">update waiting</span>{/if}{#if !c.linked}<span class="ml-2 text-warn">not linked to your account</span>{/if}{/if}{#if c.installed && st.gameRunning} <span class="text-ink-faint">· the game is running: new files load at your next login</span>{/if}</dd>
+              <dd class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <span>{#if c.busy}<span class="text-warn">{c.busy}</span>{:else if !c.installed}<span class="text-warn">not installed</span>{:else}<span class="num">{c.version ?? "?"}</span> installed{#if c.needsUpdate}<span class="ml-2 text-warn">update waiting</span>{/if}{#if !c.linked}<span class="ml-2 text-warn">not linked to your account</span>{/if}{/if}{#if c.installed && st.gameRunning} <span class="text-ink-faint">· the game is running: new files load at your next login</span>{/if}</span>
+                <form method="post" action="?/helper" use:enhance><input type="hidden" name="device" value={h.id} /><input type="hidden" name="action" value="install:{c.folder}" /><Button type="submit" variant="secondary" disabled={!h.online || !!c.busy}>{c.busy ? "Working…" : !c.installed ? "Install add-on" : c.needsUpdate || !c.linked ? "Update add-on" : "Reinstall"}</Button></form>
+                {#if c.result}<span class="basis-full text-[12px] text-ink-faint">{c.result}</span>{/if}
+              </dd>
             {/each}
             <dt class="text-ink-muted">Last upload</dt><dd>{ago(st.lastSync ?? h.lastUsedAt)}</dd>
             {#if st.lastError}<dt class="text-ink-muted">Last problem</dt><dd class="text-bad">{st.lastError}</dd>{/if}
           </dl>
+          {#if st.recent?.length}
+            <details class="mt-3">
+              <summary class="text-[13px] text-ink-muted">Helper activity</summary>
+              <pre class="mt-2 whitespace-pre-wrap rounded-lg bg-surface-2 p-3 text-[12px] text-ink-muted">{st.recent.join("\n")}</pre>
+            </details>
+          {/if}
           {#if allGood}<p class="mt-3 text-[14px] text-ok">Everything is set. Play, log out, and the helper uploads on its own.</p>{/if}
         </div>
       {/each}

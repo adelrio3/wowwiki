@@ -7,6 +7,9 @@ const config = {
   kit: {
     adapter: adapter(),
     alias: { $lib: "src/lib" },
+    // The helper's window is a Tauri webview; its uploads are multipart posts
+    // whose Origin is the webview's, not the site's (N-0022).
+    csrf: { trustedOrigins: ["http://tauri.localhost", "https://tauri.localhost", "tauri://localhost"] },
   },
 };
 

@@ -32,7 +32,21 @@ const state = {
   signingIn: null as { code: string; url: string } | null,
   log: [] as string[],
   busy: false,
+  /** per game client: what is happening right now, and the last result */
+  clientBusy: {} as Record<string, string | null>,
+  clientResult: {} as Record<string, { text: string; tone: "ok" | "bad" | "muted"; at: string }>,
+  /** one-line notice at the top of the window, cleared after a few seconds */
+  notice: null as { text: string; tone: "ok" | "bad" | "muted" } | null,
+  folderBusy: false,
 };
+let noticeTimer: ReturnType<typeof setTimeout> | null = null;
+function notice(text: string, tone: "ok" | "bad" | "muted" = "muted", ms = 8000) {
+  state.notice = { text, tone };
+  render();
+  if (noticeTimer) clearTimeout(noticeTimer);
+  noticeTimer = setTimeout(() => { state.notice = null; render(); }, ms);
+}
+const clock = () => new Date().toLocaleTimeString([], { hour12: false });
 
 const app = document.getElementById("app")!;
 const log = (m: string) => { state.log = [...state.log.slice(-60), `${new Date().toLocaleTimeString([], { hour12: false })}  ${m}`]; render(); };
@@ -56,16 +70,19 @@ async function notify(title: string, body: string) {
 // ---------------------------------------------------------------- folder
 async function useFolder(path: string): Promise<boolean> {
   const fs = new TauriFileSystem(path);
+  state.folderBusy = true; render();
   try {
     const layout = await detectLayout(fs);
-    if (layout.kind === "unknown" || !layout.flavors.length) { log(`${path} does not look like a World of Warcraft folder.`); return false; }
+    if (layout.kind === "unknown" || !layout.flavors.length) { log(`${path} does not look like a World of Warcraft folder.`); notice("That folder has no game client inside it. Pick the folder that contains _classic_era_.", "bad"); return false; }
     state.fs = fs; state.layout = layout;
     state.settings!.wowFolder = path;
     await saveSettings(state.settings!);
     log(`Game folder: ${path} (${layout.flavors.map((f) => f.folder).join(", ")})`);
     await startWatching();
+    notice(`Game folder set: ${layout.flavors.map((f) => f.folder).join(", ")} found.`, "ok");
     return true;
-  } catch (e) { log(`Cannot read ${path}: ${String(e)}`); return false; }
+  } catch (e) { log(`Cannot read ${path}: ${String(e)}`); notice(`Cannot read ${path}.`, "bad"); return false; }
+  finally { state.folderBusy = false; render(); }
 }
 
 async function chooseFolder() {
@@ -122,10 +139,12 @@ async function signOut() {
 // revised). Only the SavedVariables file is the game's to write.
 async function installClient(folder: string): Promise<boolean> {
   const s = state.settings!;
-  if (!s.deviceToken) { log("Sign in first: the add-on must be linked to your account."); return false; }
-  if (!state.fs || !state.layout) { log("Choose the game folder first."); return false; }
+  if (!s.deviceToken) { log("Sign in first: the add-on must be linked to your account."); notice("Sign in first. The add-on has to be linked to your account.", "bad"); return false; }
+  if (!state.fs || !state.layout) { log("Choose the game folder first."); notice("Choose the game folder first.", "bad"); return false; }
   const f = state.layout.flavors.find((x) => x.folder === folder);
   if (!f) return false;
+  if (state.clientBusy[folder]) return false;
+  state.clientBusy[folder] = "Installing…"; render();
   try {
     const c = client();
     state.manifest = state.manifest ?? (await c.manifest());
@@ -135,11 +154,18 @@ async function installClient(folder: string): Promise<boolean> {
     const before = state.installs[folder];
     await installAddon(state.fs, f, state.manifest, (p) => c.addonFile(state.manifest!.version, p), { accountToken: linkToken, preserveLinkAndAck: true });
     state.installs[folder] = await inspectInstall(state.fs, f, state.manifest);
-    log(`${folder}: add-on ${state.manifest.version} ${before?.installed ? "updated" : "installed"}.`);
-    if (await invoke<boolean>("game_running").catch(() => false)) log("The game is running: the add-on loads the next time you log in.");
-    render();
+    const verb = !before?.installed ? "installed" : before.version === state.manifest.version ? "reinstalled" : "updated";
+    const running = await invoke<boolean>("game_running").catch(() => false);
+    log(`${folder}: add-on ${state.manifest.version} ${verb}.${running ? " The game is running: it loads at your next login." : ""}`);
+    state.clientResult[folder] = { text: `${verb[0]!.toUpperCase()}${verb.slice(1)} ${state.manifest.version} at ${clock()}${running ? " · loads at next login" : ""}`, tone: "ok", at: clock() };
+    notice(`${folder}: add-on ${state.manifest.version} ${verb}.`, "ok");
     return true;
-  } catch (e) { log(`${folder}: install failed: ${String(e)}`); render(); return false; }
+  } catch (e) {
+    log(`${folder}: install failed: ${String(e)}`);
+    state.clientResult[folder] = { text: `Failed at ${clock()}: ${String(e)}`, tone: "bad", at: clock() };
+    notice(`${folder}: install failed. See Activity.`, "bad");
+    return false;
+  } finally { state.clientBusy[folder] = null; render(); }
 }
 
 async function installAll(): Promise<void> {
@@ -170,9 +196,16 @@ async function cycle(reason: string) {
     state.lastReport = report; state.lastSync = new Date();
     const uploaded = report.results.filter((r) => r.outcome === "uploaded").length;
     const failed = report.results.filter((r) => r.outcome === "failed" || r.outcome === "unparseable");
+    const notLinked = report.results.filter((r) => r.outcome === "not_linked").length;
     for (const r of failed) log(`${r.file.flavor.folder}: ${r.outcome}${r.error ? " – " + r.error : ""}`);
     if (uploaded) { log(`Uploaded ${uploaded} file${uploaded === 1 ? "" : "s"} (${reason}).`); await notify("WoW Compendium", `Synced ${uploaded} file${uploaded === 1 ? "" : "s"}.`); }
-    await setStatus(failed.length ? "error" : "idle", failed.length ? `${failed.length} file${failed.length === 1 ? "" : "s"} failed` : `Last sync ${state.lastSync.toLocaleTimeString([], { hour12: false })}`);
+    else if (!failed.length) log(report.results.length ? `Nothing new to upload (${reason}).` : `No game data found yet: log in on a character, then log out (${reason}).`);
+    const summary = failed.length ? `${failed.length} file${failed.length === 1 ? "" : "s"} failed · ${clock()}`
+      : notLinked ? `Add-on not linked to your account: reinstall it · ${clock()}`
+      : uploaded ? `Uploaded ${uploaded} file${uploaded === 1 ? "" : "s"} · ${clock()}`
+      : report.results.length ? `Nothing new to upload · checked ${clock()}` : `No game data yet · checked ${clock()}`;
+    if (reason !== "timer" && reason !== "startup") notice(summary, failed.length ? "bad" : uploaded ? "ok" : "muted");
+    await setStatus(failed.length ? "error" : "idle", summary);
   } catch (e) {
     const msg = String(e);
     log(`Sync failed: ${msg}`);
@@ -189,14 +222,23 @@ async function report(): Promise<void> {
   const s = state.settings;
   if (!s?.deviceToken) return;
   const clients = (state.layout?.flavors ?? []).map((f) => { const st = state.installs[f.folder]; return { folder: f.folder, flavor: f.flavor, installed: !!st?.installed, version: st?.version ?? null, linked: !!st?.linked, needsUpdate: !!st && !!state.manifest && (st.version !== state.manifest.version || st.differing.some((d) => !d.startsWith("Compendium_"))) }; });
-  const body = { helperVersion: __HELPER_VERSION__, state: { folder: s.wowFolder, clients, lastSync: state.lastSync?.toISOString() ?? null, lastError: state.status === "error" ? state.statusText : null, paused: s.paused, gameRunning: lastGameRunning, status: state.statusText } };
+  const body = { helperVersion: __HELPER_VERSION__, state: { folder: s.wowFolder, clients: clients.map((c) => ({ ...c, busy: state.clientBusy[c.folder] ?? null, result: state.clientResult[c.folder]?.text ?? null })), lastSync: state.lastSync?.toISOString() ?? null, lastError: state.status === "error" ? state.statusText : null, paused: s.paused, gameRunning: lastGameRunning, status: state.statusText, busy: state.busy, recent: state.log.slice(-6) } };
   try {
     const r = await tauriFetch(`${s.siteUrl}/api/helper/status`, { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${s.deviceToken}` }, body: JSON.stringify(body) });
     if (r.status === 401) { s.deviceToken = null; await saveSettings(s); await setStatus("setup", "Signed out: sign in again"); return; }
     if (!r.ok) return;
     const { pendingAction } = (await r.json()) as { pendingAction: string | null };
-    if (pendingAction === "sync") { log("The site asked for a sync."); void cycle("asked from the site"); }
+    if (pendingAction) await runAction(pendingAction, "from the site");
   } catch { /* offline: try again next heartbeat */ }
+}
+
+// ---------------------------------------------------------------- actions
+// The same actions exist in the window, the tray, and the site's Add-on page (D-0043).
+async function runAction(action: string, origin: string): Promise<void> {
+  if (action === "sync") { log(`Sync asked ${origin}.`); void cycle(origin); }
+  else if (action === "install") { log(`Install asked ${origin}.`); void installAll(); }
+  else if (action.startsWith("install:")) { log(`Install asked ${origin}.`); void installClient(action.slice(8)).then(() => report()); }
+  else if (action === "pause" || action === "resume") { if ((action === "pause") !== !!state.settings!.paused) await togglePause(); }
 }
 
 // ---------------------------------------------------------------- watching
@@ -230,17 +272,21 @@ function render() {
   const step = (n: number, done: boolean, title: string, right: string) => `<div class="row"><span><span class="num ${done ? "ok" : "muted"}" style="display:inline-block;width:1.4em">${done ? "✓" : n}</span>${title}</span><span>${right}</span></div>`;
   app.innerHTML = `
     <h1><span class="mark">&#9632;</span> WoW Compendium Helper <span class="faint" style="margin-left:auto">${__HELPER_VERSION__}${s.paused ? " · paused" : ""}</span></h1>
+    ${state.notice ? `<div class="notice ${state.notice.tone}">${esc(state.notice.text)}</div>` : ""}
     <div class="card"><h2>Setup</h2>
-      ${step(1, !!s.wowFolder && !!state.fs, s.wowFolder ? `<span class="mono">${esc(s.wowFolder)}</span>` : "Game folder not found yet", `<button id="folder" class="secondary">${s.wowFolder ? "Change" : "Choose folder"}</button>`)}
-      ${step(2, !!s.deviceToken, s.deviceToken ? "Signed in" : state.signingIn ? `Approve code <span class="mono">${esc(state.signingIn.code)}</span> in your browser` : "Not signed in", s.deviceToken ? `<button id="signout" class="secondary">Sign out</button>` : state.signingIn ? `<button id="reopen" class="secondary">Open page</button>` : `<button id="signin">Sign in</button>`)}
-      ${flavors.length ? flavors.map((f) => { const st = state.installs[f.folder]; const current = !!st?.installed && !!state.manifest && st.version === state.manifest.version && st.linked; return step(3, current, `Add-on in <span class="mono">${esc(f.folder)}</span>: <span class="${current ? "ok" : "warn"}">${st ? (st.installed ? `${st.version ?? "?"}${!st.linked ? ", not linked" : ""}${state.manifest && st.version !== state.manifest.version ? `, update to ${state.manifest.version}` : ""}` : "not installed") : "checking…"}</span>`, `<button class="install" data-folder="${esc(f.folder)}" ${!s.deviceToken || !state.fs ? "disabled" : ""}>${st?.installed ? (current ? "Reinstall" : "Update add-on") : "Install add-on"}</button>`); }).join("") : step(3, false, "Add-on: waiting for the game folder", "")}
+      ${step(1, !!s.wowFolder && !!state.fs, state.folderBusy ? "Checking the folder…" : s.wowFolder ? `<span class="mono">${esc(s.wowFolder)}</span>` : "Game folder not found yet", `<button id="folder" class="secondary" ${state.folderBusy ? "disabled" : ""}>${s.wowFolder ? "Change" : "Choose folder"}</button>`)}
+      ${step(2, !!s.deviceToken, s.deviceToken ? "Signed in" : state.signingIn ? `Approve code <span class="mono">${esc(state.signingIn.code)}</span> in your browser <span class="faint">(waiting…)</span>` : "Not signed in", s.deviceToken ? `<button id="signout" class="secondary">Sign out</button>` : state.signingIn ? `<button id="reopen" class="secondary">Open page again</button>` : `<button id="signin">Sign in</button>`)}
+      ${flavors.length ? flavors.map((f) => { const st = state.installs[f.folder]; const busy = state.clientBusy[f.folder]; const res = state.clientResult[f.folder]; const current = !!st?.installed && !!state.manifest && st.version === state.manifest.version && st.linked;
+        const line = busy ? `<span class="warn">${esc(busy)}</span>` : `<span class="${current ? "ok" : "warn"}">${st ? (st.installed ? `${st.version ?? "?"} installed${!st.linked ? ", not linked" : ""}${state.manifest && st.version !== state.manifest.version ? `, update to ${state.manifest.version}` : ""}` : "not installed") : "checking…"}</span>${res ? `<div class="faint ${res.tone === "bad" ? "bad" : ""}">${esc(res.text)}</div>` : ""}`;
+        return step(3, current, `Add-on in <span class="mono">${esc(f.folder)}</span>: ${line}`, `<button class="install" data-folder="${esc(f.folder)}" ${!s.deviceToken || !state.fs || busy ? "disabled" : ""}>${busy ? "Working…" : st?.installed ? (current ? "Reinstall" : "Update add-on") : "Install add-on"}</button>`); }).join("") : step(3, false, "Add-on: waiting for the game folder", "")}
     </div>
     <div class="card"><h2>Status</h2>
-      <div class="row"><span><span class="dot ${dot}"></span>${esc(state.statusText)}</span><span><button id="sync" ${state.busy || !s.deviceToken || !state.fs ? "disabled" : ""}>Sync now</button> <button id="pause" class="secondary">${s.paused ? "Resume" : "Pause"}</button></span></div>
+      <div class="row"><span><span class="dot ${dot}"></span>${esc(state.statusText)}</span><span><button id="sync" ${state.busy || !s.deviceToken || !state.fs ? "disabled" : ""}>${state.busy ? "Syncing…" : "Sync now"}</button> <button id="pause" class="secondary">${s.paused ? "Resume" : "Pause"}</button></span></div>
       ${!s.deviceToken ? `<div class="faint">Sign in to enable installing and syncing.</div>` : ""}
     </div>
     <div class="card"><h2>Activity</h2><pre class="log">${esc(state.log.slice(-14).join("\n")) || "Nothing yet."}</pre></div>
-    <div class="faint">Closing this window keeps the helper running in the tray. Use the tray menu to quit.</div>`;
+    <div class="row"><span class="faint">Closing this window keeps the helper running in the tray. Use the tray menu to quit.</span><button id="site" class="secondary">Open WoW Compendium</button></div>`;
+  app.querySelector("#site")?.addEventListener("click", () => void openUrl(`${s.siteUrl}/sync`));
   app.querySelectorAll<HTMLButtonElement>("button.install").forEach((b) => b.addEventListener("click", () => void installClient(b.dataset.folder!).then(() => report())));
   app.querySelector("#sync")?.addEventListener("click", () => void cycle("sync now"));
   app.querySelector("#pause")?.addEventListener("click", () => void togglePause());
@@ -254,7 +300,9 @@ const esc = (t: string) => t.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&l
 async function togglePause() {
   state.settings!.paused = !state.settings!.paused;
   await saveSettings(state.settings!);
-  if (state.settings!.paused) await setStatus("paused", "Paused"); else void cycle("resumed");
+  if (state.settings!.paused) { await setStatus("paused", "Paused: nothing uploads until you resume"); notice("Paused.", "muted"); }
+  else { notice("Resumed.", "ok"); void cycle("resumed"); }
+  void report();
 }
 
 // ---------------------------------------------------------------- boot

@@ -185,6 +185,13 @@ Behavior:
   alive. The helper registers itself to start with Windows, minimized.
 - **Updater**: deferred; the Add-on page links to the latest GitHub release and the
   helper reports its version. Tauri's updater joins once releases settle.
+- **Feedback and parity** (D-0043): every button in the window answers at once
+  (busy label, then a result line with the time, plus a notice at the top); the
+  same actions exist in the window, the tray, and the site's Add-on page (Sync
+  now, Pause/Resume, Install, Update or Reinstall per client), and the page shows
+  the helper's last activity lines. The site's actions reach the helper as
+  `pending_action` values: `sync`, `install`, `install:<folder>`, `pause`,
+  `resume`.
 - **Reporting** (D-0043): `POST /api/helper/status` with the device token after
   every cycle and every twenty seconds: helper version and a state object (folder,
   clients with add-on version, linked and update-needed flags, last upload, last
