@@ -31,7 +31,8 @@ below. Nothing else is needed from the owner for verification.
 - Detecting that the game is running, from the browser, before writing add-on
   updates: test whether the client holds a lock on any file we can probe; otherwise
   ask the user. The helper checks the process list.
-- Netlify background function limits with a 10 MB upload: measure in Phase 1.
+- Ingest runs inline for now (N-0011); measure real upload sizes and durations
+  during Phase 1 and move to a worker only if needed.
 - Observation table partitioning: by flavor only, or flavor plus month. Decide from
   measured volume in Phase 2.
 - Chrome persistent folder permission when the site is installed as an app versus a

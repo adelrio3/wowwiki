@@ -1,0 +1,7 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+}
+
+a { @apply text-amber-300 hover:text-amber-200; }

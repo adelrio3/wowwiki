@@ -152,3 +152,42 @@ Journal's explored set is a set of area IDs, and the wiki's area entity is keyed
 area ID with names per locale.
 Why: Area IDs are the same across locales and flavors where the area exists.
 Verified: probe run 3, login and `zoneChanged` samples.
+
+## N-0011: Ingest runs inline and is resumable from the status endpoint
+Area: ingest
+Problem: Netlify background functions are not available on every plan, and a
+separate worker is more than 0.x needs. But a serverless request has a time limit,
+and an upload must never be lost to a timeout.
+Solution: `POST /api/sync/upload` stores the raw file and the `uploads` row (status
+`received`) first, then runs `ingestUpload()` inline. `GET /api/sync/status` re-runs
+`ingestUpload()` whenever it finds a row still at `received`, or at `ingesting` for
+more than five minutes. `ingestUpload()` is idempotent: sessions are keyed by
+(character, seq) and skipped when present, so a resumed ingest never double counts.
+Why: Correctness without infrastructure; the raw file is the source of truth.
+Verified: `apps/web/src/lib/server/ingest/ingest.test.ts` covers the pure parts;
+end-to-end verified by the owner's first sync (pending).
+
+## N-0012: Testing SvelteKit server code outside the app
+Area: web
+Problem: Server modules import `$env/dynamic/private` and `$lib/...`, which only
+resolve inside the SvelteKit build, so vitest at the repository root could not load
+them.
+Solution: `vitest.config.ts` aliases `$env/dynamic/private` to
+`apps/web/test/env-stub.ts` (which exposes `process.env`) and `$lib` to
+`apps/web/src/lib`. Keep server logic in plain modules with pure functions
+(`observationsFor`, `computeFacts`, `computePositions`) so it is testable without a
+database.
+Why: One test command for the whole repository.
+Verified: `pnpm test` runs 23 tests across packages and the app.
+
+## N-0013: Workspace packages are consumed as TypeScript source
+Area: web
+Problem: Building every package before the app adds a step and a place for stale
+output to hide.
+Solution: Each package's `package.json` points `main`, `types`, and `exports` at
+`./src/index.ts`. Vite, vitest, and Netlify's esbuild bundler all compile linked
+TypeScript directly. Subpath entry points (like the browser adapter) must be listed
+in `exports`, or Vite refuses the deep import.
+Why: No build step for packages; one source of truth.
+Verified: `pnpm build` succeeds; the deep import failure before adding
+`./browser` to `exports` is the regression to watch for.

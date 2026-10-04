@@ -14,6 +14,9 @@ Exit: owner approves docs; decisions log updated.
 
 ## Phase 1: Skeleton and vertical slice (Classic Era only)
 
+Status 2026-10-04: code written and tested locally (version 0.1.0); awaiting the
+owner's first real sync.
+
 Goal: one entity type end to end, proving every component.
 
 - Repo scaffolding: pnpm monorepo, SvelteKit app on Netlify, Supabase project with

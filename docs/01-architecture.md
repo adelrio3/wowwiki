@@ -48,13 +48,16 @@ SvelteKit with TypeScript, server-side rendered, deployed on Netlify. Serves:
   install, update, remove the add-on and to read, parse, and upload SavedVariables.
   Chromium only. Detailed in `04`.
 
-### 3. Ingestion and aggregation (`apps/web/netlify/functions/` or `services/`)
+### 3. Ingestion and aggregation (`apps/web/src/lib/server/ingest/`)
 
-Netlify background functions (up to 15 minutes per invocation) that:
+Server code in the SvelteKit app (N-0011), later movable to Netlify background
+functions or a worker without changing the data flow:
 
 - **Ingest**: pull a raw upload from Storage, parse it server-side (the browser's
   parse is never trusted), validate against the versioned add-on schema, write
-  observations. Idempotent per upload.
+  observations. Idempotent per upload. In 0.x it runs inline inside the upload
+  request and is resumed by the status endpoint if it did not finish (N-0011); the
+  background-function split waits until measured file sizes need it.
 - **Aggregate**: recompute facts for entities touched by new observations; apply
   consensus rules; produce versioned intervals. Incremental by default, full rebuild
   on demand.
@@ -84,7 +87,8 @@ consuming a queue table. The raw-upload-first design makes that swap painless.
   imported game data.
 - `achievements`: criteria definitions and the evaluation engine (pure functions,
   heavily tested).
-- `sync-core`: the shared sync protocol (component 8).
+- `sync-core`: the shared sync protocol (component 8). Exports a browser adapter
+  (`@compendium/sync-core/browser`) and an in-memory adapter for tests.
 
 ### 6. Asset pipeline (`tools/assets/`)
 
@@ -155,7 +159,7 @@ status polling, ack and link writing) is shared and tested once.
 | pnpm workspaces | Shared packages between browser, functions, tools. |
 | Lua 5.1 (WoW dialect) | No choice. |
 | Vitest | Tests for TypeScript packages and functions. |
-| busted | Tests for pure-logic Lua (serialization, dedupe, sequence handling) with a mocked WoW API surface. |
+| Minimal Lua runner (`addon/tests/run.lua`) | Tests for the add-on's logic against a mocked client API (`addon/tests/mock_wow.lua`). No external Lua dependencies; runs with plain `lua5.1`. |
 | Supabase CLI migrations | Schema as code, reviewed in PRs. |
 
 ## Environments
@@ -206,9 +210,11 @@ wowwiki/
 
 ## Testing strategy
 
-- **Lua**: pure logic covered by busted. Capture modules are verified manually in the
-  client against a checklist in `03` (items marked `VERIFY`). A debug build can dump
-  extra diagnostics to SavedVariables; never to the screen.
+- **Lua**: the add-on is loaded into a mocked client (`addon/tests/mock_wow.lua`) and
+  driven by synthetic events; `lua5.1 addon/tests/run.lua` (or `pnpm test:lua`) runs
+  the suite. Capture modules are also verified in the real client against `03`.
+  Errors inside handlers are isolated and recorded in SavedVariables (`errors`),
+  never shown on screen.
 - **Parser and schema**: fixture files from real SavedVariables outputs committed under
   `packages/lua-parser/fixtures/` (scrubbed of account identifiers). Every add-on schema
   version keeps its fixture forever so reprocessing stays testable.

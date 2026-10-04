@@ -1,0 +1,9 @@
+# Mirrors the repository-root netlify.toml for the adapter, which reads the
+# file in the app directory. Keep both in sync.
+[build]
+  command = "pnpm run build"
+  publish = "build"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"

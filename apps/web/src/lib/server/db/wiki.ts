@@ -1,0 +1,156 @@
+/** Read helpers for World Wiki pages. Public data only; uses the service client for speed. */
+import { serviceClient } from "../supabase";
+import { DEFAULT_LOCALE } from "@compendium/game-meta";
+
+export interface FactRow {
+  field: string;
+  locale: string;
+  value_kind: string;
+  value_num: number | null;
+  value_text: string | null;
+  value_json: unknown;
+  first_build: number;
+  last_build: number;
+  contributor_count: number;
+  observation_count: number;
+  status: string;
+  source: string;
+}
+
+export interface PositionRow {
+  map_id: number | null;
+  cluster_x: number | null;
+  cluster_y: number | null;
+  observation_count: number;
+  contributor_count: number;
+}
+
+export async function wikiCounts() {
+  const db = serviceClient();
+  const [c, a, k] = await Promise.all([
+    db.from("facts").select("entity_id", { count: "exact", head: true }).eq("entity_type", "creature").eq("field", "name"),
+    db.from("facts").select("entity_id", { count: "exact", head: true }).eq("entity_type", "area").eq("field", "name"),
+    db.from("addon_identities").select("id", { count: "exact", head: true }),
+  ]);
+  return { creatures: c.count ?? 0, areas: a.count ?? 0, contributors: k.count ?? 0 };
+}
+
+export async function entityFacts(flavor: string, entityType: string, entityId: number, entityKey = ""): Promise<FactRow[]> {
+  const db = serviceClient();
+  const { data } = await db
+    .from("facts")
+    .select("field, locale, value_kind, value_num, value_text, value_json, first_build, last_build, contributor_count, observation_count, status, source")
+    .eq("flavor", flavor)
+    .eq("entity_type", entityType)
+    .eq("entity_id", entityId)
+    .eq("entity_key", entityKey)
+    .order("observation_count", { ascending: false });
+  return (data ?? []) as FactRow[];
+}
+
+export async function entityPositions(flavor: string, entityType: string, entityId: number): Promise<PositionRow[]> {
+  const db = serviceClient();
+  const { data } = await db
+    .from("positions")
+    .select("map_id, cluster_x, cluster_y, observation_count, contributor_count")
+    .eq("flavor", flavor)
+    .eq("entity_type", entityType)
+    .eq("entity_id", entityId)
+    .order("observation_count", { ascending: false });
+  return (data ?? []) as PositionRow[];
+}
+
+/** Pick the best text value for a field: preferred locale, then enUS, then any; most observed wins. */
+export function pickText(facts: FactRow[], field: string, locale = DEFAULT_LOCALE): FactRow | undefined {
+  const candidates = facts.filter((f) => f.field === field && f.value_kind === "text");
+  return candidates.find((f) => f.locale === locale) ?? candidates.find((f) => f.locale === DEFAULT_LOCALE) ?? candidates[0];
+}
+
+export function pickNum(facts: FactRow[], field: string): FactRow | undefined {
+  return facts.find((f) => f.field === field && (f.value_kind === "num" || f.value_kind === "bool"));
+}
+
+export function allOf(facts: FactRow[], field: string): FactRow[] {
+  return facts.filter((f) => f.field === field);
+}
+
+export async function mapNames(flavor: string, mapIds: number[]): Promise<Record<number, string>> {
+  if (!mapIds.length) return {};
+  const db = serviceClient();
+  const { data } = await db
+    .from("facts")
+    .select("entity_id, value_text, locale")
+    .eq("flavor", flavor)
+    .eq("entity_type", "map")
+    .eq("field", "name")
+    .in("entity_id", mapIds);
+  const out: Record<number, string> = {};
+  for (const r of data ?? []) if (r.locale === DEFAULT_LOCALE || !out[r.entity_id]) out[r.entity_id] = r.value_text ?? "";
+  return out;
+}
+
+export interface Listed {
+  entity_id: number;
+  name: string;
+  status: string;
+  contributor_count: number;
+  last_build: number;
+}
+
+export async function listEntities(flavor: string, entityType: string, limit = 100, search = ""): Promise<Listed[]> {
+  const db = serviceClient();
+  let q = db
+    .from("facts")
+    .select("entity_id, value_text, status, contributor_count, last_build")
+    .eq("flavor", flavor)
+    .eq("entity_type", entityType)
+    .eq("field", "name")
+    .eq("locale", DEFAULT_LOCALE)
+    .order("observation_count", { ascending: false })
+    .limit(limit);
+  if (search) q = q.ilike("value_text", `%${search.replace(/[%_]/g, "")}%`);
+  const { data } = await q;
+  return (data ?? []).map((r) => ({ entity_id: r.entity_id, name: r.value_text ?? "", status: r.status, contributor_count: r.contributor_count, last_build: r.last_build }));
+}
+
+/** Creatures with positions on a map, with their names. */
+export async function creaturesOnMap(flavor: string, mapId: number, limit = 200) {
+  const db = serviceClient();
+  const { data: pos } = await db
+    .from("positions")
+    .select("entity_id, observation_count, cluster_x, cluster_y")
+    .eq("flavor", flavor)
+    .eq("entity_type", "creature")
+    .eq("map_id", mapId)
+    .order("observation_count", { ascending: false })
+    .limit(limit);
+  const ids = [...new Set((pos ?? []).map((p) => p.entity_id))];
+  if (!ids.length) return [];
+  const { data: names } = await db
+    .from("facts")
+    .select("entity_id, value_text, locale, status")
+    .eq("flavor", flavor)
+    .eq("entity_type", "creature")
+    .eq("field", "name")
+    .in("entity_id", ids);
+  const byId = new Map<number, { name: string; status: string }>();
+  for (const n of names ?? []) if (n.locale === DEFAULT_LOCALE || !byId.has(n.entity_id)) byId.set(n.entity_id, { name: n.value_text ?? "", status: n.status });
+  return ids.map((id) => ({ entity_id: id, name: byId.get(id)?.name ?? `#${id}`, status: byId.get(id)?.status ?? "unconfirmed", positions: (pos ?? []).filter((p) => p.entity_id === id) }));
+}
+
+export async function areasOnMap(flavor: string, mapId: number) {
+  const db = serviceClient();
+  const { data: mapFacts } = await db.from("facts").select("entity_id").eq("flavor", flavor).eq("entity_type", "area").eq("field", "map").eq("value_num", mapId);
+  const ids = [...new Set((mapFacts ?? []).map((r) => r.entity_id))];
+  if (!ids.length) return [];
+  const { data: names } = await db.from("facts").select("entity_id, value_text, locale, status").eq("flavor", flavor).eq("entity_type", "area").eq("field", "name").in("entity_id", ids);
+  const byId = new Map<number, { name: string; status: string }>();
+  for (const n of names ?? []) if (n.locale === DEFAULT_LOCALE || !byId.has(n.entity_id)) byId.set(n.entity_id, { name: n.value_text ?? "", status: n.status });
+  return ids.map((id) => ({ entity_id: id, name: byId.get(id)?.name ?? `#${id}`, status: byId.get(id)?.status ?? "unconfirmed" })).sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export async function buildsFor(flavor: string) {
+  const db = serviceClient();
+  const { data } = await db.from("builds").select("build, patch, expansion, classified").eq("flavor", flavor).order("build");
+  return data ?? [];
+}
