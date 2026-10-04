@@ -119,23 +119,26 @@ function compat.connectedRealms()
   end
 end
 
--- Interaction type enum (Enum.PlayerInteractionType). Values seen on era:
--- 3 gossip, 5 merchant, 7 trainer (docs/03). The rest follow Blizzard's enum.
+-- Interaction type enum (Enum.PlayerInteractionType). Verified on era:
+-- 3 gossip, 5 merchant, 7 trainer (docs/03). The rest follow Blizzard's enum:
+-- 4 QuestGiver, 6 TaxiNode, 8 Banker, 10 GuildBanker, 11 Registrar,
+-- 13 PetitionVendor, 14 GuildTabardVendor, 17 MailInfo, 18 SpiritHealer,
+-- 20 Binder (innkeeper), 21 Auctioneer, 22 StableMaster, 23 BattleMaster.
 compat.interactionRoles = {
   [3] = "gossip",
   [4] = "quest",
   [5] = "vendor",
-  [6] = "bank",
+  [6] = "taxi",
   [7] = "trainer",
-  [8] = "taxi",
-  [9] = "spirit_healer",
-  [10] = "innkeeper",
-  [11] = "auctioneer",
-  [12] = "stable_master",
-  [13] = "battlemaster",
-  [14] = "guild_bank",
+  [8] = "bank",
+  [10] = "guild_bank",
+  [11] = "guild_registrar",
+  [13] = "petition_vendor",
+  [14] = "tabard_vendor",
   [17] = "mailbox",
-  [21] = "tabard_vendor",
-  [22] = "guild_registrar",
-  [23] = "petition_vendor",
+  [18] = "spirit_healer",
+  [20] = "innkeeper",
+  [21] = "auctioneer",
+  [22] = "stable_master",
+  [23] = "battlemaster",
 }

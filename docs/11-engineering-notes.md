@@ -207,3 +207,18 @@ Why: The mock must match the client's missing functions as well as its present o
 initialization must degrade, never abort.
 Verified: `addon/tests/mock_wow.lua` now removes `math.randomseed`; the suite passes
 with the fix and fails without it. Owner's second sync (pending).
+
+## N-0015: The "npc" unit token goes stale; quest events must use "questnpc"
+Area: addon
+Problem: The first real sync showed the Thunder Bluff flight master with roles
+"bank, gossip, quest, quest_end, taxi". Two causes: the interaction-type table had
+taxi and bank swapped (Enum.PlayerInteractionType: 6 is TaxiNode, 8 is Banker), and
+`UnitExists("npc")` stays true after an interaction window closes, so a later quest
+event (from an item, or another NPC) was attributed to the last NPC talked to.
+Solution: Quest events (`QUEST_GREETING`, `QUEST_DETAIL`, `QUEST_PROGRESS`,
+`QUEST_COMPLETE`, interaction type 4) read `UnitGUID("questnpc")` and only assign a
+role when it is a creature GUID; an Item GUID means an item-started quest and no NPC
+is credited. Other interaction events keep using "npc", which the client sets fresh
+when that window opens.
+Why: Attribution errors become wrong wiki facts that only consensus can dilute.
+Verified: `addon/tests/run.lua` "stale npc never gets quest roles"; owner's next sync.

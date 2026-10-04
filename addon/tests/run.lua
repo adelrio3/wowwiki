@@ -153,13 +153,24 @@ test("targeting a creature records it once per spawn with health, tooltip, and p
   eq(NS.session.world.creatures["Rhinhaus"], nil)
 end)
 
-test("interaction frames add roles to the npc", function()
+test("interaction frames add roles to the npc; stale npc never gets quest roles", function()
   loadAddon(); player(); login()
   mock.units.npc = { guid = "Creature-0-5162-1-56-3081-00003BCC1A", name = "Wunna Darkmane", level = 10, health = 1, healthMax = 1 }
   mock.fire("PLAYER_INTERACTION_MANAGER_FRAME_SHOW", 5)
   mock.fire("MERCHANT_SHOW")
   local c = NS.session.world.creatures["3081"]
   assert(c.roles.vendor, "vendor role"); eq(c.pos[1].k, "interact")
+  mock.fire("PLAYER_INTERACTION_MANAGER_FRAME_SHOW", 6)
+  assert(c.roles.taxi, "6 is taxi"); assert(not c.roles.bank, "6 is not bank")
+  -- an item-started quest while the stale npc token still points at Wunna
+  mock.units.questnpc = { guid = "Item-5149-0-400000032551FC36", name = "A letter" }
+  mock.fire("QUEST_DETAIL")
+  assert(not c.roles.quest, "stale npc must not become a quest giver")
+  -- a real quest giver
+  mock.units.questnpc = { guid = "Creature-0-5162-1-56-2981-00003BCC18", name = "Chief Hawkwind", level = 10, health = 1, healthMax = 1 }
+  mock.fire("QUEST_DETAIL")
+  assert(NS.session.world.creatures["2981"].roles.quest, "questnpc gets the quest role")
+  mock.units.questnpc = nil
 end)
 
 test("locating records map, area, zone text, taxi catalog, explored set, and zone_enter", function()

@@ -116,29 +116,39 @@ NS.on("NAME_PLATE_UNIT_ADDED", function(unit)
 end)
 
 -- Interaction frames reveal roles (vendor, trainer, taxi, ...) and give a
--- close-range position for the NPC.
-local function interaction(role)
-  if not UnitExists("npc") then return end
-  local rec = snapshot("npc", "interact")
+-- close-range position for the NPC. The "npc" unit token stays set after a
+-- window closes (N-0015), so quest events use "questnpc", which is the real
+-- source of the quest (a creature GUID, or an Item GUID for item-started quests).
+local function interaction(role, unit)
+  unit = unit or "npc"
+  if not UnitExists(unit) then return end
+  local rec = snapshot(unit, "interact")
   if rec and role then
     rec.roles = rec.roles or {}
     rec.roles[role] = true
   end
 end
 
+local function questInteraction(role)
+  local guid = UnitGUID("questnpc")
+  if not guid then return end
+  local p = ids.parse(guid)
+  if not ids.isCreature(p) then return end -- item-started quest: no NPC role
+  interaction(role, "questnpc")
+end
+
 NS.on("PLAYER_INTERACTION_MANAGER_FRAME_SHOW", function(kind)
-  interaction(compat.interactionRoles[kind])
+  local role = compat.interactionRoles[kind]
+  if role == "quest" then questInteraction("quest") elseif role then interaction(role) end
 end)
 NS.on("GOSSIP_SHOW", function() interaction("gossip") end)
-NS.on("QUEST_GREETING", function() interaction("quest") end)
-NS.on("QUEST_DETAIL", function() interaction("quest") end)
-NS.on("QUEST_PROGRESS", function() interaction("quest_end") end)
-NS.on("QUEST_COMPLETE", function() interaction("quest_end") end)
+NS.on("QUEST_GREETING", function() questInteraction("quest") end)
+NS.on("QUEST_DETAIL", function() questInteraction("quest") end)
+NS.on("QUEST_PROGRESS", function() questInteraction("quest_end") end)
+NS.on("QUEST_COMPLETE", function() questInteraction("quest_end") end)
 NS.on("MERCHANT_SHOW", function() interaction("vendor") end)
 NS.on("TRAINER_SHOW", function() interaction("trainer") end)
 NS.on("TAXIMAP_OPENED", function() interaction("taxi") end)
 NS.on("BANKFRAME_OPENED", function() interaction("bank") end)
 NS.on("PET_STABLE_SHOW", function() interaction("stable_master") end)
 NS.on("AUCTION_HOUSE_SHOW", function() interaction("auctioneer") end)
-NS.on("TRADE_SKILL_SHOW", function() interaction(nil) end)
-NS.on("MAIL_SHOW", function() interaction(nil) end)
