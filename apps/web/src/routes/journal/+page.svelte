@@ -2,7 +2,7 @@
   import Empty from "$lib/ui/Empty.svelte";
   let { data } = $props();
   const realmName = (c: (typeof data.characters)[number]) => (Array.isArray(c.realms) ? c.realms[0]?.name : (c.realms as { name: string } | null)?.name) ?? "";
-  const classTint: Record<string, string> = { HUNTER: "#a9d271", WARRIOR: "#c69b6d", MAGE: "#3fc7eb", PRIEST: "#ffffff", ROGUE: "#fff468", DRUID: "#ff7c0a", SHAMAN: "#0070dd", WARLOCK: "#8788ee", PALADIN: "#f48cba" };
+  const classTint: Record<string, string> = { HUNTER: "#67a63a", WARRIOR: "#a8794a", MAGE: "#2a9fc2", PRIEST: "#8a8f98", ROGUE: "#c9b43a", DRUID: "#d9700e", SHAMAN: "#1c6fc9", WARLOCK: "#7b6fd1", PALADIN: "#d66c9f" };
 </script>
 
 <svelte:head><title>Journal · WoW Compendium</title></svelte:head>
@@ -16,7 +16,7 @@
     <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {#each data.characters as c}
         <li class="overflow-hidden rounded-md border border-line bg-surface">
-          <div class="h-1" style="background: {classTint[c.class ?? ''] ?? 'var(--gold)'}"></div>
+          <div class="h-1" style="background: {classTint[c.class ?? ''] ?? 'var(--accent)'}"></div>
           <a href="/journal/{c.id}" class="block px-4 py-3 text-ink hover:text-ink hover:no-underline">
             <div class="text-lg font-medium">{c.name}</div>
             <div class="text-sm text-ink-muted">Level <span class="num">{c.level ?? "?"}</span> {c.race ?? ""} {c.class ? c.class[0] + c.class.slice(1).toLowerCase() : ""}</div>

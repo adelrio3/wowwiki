@@ -419,3 +419,27 @@ uniform spacious layouts (wiki pages become long scrolls); dark only (reference
 sites are read in daylight).
 Consequences: docs/12 is binding on every page; the design lands before Phase 2
 pages so each new entity page is built once.
+
+## D-0036: The add-on never changes client settings
+Date: 2026-10-04  Status: accepted
+Context: To see friendly NPCs nearby, the add-on could turn on friendly nameplates.
+The owner ruled that out: players must not change how they play to feed capture.
+Decision: The add-on captures only what the client exposes during normal play. It
+never sets CVars or alters any client setting, never opens windows, and never
+prompts. Slower coverage is accepted.
+Alternatives: auto-enabling name-only friendly nameplates (rejected: invasive);
+an opt-in setting for it (rejected: still a playstyle change the project asks for).
+Consequences: Friendly NPC coverage depends on hover, click, speech, and combat log
+across contributors. A test asserts `SetCVar` is never called.
+
+## D-0037: The helper moves up to the first public phase
+Date: 2026-10-04  Status: accepted
+Context: Chromium blocks folder access under Program Files (N-0017), the default
+install location, so most Windows players cannot use the browser path.
+Decision: The helper is built right after capture breadth begins, not after it,
+and is the recommended path on Windows. The browser path remains for installs
+outside Program Files and for macOS.
+Alternatives: ask every player to move their game folder (works, but a hurdle);
+browser-only until Phase 4 (leaves most players unable to start).
+Consequences: Phase 2 ordering in docs/08 changes; the Sync page explains both
+paths.

@@ -56,6 +56,9 @@ function M.install()
   _G.GetMoney = function() return 67 end
   _G.GetBindLocation = function() return "Bloodhoof Village" end
   _G.RequestTimePlayed = function() M.playedRequested = true end
+  M.cvars = { nameplateShowFriendlyNPCs = "0", nameplateShowOnlyNames = "0", nameplateMaxDistance = "20" }
+  _G.GetCVar = function(name) return M.cvars[name] end
+  _G.SetCVar = function(name, value) M.setCVarCalled = true; M.cvars[name] = tostring(value) end
   _G.ChatFrame_DisplayTimePlayed = function() M.playedDisplayed = true end
 
   _G.C_Map = {

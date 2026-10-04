@@ -219,7 +219,10 @@ wowwiki/
   `packages/lua-parser/fixtures/` (scrubbed of account identifiers). Every add-on schema
   version keeps its fixture forever so reprocessing stays testable.
 - **Aggregation and achievements**: property-style tests on pure functions.
-- **Web**: a thin set of Playwright tests for sync flow using a fake directory handle.
+- **Web**: `apps/web/scripts/check-pages.mjs` renders every page with mock data
+  (`COMPENDIUM_MOCK=1`) in both themes and two widths, screenshots them, and fails on
+  any WCAG AA contrast violation or horizontal overflow. Run before every visual
+  change. Playwright tests for the sync flow use a fake directory handle (later).
 - **Database**: RLS policies tested with pgTAP or SQL tests run in CI against local
   Supabase.
 

@@ -11,7 +11,7 @@
   const r = (w = 1) => 4 + Math.min(8, Math.log2(1 + w) * 2);
 </script>
 
-<figure class="rounded-md border border-line bg-surface overflow-hidden">
+<figure class="overflow-hidden rounded-md border border-line bg-surface">
   {#if title}<figcaption class="border-b border-line px-3 py-2 text-sm font-medium">{title}</figcaption>{/if}
   <svg viewBox="0 0 {W} {H}" class="block w-full bg-surface-2" role="img" aria-label={title ?? "map"}>
     {#each [1, 2, 3, 4, 5, 6, 7, 8, 9] as i}
@@ -23,12 +23,12 @@
     {#each points as p}
       {#if p.href}
         <a href={p.href}>
-          <circle cx={p.x * W} cy={p.y * H} r={r(p.weight)} fill="var(--gold)" fill-opacity="0.85" stroke="var(--bg)" stroke-width="1.5">
+          <circle cx={p.x * W} cy={p.y * H} r={r(p.weight)} fill="var(--accent)" fill-opacity="0.9" stroke="var(--surface)" stroke-width="1.5">
             <title>{p.label} · {(p.x * 100).toFixed(1)}, {(p.y * 100).toFixed(1)}</title>
           </circle>
         </a>
       {:else}
-        <circle cx={p.x * W} cy={p.y * H} r={r(p.weight)} fill="var(--gold)" fill-opacity="0.85" stroke="var(--bg)" stroke-width="1.5">
+        <circle cx={p.x * W} cy={p.y * H} r={r(p.weight)} fill="var(--accent)" fill-opacity="0.9" stroke="var(--surface)" stroke-width="1.5">
           <title>{p.label} · {(p.x * 100).toFixed(1)}, {(p.y * 100).toFixed(1)}</title>
         </circle>
       {/if}

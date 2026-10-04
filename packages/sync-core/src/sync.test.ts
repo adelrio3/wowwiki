@@ -115,7 +115,9 @@ describe("addon install", () => {
     await writeAckFile(fs, era, { "Player-5149-04E14735": 2 });
     expect(await readAckFile(fs, era)).toEqual({ "Player-5149-04E14735": 2 });
     await writeLinkFile(fs, era, "tok_xyz");
-    expect(await fs.readText("_classic_era_/Interface/AddOns/WoWCompendium/Compendium_Link.lua")).toContain('["account_token"] = "tok_xyz"');
+    const linkText = await fs.readText("_classic_era_/Interface/AddOns/WoWCompendium/Compendium_Link.lua");
+    expect(linkText).toContain('["account_token"] = "tok_xyz"');
+    expect(linkText).toContain('["settings"] = {}');
 
     await removeAddon(fs, era);
     expect(await fs.exists("_classic_era_/Interface/AddOns/WoWCompendium")).toBe(false);

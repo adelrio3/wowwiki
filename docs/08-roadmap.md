@@ -48,8 +48,9 @@ Add modules in this order, each with ingest, aggregation, wiki pages, Journal vi
 5. Professions, recipes, reputation.
 6. Taxi, character, social, PvP, mail.
 
-Also in this phase: the helper (`apps/helper`) with the Tauri adapter over the same
-sync core, including device sign-in, watcher, tray, updater, and signing.
+The helper (`apps/helper`) comes first in this phase (D-0037): the Tauri adapter
+over the same sync core, device sign-in, watcher, tray, and updater. Capture
+modules follow.
 
 Exit: every entity type in `03` has a page; the owner's Journal has the full event
 set; the verification checklist is fully green; the helper syncs the owner's data

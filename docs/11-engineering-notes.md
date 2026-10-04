@@ -222,3 +222,48 @@ is credited. Other interaction events keep using "npc", which the client sets fr
 when that window opens.
 Why: Attribution errors become wrong wiki facts that only consensus can dilute.
 Verified: `addon/tests/run.lua` "stale npc never gets quest roles"; owner's next sync.
+
+## N-0016: Nearby units are only visible through nameplates, and we do not change that
+Area: addon
+Problem: The owner noticed that NPCs standing nearby were not recorded unless
+clicked or hovered. The client has no API to enumerate units in view; the only
+"nearby" channel is nameplates (`NAME_PLATE_UNIT_ADDED`), and friendly NPC
+nameplates are off by default, so villages full of NPCs go unrecorded until someone
+hovers or talks to them.
+Solution: None that changes the client. The add-on must never alter nameplate
+CVars or any other client setting (D-0036). Coverage of friendly NPCs comes from
+mouseover, targeting, interaction, speech, and combat log events during normal
+play, across many contributors. The link file's `settings` table exists for future
+capture tuning but holds nothing today.
+Why: Non-invasive is a product rule; slower coverage is accepted.
+Verified: `addon/tests/run.lua` asserts `SetCVar` is never called.
+
+## N-0017: Chrome blocks folder access under Program Files
+Area: sync
+Problem: The owner had to move the game out of its default install location
+before the site could read it. Chromium's File System Access API refuses the
+directory picker for a blocklist of system locations, and Program Files (with all
+of its children) is on it. Battle.net installs World of Warcraft under
+`C:\Program Files (x86)\World of Warcraft` by default, so most Windows players
+cannot use the browser path at all without moving the game.
+Solution: The browser path stays for players whose install is elsewhere; the Sync
+page explains the limit when the picker fails or returns a folder with no client
+directories. The helper (a native app) has no such restriction and is the primary
+path for Windows users; its schedule moves up accordingly (docs/08). Moving the
+game folder is supported by Battle.net ("Locate" after a move) and is documented
+on the Sync page as the no-install alternative.
+Why: A platform restriction, not something the site can work around.
+Verified: Owner's report, 2026-10-04; Chromium's blocklist behavior.
+
+## N-0018: Unlayered CSS beats Tailwind utilities
+Area: web
+Problem: The first design shipped buttons whose text was the same color as their
+background. A plain `a { color: var(--accent) }` rule in `app.css` sat outside any
+cascade layer, and unlayered styles outrank everything inside `@layer`, so Tailwind's
+`text-accent-ink` on button links never applied.
+Solution: All element defaults go inside `@layer base { ... }`. Custom utilities use
+`@utility`. The page audit (`apps/web/scripts/check-pages.mjs`, mock data, both
+themes, two widths, WCAG AA) runs before any visual change is deployed; it catches
+this class of bug mechanically.
+Why: Cascade layers make unlayered rules win regardless of specificity.
+Verified: audit output before and after the fix (46 problems to 0).

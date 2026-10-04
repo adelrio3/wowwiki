@@ -214,6 +214,13 @@ test("level up, death, and played time land in the journal and state", function(
   eq(kinds.level_up, 1); eq(kinds.death, 1)
 end)
 
+test("the add-on never changes client settings", function()
+  mock.cvars = { nameplateShowFriendlyNPCs = "0", nameplateShowOnlyNames = "0", nameplateMaxDistance = "20" }
+  loadAddon(); player(); login(); mock.fire("PLAYER_LOGOUT")
+  eq(mock.cvars.nameplateShowFriendlyNPCs, "0"); eq(mock.cvars.nameplateMaxDistance, "20")
+  assert(not mock.setCVarCalled, "SetCVar must never be called")
+end)
+
 test("a failing handler is isolated and recorded", function()
   loadAddon(); player(); login()
   NS.on("PLAYER_TARGET_CHANGED", function() error("boom") end)

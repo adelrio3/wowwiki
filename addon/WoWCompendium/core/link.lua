@@ -12,6 +12,15 @@ function link.apply()
   end
 end
 
+-- Settings travel in the link file (docs/04). Defaults apply when absent.
+function link.setting(name, default)
+  local src = COMPENDIUM_LINK
+  if type(src) == "table" and type(src.settings) == "table" and src.settings[name] ~= nil then
+    return src.settings[name]
+  end
+  return default
+end
+
 function link.isLinked()
   return NS.db and NS.db.link and NS.db.link.accountToken and true or false
 end

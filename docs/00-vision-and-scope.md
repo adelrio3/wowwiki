@@ -69,7 +69,8 @@ its output, through the browser's folder access.
 7. **Non-invasive, two ways.** The browser does the work when the user opens the site,
    with no install. An optional helper application does the same work in the
    background for users who prefer not to open the site. Both are first-class from the
-   first release and share one code path.
+   first release and share one code path. In game, the add-on never changes a
+   setting or asks the player to play differently (D-0036).
 8. **Multi-user from day one.** Even though one person tests first, every table,
    policy, and flow assumes many accounts and untrusted input.
 9. **Design before code.** Documents first. Decisions logged. Code follows.

@@ -15,7 +15,7 @@
   <Card title="Display name">
     <form method="post" action="?/displayName" use:enhance class="space-y-3">
       <p class="text-sm text-ink-muted">Shown publicly wherever you opt in. Nothing is public until you do.</p>
-      <input name="display_name" value={data.account?.display_name ?? ""} class="w-full rounded-md border border-line bg-bg px-3 py-2 text-sm focus:border-gold focus:outline-none" />
+      <input name="display_name" value={data.account?.display_name ?? ""} class="w-full rounded-md border border-line bg-bg px-3 py-2 text-sm focus:border-accent focus:outline-none" />
       <div class="flex items-center gap-3">
         <Button type="submit">Save</Button>
         {#if form?.error}<span class="text-sm text-bad">{form.error}</span>{/if}

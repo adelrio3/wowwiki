@@ -18,7 +18,7 @@
     {:else}
       <form method="post" use:enhance class="space-y-3">
         <label class="sr-only" for="email">Email</label>
-        <input id="email" name="email" type="email" required placeholder="you@example.com" class="w-full rounded-md border border-line bg-bg px-3 py-2 text-sm focus:border-gold focus:outline-none" />
+        <input id="email" name="email" type="email" required placeholder="you@example.com" class="w-full rounded-md border border-line bg-bg px-3 py-2 text-sm focus:border-accent focus:outline-none" />
         <div class="flex items-center gap-3">
           <Button type="submit">Send link</Button>
           {#if form?.error}<span class="text-sm text-bad">{form.error}</span>{/if}

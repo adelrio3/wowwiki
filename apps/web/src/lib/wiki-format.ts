@@ -29,3 +29,11 @@ export const CLASSIFICATION_LABEL: Record<string, string> = {
   trivial: "Trivial",
   minus: "Minor",
 };
+
+/** Presentation label: the data model has one "creature" type; readers see NPC vs Creature. */
+export function unitKind(opts: { roles: string[]; reactions: number[]; subtitle?: string | null }): "NPC" | "Creature" {
+  if (opts.roles.length || opts.subtitle) return "NPC";
+  // 5+ is friendly; a unit friendly to the observer and without hostility signals reads as an NPC
+  if (opts.reactions.length && opts.reactions.every((r) => r >= 5)) return "NPC";
+  return "Creature";
+}

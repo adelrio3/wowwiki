@@ -3,56 +3,57 @@
 How the site looks and behaves. Binding for every page; a rebuild (D-0034) starts
 from this document, not from the previous code.
 
-## Direction (D-0035)
+## Direction (D-0035, revised 2026-10-04)
 
-**An archive, not a game interface.** The site is a serious reference work about a
-game world, written by the world itself. It should feel like a well-set book or a
-good museum catalogue: quiet surfaces, warm paper-and-gold tones, strong typography,
-generous but purposeful spacing, dense where the data is dense. No faux-medieval
-textures, no gilded frames, no glowing buttons, no imitation of Blizzard's UI.
+**A field guide, not a game interface.** Clean, light-first, and highly readable:
+white surfaces on a cool off-white page, dark slate text, one teal accent, hairline
+borders, and dense tables with clear headers. It should feel like a well-made modern
+reference site, closer to a documentation site than to a game. No textures, no
+ornament, no imitation of Blizzard's UI. (The first direction, a warm dark
+"archive", was rejected by the owner as unappealing.)
 
 Two registers:
 
 - **World Wiki**: dense and scannable. The key facts of an entity are readable in
   two seconds at the top; detail tables sit below. Status is always visible.
-- **Journal**: lighter and more visual. Big numbers, a timeline, a map. It is for
-  enjoyment, so it may breathe.
+- **Journal**: lighter and more visual. Big numbers, a timeline, a map.
 
-Dark by default, light theme available from the header; the choice is remembered
+Light by default, dark theme available from the header; the choice is remembered
 per browser and follows the system preference until changed.
 
 ## Tokens
 
 Defined once in `apps/web/src/app.css` as CSS variables per theme and exposed to
 Tailwind through `@theme inline`. Pages use only these names, never raw colors.
+Every text-on-background pairing must pass WCAG AA (4.5:1 for body text, 3:1 for
+large text); `apps/web/scripts/check-pages.mjs` enforces it on every page in both
+themes and two widths, and a change is not deployed until it passes.
 
-| Token | Dark | Light | Use |
-|-------|------|-------|-----|
-| `bg` | `#141210` | `#f6f1e7` | page background |
-| `surface` | `#1b1815` | `#fffdf8` | cards, header |
-| `surface-2` | `#242019` | `#efe7d8` | table stripes, inputs, hover |
-| `line` | `#332c24` | `#dcd1bf` | borders, rules |
-| `ink` | `#efe7da` | `#1e1913` | body text |
-| `ink-muted` | `#a79c8b` | `#6a6154` | secondary text |
-| `ink-faint` | `#6f6555` | `#9a8f80` | placeholders, meta |
-| `gold` | `#dcb257` | `#8d6210` | accent, links, primary button |
-| `gold-strong` | `#f0c86c` | `#6f4c0a` | link hover, emphasis |
-| `ok` | `#86c492` | `#2f7a3f` | confirmed |
-| `warn` | `#e0aa5a` | `#9a6a12` | disputed |
-| `bad` | `#e2796a` | `#b3392a` | errors, failed |
-| `info` | `#86b6dc` | `#2c6a9a` | corrected, notices |
+| Token | Light | Dark | Use |
+|-------|-------|------|-----|
+| `bg` | `#f6f8fa` | `#0b1220` | page background |
+| `surface` | `#ffffff` | `#121b2d` | cards, header, tables |
+| `surface-2` | `#eef2f6` | `#1a2538` | stripes, inputs, map background |
+| `line` | `#d9e0e8` | `#2a3650` | borders |
+| `ink` | `#111827` | `#e8eef8` | body text |
+| `ink-muted` | `#4b5563` | `#b4c0d3` | secondary text |
+| `ink-faint` | `#5b6676` | `#8a98b0` | meta text (still AA on surfaces) |
+| `accent` / `accent-strong` / `accent-ink` | `#0f766e` / `#115e59` / `#ffffff` | `#2dd4bf` / `#5eead4` / `#0b1220` | links, primary button and its text |
+| `ok` on `ok-soft` | `#166534` on `#dcfce7` | `#6ee7a0` on `#10301f` | confirmed |
+| `warn` on `warn-soft` | `#92400e` on `#fef3c7` | `#fcd34d` on `#3a2a08` | disputed |
+| `bad` on `bad-soft` | `#991b1b` on `#fee2e2` | `#fca5a5` on `#3c1414` | errors |
+| `info` on `info-soft` | `#1e40af` on `#dbeafe` | `#93c5fd` on `#152a4d` | corrected, NPC label |
+| `neutral-soft` | `#eef2f6` | `#1a2538` | unconfirmed badge background |
 
-Status badge colors: unconfirmed uses `ink-muted` on `line`; confirmed `ok`;
-disputed `warn`; retired `ink-faint`; corrected `info`.
+Base element styles live in Tailwind's `base` layer so utilities always win
+(N-0018).
 
 ## Typography
 
-- Display: **Fraunces** (variable serif) for the site name, page titles, and section
-  headings. Optical size on, slight negative tracking on large sizes.
-- Text: **Inter** for everything else.
-- Numbers and identifiers: **JetBrains Mono** in tables, coordinates, builds, IDs.
-- Scale: 13px meta, 14px tables, 16px body, 20px section, 28px page title (36px on
-  the home page). Line height 1.5 body, 1.2 headings.
+- **IBM Plex Sans** for everything, 600 weight for headings with slight negative
+  tracking. **IBM Plex Mono** for numbers, identifiers, coordinates, builds.
+- Scale: 12px badges, 13px meta, 14px tables, 16px body, 20px section, 30px page
+  title, 48px on the home page. Line height 1.5 body, 1.2 headings.
 
 Fonts load from Google Fonts with `display=swap`.
 
@@ -73,7 +74,7 @@ Fonts load from Google Fonts with `display=swap`.
 
 | Component | Role |
 |-----------|------|
-| `Shell` | header, nav, search, theme toggle, footer |
+| `Shell` | header with wordmark, nav, search, theme toggle, account; footer |
 | `Badge` | status and small labels |
 | `Card` | surface with hairline border and optional title |
 | `StatTile` | big number with a label |
@@ -113,8 +114,11 @@ Components take data, never fetch. Pages fetch in `+page.server.ts`.
 
 - Every number that could be compared is tabular and monospaced.
 - Status is shown wherever a fact is shown.
-- Links are gold, underlined on hover only.
+- Links are the accent color, underlined on hover only. Buttons never rely on the
+  link color: their text uses `accent-ink`.
 - No icons from icon fonts; inline SVG only, 16px, stroke 1.5.
 - No animation beyond 150ms color transitions.
 - Everything works at 360px width without horizontal scroll.
-- Light theme is tested on every page change, not retrofitted.
+- Both themes, both widths (1280 and 390), every page: run
+  `COMPENDIUM_MOCK=1 pnpm dev` and `node apps/web/scripts/check-pages.mjs` before
+  any visual change ships. Screenshots land in the scratch folder for a human look.

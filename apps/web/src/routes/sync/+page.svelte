@@ -50,7 +50,10 @@
       needsGesture = false;
       await refresh();
       if (conn.layout.kind === "unknown") error = "That folder doesn't look like a World of Warcraft install. Pick the folder that contains _classic_era_ or _retail_.";
-    } catch (e) { error = String(e); } finally { busy = null; }
+    } catch (e) {
+      const msg = String(e);
+      error = /abort/i.test(msg) ? "Chrome did not open that folder. If it said the folder contains system files, the game is under Program Files; see the note above." : msg;
+    } finally { busy = null; }
   }
 
   async function doInstall(folder: string) {
@@ -103,7 +106,10 @@
       {#if !conn}
         <div class="space-y-3">
           <Button onclick={connect} disabled={busy !== null}>{needsGesture ? "Resume access to your WoW folder" : "Connect your WoW folder"}</Button>
-          <p class="text-sm text-ink-muted">Pick the folder that contains <code class="mono">_classic_era_</code>, usually <code class="mono">C:\Program Files (x86)\World of Warcraft</code>. If Chrome offers “Allow on every visit”, choose it so you never see the picker again.</p>
+          <p class="text-sm text-ink-muted">Pick the folder that contains <code class="mono">_classic_era_</code>. If Chrome offers “Allow on every visit”, choose it so you never see the picker again.</p>
+          <div class="rounded-md border border-line bg-surface-2 px-3 py-2 text-sm">
+            <strong>If the game is installed under Program Files</strong> (the Battle.net default), Chrome refuses to open it: it blocks every folder under Program Files for websites. Two ways around it: the desktop helper, which has no such limit and is coming next, or moving the game folder somewhere else (for example <code class="mono">C:\Games\World of Warcraft</code>) and clicking “Locate” in Battle.net.
+          </div>
         </div>
       {:else}
         <div class="flex items-center justify-between gap-3 text-sm">

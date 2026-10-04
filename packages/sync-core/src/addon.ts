@@ -56,7 +56,7 @@ export async function installAddon(
   f: FlavorFolder,
   release: AddonManifest,
   fetchFile: FetchAddonFile,
-  options: { accountToken?: string; preserveLinkAndAck?: boolean } = {},
+  options: { accountToken?: string; preserveLinkAndAck?: boolean; settings?: AddonSettings } = {},
 ): Promise<void> {
   const dir = addonPath(f);
   await ensureDir(fs, joinPath(f.path, "Interface"));
@@ -73,7 +73,7 @@ export async function installAddon(
     await fs.writeBytes(joinPath(dir, file.path), bytes);
   }
   await fs.writeText(joinPath(dir, INSTALLED_MANIFEST), JSON.stringify(release, null, 2));
-  if (options.accountToken) await writeLinkFile(fs, f, options.accountToken);
+  if (options.accountToken) await writeLinkFile(fs, f, options.accountToken, options.settings);
 }
 
 export async function removeAddon(fs: FileSystemAdapter, f: FlavorFolder): Promise<void> {
@@ -81,10 +81,14 @@ export async function removeAddon(fs: FileSystemAdapter, f: FlavorFolder): Promi
   if (await fs.exists(dir)) await fs.remove(dir, { recursive: true });
 }
 
-export async function writeLinkFile(fs: FileSystemAdapter, f: FlavorFolder, accountToken: string): Promise<void> {
+/** Add-on settings carried in the link file. None are defined yet; the add-on
+ *  never changes client settings (D-0036), so settings only ever tune capture. */
+export type AddonSettings = Record<string, never>;
+
+export async function writeLinkFile(fs: FileSystemAdapter, f: FlavorFolder, accountToken: string, settings: AddonSettings = {}): Promise<void> {
   const text = luaGlobalFile(
     "COMPENDIUM_LINK",
-    { account_token: accountToken, linked_at: Math.floor(Date.now() / 1000) },
+    { account_token: accountToken, linked_at: Math.floor(Date.now() / 1000), settings: { ...settings } },
     "Written by WoW Compendium. Links this add-on's data to your account. Do not share.",
   );
   await fs.writeText(joinPath(addonPath(f), LINK_FILE), text);

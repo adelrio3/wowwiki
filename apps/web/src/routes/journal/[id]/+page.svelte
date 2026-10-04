@@ -41,7 +41,7 @@
   </div>
 
   <div class="grid gap-8 lg:grid-cols-[1fr_20rem]">
-    <section>
+    <section class="min-w-0">
       <h2 class="mb-3 text-xl font-medium">Timeline</h2>
       {#if byDay.length}
         <div class="space-y-6">
@@ -51,8 +51,8 @@
               <ol class="divide-y divide-line rounded-md border border-line bg-surface text-sm">
                 {#each events ?? [] as e}
                   <li class="flex gap-3 px-3 py-1.5">
-                    <span class="num w-14 shrink-0 text-ink-faint">{new Date(e.at).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}</span>
-                    <span class="w-4 shrink-0 text-center text-gold" aria-hidden="true">{glyph[e.kind] ?? "·"}</span>
+                    <span class="num w-14 shrink-0 text-ink-faint">{new Date(e.at).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", hour12: false })}</span>
+                    <span class="w-4 shrink-0 text-center text-accent" aria-hidden="true">{glyph[e.kind] ?? "·"}</span>
                     <span>{describe(e)}</span>
                   </li>
                 {/each}

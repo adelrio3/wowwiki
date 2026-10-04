@@ -1,39 +1,53 @@
 @import "tailwindcss";
 
-/* Design tokens (docs/12). Pages use only these names. */
+/* Design tokens (docs/12, direction 2: "field guide"). Light first.
+   Every text/background pairing here passes WCAG AA (4.5:1) for body text;
+   verified by apps/web/scripts/check-contrast.mjs. */
 :root,
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --bg: #141210;
-  --surface: #1b1815;
-  --surface-2: #242019;
-  --line: #332c24;
-  --ink: #efe7da;
-  --ink-muted: #a79c8b;
-  --ink-faint: #6f6555;
-  --gold: #dcb257;
-  --gold-strong: #f0c86c;
-  --ok: #86c492;
-  --warn: #e0aa5a;
-  --bad: #e2796a;
-  --info: #86b6dc;
-}
-
 :root[data-theme="light"] {
   color-scheme: light;
-  --bg: #f6f1e7;
-  --surface: #fffdf8;
-  --surface-2: #efe7d8;
-  --line: #dcd1bf;
-  --ink: #1e1913;
-  --ink-muted: #6a6154;
-  --ink-faint: #9a8f80;
-  --gold: #8d6210;
-  --gold-strong: #6f4c0a;
-  --ok: #2f7a3f;
-  --warn: #9a6a12;
-  --bad: #b3392a;
-  --info: #2c6a9a;
+  --bg: #f6f8fa;
+  --surface: #ffffff;
+  --surface-2: #eef2f6;
+  --line: #d9e0e8;
+  --ink: #111827;
+  --ink-muted: #4b5563;
+  --ink-faint: #5b6676;
+  --accent: #0f766e;
+  --accent-strong: #115e59;
+  --accent-ink: #ffffff;
+  --ok: #166534;
+  --ok-soft: #dcfce7;
+  --warn: #92400e;
+  --warn-soft: #fef3c7;
+  --bad: #991b1b;
+  --bad-soft: #fee2e2;
+  --info: #1e40af;
+  --info-soft: #dbeafe;
+  --neutral-soft: #eef2f6;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0b1220;
+  --surface: #121b2d;
+  --surface-2: #1a2538;
+  --line: #2a3650;
+  --ink: #e8eef8;
+  --ink-muted: #b4c0d3;
+  --ink-faint: #8a98b0;
+  --accent: #2dd4bf;
+  --accent-strong: #5eead4;
+  --accent-ink: #0b1220;
+  --ok: #6ee7a0;
+  --ok-soft: #10301f;
+  --warn: #fcd34d;
+  --warn-soft: #3a2a08;
+  --bad: #fca5a5;
+  --bad-soft: #3c1414;
+  --info: #93c5fd;
+  --info-soft: #152a4d;
+  --neutral-soft: #1a2538;
 }
 
 @theme inline {
@@ -44,38 +58,39 @@
   --color-ink: var(--ink);
   --color-ink-muted: var(--ink-muted);
   --color-ink-faint: var(--ink-faint);
-  --color-gold: var(--gold);
-  --color-gold-strong: var(--gold-strong);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-ink: var(--accent-ink);
   --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
   --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
   --color-bad: var(--bad);
+  --color-bad-soft: var(--bad-soft);
   --color-info: var(--info);
-  --font-display: "Fraunces", "Iowan Old Style", Georgia, serif;
-  --font-sans: "Inter", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  --color-info-soft: var(--info-soft);
+  --color-neutral-soft: var(--neutral-soft);
+  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
 }
 
-html { background: var(--bg); }
-body {
-  background: var(--bg);
-  color: var(--ink);
-  font-family: var(--font-sans);
-  font-size: 16px;
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
+/* Base styles live in the base layer so utility classes always win (N-0018). */
+@layer base {
+  html { background: var(--bg); }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3 { font-weight: 600; line-height: 1.2; letter-spacing: -0.01em; }
+  a { color: var(--accent); text-decoration: none; transition: color 150ms; }
+  a:hover { color: var(--accent-strong); text-decoration: underline; text-underline-offset: 3px; }
+  input, select, textarea, button { font: inherit; }
+  ::selection { background: color-mix(in srgb, var(--accent) 30%, transparent); }
 }
 
-h1, h2, h3, .display {
-  font-family: var(--font-display);
-  font-optical-sizing: auto;
-  line-height: 1.2;
-}
-h1 { letter-spacing: -0.015em; }
-
-a { color: var(--gold); text-decoration: none; transition: color 150ms; }
-a:hover { color: var(--gold-strong); text-decoration: underline; text-underline-offset: 3px; }
-
-.num, .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
-
-input, select, textarea, button { font: inherit; }
-::selection { background: color-mix(in srgb, var(--gold) 35%, transparent); }
+@utility num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+@utility mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }

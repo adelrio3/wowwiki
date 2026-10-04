@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import type { Handle } from "@sveltejs/kit";
+import { env } from "$env/dynamic/private";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "$lib/server/env";
 
 export const handle: Handle = async ({ event, resolve }) => {
@@ -30,6 +31,9 @@ export const handle: Handle = async ({ event, resolve }) => {
   const { session, user } = await event.locals.safeGetSession();
   event.locals.session = session;
   event.locals.user = user;
+  if (env.COMPENDIUM_MOCK === "1" && event.url.searchParams.get("mockUser") === "1") {
+    event.locals.user = { id: "mock-user", email: "you@example.com" } as typeof user;
+  }
 
   return resolve(event, {
     filterSerializedResponseHeaders: (name) => name === "content-range" || name === "x-supabase-api-version",

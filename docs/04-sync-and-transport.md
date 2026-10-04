@@ -15,7 +15,10 @@ for the other.
   Chromium browsers (Chrome, Edge, Brave, Opera) support directory read and write and
   can remember the grant across visits. Firefox and Safari do not support directory
   write, so they get the manual fallback.
-- Chrome blocks access to some system folders. The game install folder is allowed.
+- Chrome blocks access to system folders, including everything under Program Files
+  (N-0017). A game installed in the default location cannot be read by the browser
+  path; the player either uses the helper or moves the game folder (Battle.net
+  supports relocating an install). The Sync page explains this when the picker fails.
 
 ## The WoW folder
 
@@ -81,8 +84,17 @@ same.
 files, shipped as an empty table:
 
 ```lua
-COMPENDIUM_LINK = { account_token = "<opaque token>", linked_at = 1770000000 }
+COMPENDIUM_LINK = {
+  account_token = "<opaque token>",
+  linked_at = 1770000000,
+  settings = {},   -- capture-tuning settings chosen on the site; none defined yet
+}
 ```
+
+The `settings` table is how the site would configure the add-on, since the add-on
+has no options panel (D-0017). Settings may tune what is captured; they never change
+client behavior (D-0036). Every setting has a default in the add-on, so an older link
+file still works.
 
 The token is a random, per-account, revocable identifier (not the Supabase JWT). The
 add-on copies it into SavedVariables at login. The server accepts an upload for an

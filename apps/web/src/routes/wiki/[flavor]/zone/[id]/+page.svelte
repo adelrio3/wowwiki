@@ -11,16 +11,16 @@
 <svelte:head><title>{data.name} · WoW Compendium</title></svelte:head>
 
 <article class="space-y-8">
-  <EntityHeader {kind} title={data.name} status={data.status}>
+  <EntityHeader crumbs={[{ href: "/wiki", label: "World Wiki" }, { label: "Classic Era" }, { href: "/wiki", label: "Zones" }]} {kind} title={data.name} status={data.status}>
     {#if data.parent !== null}<a href="/wiki/{data.flavor}/zone/{data.parent}" class="text-sm">↑ Parent map</a>{/if}
   </EntityHeader>
 
   <div class="grid gap-8 lg:grid-cols-[1fr_20rem]">
-    <div class="space-y-8">
+    <div class="min-w-0 space-y-8">
       <MapPanel points={data.points} title="Creatures seen in {data.name}" caption="Hover a dot for the creature; click to open it. Coordinates are percentages of the zone map." />
 
       <section>
-        <h2 class="mb-2 text-xl font-medium">Creatures <span class="num text-sm text-ink-faint">{data.creatures.length}</span></h2>
+        <h2 class="mb-2 text-xl">Creatures and NPCs <span class="num text-sm text-ink-faint">{data.creatures.length}</span></h2>
         {#if data.creatures.length}
           <div class="overflow-x-auto rounded-md border border-line bg-surface">
             <table class="w-full text-sm">
@@ -28,7 +28,7 @@
               <tbody>
                 {#each data.creatures as c}
                   <tr class="border-t border-line even:bg-surface-2/40">
-                    <td class="px-3 py-1.5"><a href="/wiki/{data.flavor}/creature/{c.entity_id}">{c.name}</a>{#if c.classification && c.classification !== "normal"}<span class="ml-2 text-xs text-ink-muted">{CLASSIFICATION_LABEL[c.classification] ?? c.classification}</span>{/if}</td>
+                    <td class="px-3 py-1.5"><a href="/wiki/{data.flavor}/creature/{c.entity_id}">{c.name}</a>{#if c.npc}<Badge status="npc" label="NPC" class="ml-2" />{/if}{#if c.classification && c.classification !== "normal"}<span class="ml-2 text-xs text-ink-muted">{CLASSIFICATION_LABEL[c.classification] ?? c.classification}</span>{/if}</td>
                     <td class="num px-3 py-1.5">{c.level_min === null ? "" : c.level_min === c.level_max ? c.level_min : `${c.level_min}–${c.level_max}`}</td>
                     <td class="px-3 py-1.5 text-ink-muted">{c.creature_type ?? ""}</td>
                     <td class="num px-3 py-1.5">{c.positions.length}</td>
@@ -44,7 +44,7 @@
       </section>
     </div>
 
-    <aside class="space-y-4 lg:sticky lg:top-20 lg:self-start">
+    <aside class="min-w-0 space-y-4 lg:sticky lg:top-20 lg:self-start">
       <Card title="Areas">
         <ul class="space-y-1 text-sm">
           {#each data.areas as a}<li class="flex justify-between gap-2"><span>{a.name}</span><span class="num text-xs text-ink-faint">#{a.entity_id}</span></li>{/each}

@@ -1,6 +1,7 @@
 /** Read helpers for World Wiki pages. Public data only; uses the service client for speed. */
 import { serviceClient } from "../supabase";
 import { DEFAULT_LOCALE } from "@compendium/game-meta";
+import { MOCK, mockCreatureFacts, mockListed, mockMaps, mockPositions, mockSummaries } from "./mock";
 
 export interface FactRow {
   field: string;
@@ -26,6 +27,7 @@ export interface PositionRow {
 }
 
 export async function wikiCounts() {
+  if (MOCK) return { creatures: 128, areas: 41, zones: 6, contributors: 3 };
   const db = serviceClient();
   const [c, a, m, k] = await Promise.all([
     db.from("facts").select("entity_id", { count: "exact", head: true }).eq("entity_type", "creature").eq("field", "name").eq("locale", DEFAULT_LOCALE),
@@ -38,6 +40,7 @@ export async function wikiCounts() {
 
 /** Most recently observed entities of a kind, by last_seen_at. */
 export async function recentEntities(flavor: string, entityType: string, limit = 8): Promise<Listed[]> {
+  if (MOCK) return (mockListed[entityType as keyof typeof mockListed] ?? []).slice(0, limit);
   const db = serviceClient();
   const { data } = await db
     .from("facts")
@@ -52,6 +55,11 @@ export async function recentEntities(flavor: string, entityType: string, limit =
 }
 
 export async function entityFacts(flavor: string, entityType: string, entityId: number, entityKey = ""): Promise<FactRow[]> {
+  if (MOCK) {
+    if (entityType === "creature") return mockCreatureFacts[entityId] ?? [];
+    if (entityType === "map" && mockMaps[entityId]) return [{ field: "name", locale: "enUS", value_kind: "text", value_num: null, value_text: mockMaps[entityId]!, value_json: null, first_build: 70003, last_build: 70003, contributor_count: 1, observation_count: 5, status: "confirmed", source: "encounter" }, { field: "map_type", locale: "", value_kind: "num", value_num: 3, value_text: null, value_json: null, first_build: 70003, last_build: 70003, contributor_count: 1, observation_count: 5, status: "confirmed", source: "encounter" }];
+    return [];
+  }
   const db = serviceClient();
   const { data } = await db
     .from("facts")
@@ -65,6 +73,7 @@ export async function entityFacts(flavor: string, entityType: string, entityId: 
 }
 
 export async function entityPositions(flavor: string, entityType: string, entityId: number): Promise<PositionRow[]> {
+  if (MOCK) return mockPositions[entityId] ?? [];
   const db = serviceClient();
   const { data } = await db
     .from("positions")
@@ -92,6 +101,7 @@ export function allOf(facts: FactRow[], field: string): FactRow[] {
 
 export async function mapNames(flavor: string, mapIds: number[]): Promise<Record<number, string>> {
   if (!mapIds.length) return {};
+  if (MOCK) return Object.fromEntries(mapIds.map((id) => [id, mockMaps[id] ?? `Map ${id}`]));
   const db = serviceClient();
   const { data } = await db
     .from("facts")
@@ -114,6 +124,7 @@ export interface Listed {
 }
 
 export async function listEntities(flavor: string, entityType: string, limit = 100, search = ""): Promise<Listed[]> {
+  if (MOCK) return (mockListed[entityType as keyof typeof mockListed] ?? []).filter((e) => !search || e.name.toLowerCase().includes(search.toLowerCase())).slice(0, limit);
   const db = serviceClient();
   let q = db
     .from("facts")
@@ -131,6 +142,7 @@ export async function listEntities(flavor: string, entityType: string, limit = 1
 
 /** Creatures with positions on a map, with their names. */
 export async function creaturesOnMap(flavor: string, mapId: number, limit = 200) {
+  if (MOCK) return mockSummaries.filter((c) => (mockPositions[c.entity_id] ?? []).some((p) => p.map_id === mapId)).map((c) => ({ entity_id: c.entity_id, name: c.name, status: c.status, positions: (mockPositions[c.entity_id] ?? []).filter((p) => p.map_id === mapId).map((p) => ({ entity_id: c.entity_id, observation_count: p.observation_count, cluster_x: p.cluster_x, cluster_y: p.cluster_y })) }));
   const db = serviceClient();
   const { data: pos } = await db
     .from("positions")
@@ -155,6 +167,7 @@ export async function creaturesOnMap(flavor: string, mapId: number, limit = 200)
 }
 
 export async function areasOnMap(flavor: string, mapId: number) {
+  if (MOCK) return mapId === 1412 ? mockListed.area : [];
   const db = serviceClient();
   const { data: mapFacts } = await db.from("facts").select("entity_id").eq("flavor", flavor).eq("entity_type", "area").eq("field", "map").eq("value_num", mapId);
   const ids = [...new Set((mapFacts ?? []).map((r) => r.entity_id))];
@@ -166,6 +179,7 @@ export async function areasOnMap(flavor: string, mapId: number) {
 }
 
 export async function buildsFor(flavor: string) {
+  if (MOCK) return [{ build: 70003, patch: "1.15.9", expansion: "Classic", classified: true }];
   const db = serviceClient();
   const { data } = await db.from("builds").select("build, patch, expansion, classified").eq("flavor", flavor).order("build");
   return data ?? [];
@@ -176,24 +190,28 @@ export interface CreatureListed extends Listed {
   level_max: number | null;
   creature_type: string | null;
   classification: string | null;
+  /** true when any interaction role or a subtitle was observed */
+  npc: boolean;
 }
 
 /** Names plus level/type/classification for a set of creature ids. */
 export async function creatureSummaries(flavor: string, ids: number[]): Promise<Map<number, CreatureListed>> {
   const out = new Map<number, CreatureListed>();
   if (!ids.length) return out;
+  if (MOCK) { for (const c of mockSummaries) if (ids.includes(c.entity_id)) out.set(c.entity_id, c); return out; }
   const db = serviceClient();
   const { data } = await db
     .from("facts")
     .select("entity_id, field, locale, value_text, value_num, status, contributor_count, last_build")
     .eq("flavor", flavor)
     .eq("entity_type", "creature")
-    .in("field", ["name", "level_min", "level_max", "creature_type", "classification"])
+    .or("field.in.(name,level_min,level_max,creature_type,classification,subtitle),field.like.role:*")
     .in("entity_id", ids);
-  for (const id of ids) out.set(id, { entity_id: id, name: `#${id}`, status: "unconfirmed", contributor_count: 0, last_build: 0, level_min: null, level_max: null, creature_type: null, classification: null });
+  for (const id of ids) out.set(id, { entity_id: id, name: `#${id}`, status: "unconfirmed", contributor_count: 0, last_build: 0, level_min: null, level_max: null, creature_type: null, classification: null, npc: false });
   for (const r of data ?? []) {
     const c = out.get(r.entity_id)!;
-    if (r.field === "name" && (r.locale === DEFAULT_LOCALE || c.name.startsWith("#"))) { c.name = r.value_text ?? c.name; c.status = r.status; c.contributor_count = r.contributor_count; c.last_build = r.last_build; }
+    if (r.field === "subtitle" || r.field.startsWith("role:")) c.npc = true;
+    else if (r.field === "name" && (r.locale === DEFAULT_LOCALE || c.name.startsWith("#"))) { c.name = r.value_text ?? c.name; c.status = r.status; c.contributor_count = r.contributor_count; c.last_build = r.last_build; }
     else if (r.field === "level_min") c.level_min = r.value_num;
     else if (r.field === "level_max") c.level_max = r.value_num;
     else if (r.field === "creature_type" && (r.locale === DEFAULT_LOCALE || !c.creature_type)) c.creature_type = r.value_text;
@@ -203,6 +221,7 @@ export async function creatureSummaries(flavor: string, ids: number[]): Promise<
 }
 
 export async function taxiNodesOnMap(flavor: string, mapId: number) {
+  if (MOCK) return mapId === 1412 ? [{ entity_id: 22, name: "Thunder Bluff, Mulgore", x: 0.39, y: 0.27 }] : [];
   const db = serviceClient();
   const { data: onMap } = await db.from("facts").select("entity_id").eq("flavor", flavor).eq("entity_type", "taxi_node").eq("field", "position").contains("value_json", {});
   const ids = [...new Set((onMap ?? []).map((r) => r.entity_id))];

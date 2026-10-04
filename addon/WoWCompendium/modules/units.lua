@@ -13,6 +13,11 @@ NS.on("PLAYER_LOGIN", function()
   tipDone = {}
 end)
 
+-- Sight (N-0016, D-0036): the client exposes nearby units only through
+-- nameplates, and the add-on never changes the player's nameplate or any other
+-- client settings. Coverage of friendly NPCs therefore comes from mouseover,
+-- targeting, and interaction during normal play. That is slower, and accepted.
+
 local function levelKey(unit)
   local lvl = UnitLevel(unit)
   if lvl == nil then return nil end

@@ -1,13 +1,16 @@
 /** Read helpers for the Journal. Caller must have verified ownership (locals.user). */
 import { serviceClient } from "../supabase";
+import { MOCK, mockCharacterDetail, mockCharacters, mockUploads } from "./mock";
 
 export async function accountFor(userId: string) {
+  if (MOCK) return { id: userId, display_name: "Eigan", battletag: null, visibility: {}, role: "owner", trusted: true, link_token: "mock-token", created_at: "2026-10-01T00:00:00.000Z" };
   const db = serviceClient();
   const { data } = await db.from("accounts").select("id, display_name, battletag, visibility, role, trusted, link_token, created_at").eq("id", userId).maybeSingle();
   return data;
 }
 
 export async function charactersFor(accountId: string) {
+  if (MOCK) return mockCharacters;
   const db = serviceClient();
   const { data } = await db
     .from("characters")
@@ -18,6 +21,7 @@ export async function charactersFor(accountId: string) {
 }
 
 export async function characterDetail(accountId: string, characterId: string) {
+  if (MOCK) return characterId === "c1" ? mockCharacterDetail : null;
   const db = serviceClient();
   const { data: c } = await db.from("characters").select("id, flavor, name, class, race, faction, level, player_guid, created_at, last_seen_at, realms(name)").eq("id", characterId).eq("account_id", accountId).maybeSingle();
   if (!c) return null;
@@ -31,6 +35,7 @@ export async function characterDetail(accountId: string, characterId: string) {
 }
 
 export async function uploadsFor(accountId: string) {
+  if (MOCK) return mockUploads;
   const db = serviceClient();
   const { data } = await db.from("uploads").select("id, flavor, received_at, ingest_status, ingest_error, observation_count, byte_size").eq("account_id", accountId).order("received_at", { ascending: false }).limit(20);
   return data ?? [];

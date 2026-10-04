@@ -93,6 +93,13 @@ Notation: `event → API → fields`. Dedupe key in brackets.
 
 ### Creatures (`units.lua`)
 
+Sight: the client exposes nearby units only through nameplates (N-0016), and the
+add-on never changes the player's nameplate or other settings (D-0036). Friendly NPC
+coverage comes from mouseover, targeting, interaction, speech, and the combat log
+during normal play. Presentation: the wiki labels a unit "NPC" when it has any
+interaction role or subtitle or is friendly, and "Creature" otherwise; the data
+model keeps Blizzard's single `creature` entity type for both.
+
 Triggers: `PLAYER_TARGET_CHANGED`, `UPDATE_MOUSEOVER_UNIT`, `NAME_PLATE_UNIT_ADDED`,
 `UNIT_TARGET` for party/raid targets, `GOSSIP_SHOW`/`MERCHANT_SHOW`/`QUEST_DETAIL`
 (the interacted `npc` unit token), combat log source/dest GUIDs.
