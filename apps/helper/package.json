@@ -1,0 +1,30 @@
+{
+  "name": "helper",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "WoW Compendium Helper: a Windows tray app that installs the add-on and syncs in the background.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "tauri": "tauri",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@compendium/game-meta": "workspace:*",
+    "@compendium/schema": "workspace:*",
+    "@compendium/sync-core": "workspace:*",
+    "@tauri-apps/api": "^2.12.1",
+    "@tauri-apps/plugin-autostart": "^2.7.0",
+    "@tauri-apps/plugin-dialog": "^2.8.1",
+    "@tauri-apps/plugin-fs": "^2.6.0",
+    "@tauri-apps/plugin-http": "^2.8.0",
+    "@tauri-apps/plugin-notification": "^2.5.1",
+    "@tauri-apps/plugin-opener": "^2.7.0"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.12.1",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.0"
+  }
+}

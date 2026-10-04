@@ -1,0 +1,20 @@
+:root { --bg: #f5f3ee; --surface: #fff; --surface-2: #ede9e1; --line: #ddd8cd; --ink: #1c1917; --muted: #57534e; --faint: #6b6660; --accent: #1e40af; --gold: #875606; --gold-soft: #fdf3d7; --ok: #166534; --warn: #92400e; --bad: #991b1b; --btn: #1c1917; --btn-ink: #fff; }
+@media (prefers-color-scheme: dark) { :root { --bg: #121417; --surface: #1a1d22; --surface-2: #23272e; --line: #30353d; --ink: #ece9e2; --muted: #b5b0a6; --faint: #948f85; --accent: #93b4ff; --gold: #f5c451; --gold-soft: #3a2f10; --ok: #86efac; --warn: #fcd34d; --bad: #fca5a5; --btn: #ece9e2; --btn-ink: #121417; } }
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 system-ui, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; user-select: none; }
+main { padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 14px; min-height: 100vh; }
+h1 { font-size: 17px; margin: 0; display: flex; align-items: center; gap: 10px; }
+h1 .mark { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: var(--gold-soft); color: var(--gold); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.card h2 { font-size: 12px; letter-spacing: .05em; text-transform: uppercase; color: var(--faint); margin: 0 0 8px; font-weight: 600; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 0; }
+.row + .row { border-top: 1px solid var(--line); }
+.muted { color: var(--muted); } .faint { color: var(--faint); font-size: 12px; } .ok { color: var(--ok); } .warn { color: var(--warn); } .bad { color: var(--bad); }
+.mono { font-family: Consolas, "JetBrains Mono", monospace; font-size: 13px; }
+button { font: inherit; border: 0; border-radius: 8px; padding: 7px 12px; background: var(--btn); color: var(--btn-ink); cursor: pointer; font-weight: 500; }
+button.secondary { background: var(--surface); color: var(--ink); border: 1px solid var(--line); }
+button:disabled { opacity: .5; cursor: default; }
+.log { font-family: Consolas, monospace; font-size: 12px; color: var(--muted); max-height: 160px; overflow: auto; white-space: pre-wrap; margin: 0; }
+.code { font-family: Consolas, monospace; font-size: 26px; letter-spacing: .3em; margin: 6px 0; }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: var(--faint); }
+.dot.ok { background: var(--ok); } .dot.busy { background: var(--gold); } .dot.bad { background: var(--bad); }

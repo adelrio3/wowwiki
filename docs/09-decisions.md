@@ -534,3 +534,18 @@ shows the areas some contributor has explored; it fills in as players explore.
 Storage: a composed map is about 200 KB, a source tile about 35 KB; all of Classic
 Era fits in well under a quarter of a gigabyte including source copies.
 
+## D-0042: The helper has a small status window
+Date: 2026-10-04  Status: accepted; refines D-0018
+Context: docs/04 said the tray was the helper's only interface. First runs need
+to show a sign-in code, confirm which game folder was found, and surface errors
+in a way a non-technical player can read and report.
+Decision: The helper keeps a single small window with sign-in state, the game
+folder, the add-on version per client, and the last dozen activity lines. It
+opens on first run and from the tray; closing it hides it. The tray menu stays
+the way to drive the helper day to day. The helper also registers to start with
+Windows, minimized, so syncing keeps working after a reboot.
+Alternatives: tray only with native dialogs (hard to show a code and a log);
+notifications only (disappear, cannot be read back).
+Consequences: One window to keep in the design's register; the native side stays
+tiny because the window is ordinary web content.
+

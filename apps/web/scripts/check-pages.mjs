@@ -9,7 +9,7 @@ const BASE = process.env.BASE_URL ?? "http://localhost:5173";
 const OUT = process.env.SHOTS_DIR ?? "/tmp/claude-0/-home-user-wowwiki/86a64ee4-0607-5687-b424-652937e851aa/scratchpad/shots";
 mkdirSync(OUT, { recursive: true });
 
-const PAGES = ["/", "/wiki", "/wiki?q=wolf", "/wiki/npcs", "/wiki/creatures", "/wiki/areas", "/wiki/flight-paths", "/wiki/era/creature/2995", "/wiki/era/creature/2955", "/wiki/era/zone/1412", "/journal?mockUser=1", "/journal/c1?mockUser=1", "/sync?mockUser=1", "/account?mockUser=1", "/auth", "/admin?mockUser=1", "/wiki/era/creature/999999"];
+const PAGES = ["/", "/wiki", "/wiki?q=wolf", "/wiki/npcs", "/wiki/creatures", "/wiki/areas", "/wiki/flight-paths", "/wiki/era/creature/2995", "/wiki/era/creature/2955", "/wiki/era/zone/1412", "/journal?mockUser=1", "/journal/c1?mockUser=1", "/sync?mockUser=1", "/account?mockUser=1", "/auth", "/admin?mockUser=1", "/device?code=ABC234&mockUser=1", "/wiki/era/creature/999999"];
 const THEMES = ["light", "dark"];
 const WIDTHS = [1280, 390];
 

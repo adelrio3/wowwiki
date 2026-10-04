@@ -1,0 +1,27 @@
+[package]
+name = "wowcompendium-helper"
+version = "0.1.0"
+description = "WoW Compendium Helper"
+edition = "2021"
+
+[lib]
+name = "wowcompendium_helper_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-fs = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-opener = "2"
+tauri-plugin-http = "2"
+tauri-plugin-notification = "2"
+tauri-plugin-autostart = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sysinfo = "0.39"
+
+[target.'cfg(windows)'.dependencies]
+winreg = "0.56"

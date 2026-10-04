@@ -1,0 +1,49 @@
+name: helper
+
+# Builds the Windows helper installer and attaches it to a GitHub release
+# named after the helper's version. Unsigned by decision (D-0025).
+on:
+  push:
+    branches: [main]
+    paths: ["apps/helper/**", "packages/**", "pnpm-lock.yaml", ".github/workflows/helper.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: apps/helper/src-tauri
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter helper tauri build
+      - name: Collect installer
+        shell: bash
+        run: |
+          mkdir -p out
+          cp apps/helper/src-tauri/target/release/bundle/nsis/*-setup.exe out/WoWCompendiumHelper-Setup.exe
+          echo "version=$(node -p "require('./apps/helper/package.json').version")" >> "$GITHUB_OUTPUT"
+        id: collect
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WoWCompendiumHelper-Setup
+          path: out/WoWCompendiumHelper-Setup.exe
+      - uses: softprops/action-gh-release@v2
+        if: github.event_name != 'pull_request'
+        with:
+          tag_name: helper-v${{ steps.collect.outputs.version }}
+          name: Helper ${{ steps.collect.outputs.version }}
+          make_latest: true
+          files: out/WoWCompendiumHelper-Setup.exe
+          body: |
+            WoW Compendium Helper for Windows. Unsigned: Windows shows a SmartScreen prompt the first time; choose "More info", then "Run anyway".

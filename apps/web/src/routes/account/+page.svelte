@@ -22,6 +22,20 @@
         </div>
       </form>
     </Card>
+    <Card title="Helpers signed in">
+      {#if data.devices.length}
+        <ul class="divide-y divide-line text-[14px]">
+          {#each data.devices as d (d.id)}
+            <li class="flex items-center justify-between gap-3 py-2 first:pt-0 last:pb-0">
+              <span><span class="font-medium">{d.name}</span><span class="block text-[12px] text-ink-faint">added {new Date(d.created_at).toLocaleDateString()}{d.last_used_at ? ` · last sync ${new Date(d.last_used_at).toLocaleString()}` : ""}</span></span>
+              <form method="post" action="?/revokeDevice" use:enhance><input type="hidden" name="id" value={d.id} /><Button type="submit" variant="quiet">Remove</Button></form>
+            </li>
+          {/each}
+        </ul>
+      {:else}
+        <p class="text-[14px] text-ink-muted">No helper is signed in. The helper is the desktop app that syncs in the background; get it from the Add-on page.</p>
+      {/if}
+    </Card>
     <Card title="Add-on link">
       <p class="text-[14px] text-ink-muted">Your add-on installs are tied to this account by a private token written into the add-on folder. If you think it has leaked, rotate it and reinstall from the Add-on page.</p>
       <form method="post" action="?/rotate" use:enhance class="mt-3 flex items-center gap-3">

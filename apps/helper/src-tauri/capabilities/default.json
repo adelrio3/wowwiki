@@ -1,0 +1,30 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "What the status window may do: read and write the game folder, talk to the site, watch for new data.",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "core:window:allow-show",
+    "core:window:allow-hide",
+    "core:window:allow-set-focus",
+    "core:event:default",
+    "dialog:allow-open",
+    "opener:default",
+    "notification:default",
+    "autostart:default",
+    "fs:default",
+    "fs:allow-read-dir",
+    "fs:allow-read-file",
+    "fs:allow-read-text-file",
+    "fs:allow-write-file",
+    "fs:allow-write-text-file",
+    "fs:allow-mkdir",
+    "fs:allow-remove",
+    "fs:allow-exists",
+    "fs:allow-watch",
+    "fs:allow-unwatch",
+    { "identifier": "fs:scope", "allow": [{ "path": "**" }, { "path": "$APPDATA" }, { "path": "$APPDATA/**" }] },
+    { "identifier": "http:default", "allow": [{ "url": "https://wow-wiki.netlify.app/*" }, { "url": "http://localhost:*/*" }] }
+  ]
+}

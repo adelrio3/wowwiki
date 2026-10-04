@@ -313,3 +313,18 @@ flavor, and uses only Blizzard's own files.
 Verified: Barrens and Mulgore base maps and the Bloodhoof Village overlay decoded
 and stitched on 2026-10-04 against build 1.15.9.70003.
 
+## N-0021: Checking the helper's native side without Windows
+Area: helper
+Problem: The helper is built for Windows by GitHub Actions; a Rust mistake costs a
+ten-minute CI round trip. `cargo check --target x86_64-pc-windows-msvc` from Linux
+fails early because a C dependency's build script wants MSVC's `lib.exe`.
+Solution: Check on the host target instead: install `libwebkit2gtk-4.1-dev`,
+`libgtk-3-dev`, `libayatana-appindicator3-dev` and `librsvg2-dev`, make sure
+`apps/helper/dist/index.html` and the icon set exist (the Tauri context macro
+embeds them), then `cargo check` in `apps/helper/src-tauri`. Only the
+`cfg(windows)` registry lookup stays unchecked, and it is a dozen lines.
+Why: Tauri's Rust side is platform-neutral apart from that lookup; a clean host
+check catches API misuse before CI.
+Verified: 2026-10-04, first helper commit checked clean on the host, then built on
+`windows-latest`.
+

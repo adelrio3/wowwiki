@@ -79,3 +79,12 @@ from observed facts, and are deleted with the account.
 - We do not sell data. There is no monetization.
 - We follow Blizzard's add-on policy. World of Warcraft and all game content are
   Blizzard's property; this is a fan project.
+
+### Helper sign-in codes
+
+The helper never sees the account password or session. It gets a device token
+through a short code the signed-in user approves on the site (docs/04). Codes live
+in `device_codes` for ten minutes; the plaintext token sits there only between
+approval and the helper's single pickup, then is cleared. Device tokens are hashed
+at rest, listed on the Account page, and revocable one by one.
+

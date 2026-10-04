@@ -98,7 +98,25 @@
 {/snippet}
 
 <div class="mx-auto max-w-3xl">
-  <PageHeader eyebrow="Contribute" title="Add-on" lede="Install it once from here. It records what you see while you play, with no interface and no changes to your game. Sync when you have logged out." />
+  <PageHeader eyebrow="Contribute" title="Add-on" lede="It records what you see while you play, with no interface and no changes to your game. Two ways to install it and sync: the helper, or this page." />
+
+  <section class="card mb-8 p-5">
+    <div class="flex flex-wrap items-start justify-between gap-4">
+      <div class="min-w-0 max-w-xl">
+        <h2 class="text-[17px] font-semibold">The helper <span class="ml-1 rounded-md bg-gold-soft px-1.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-gold">Recommended on Windows</span></h2>
+        <p class="mt-1 text-[14px] text-ink-muted">A small app that sits in your tray. It finds your game folder, installs and updates the add-on, and uploads new data whenever the game saves it. Works wherever the game is installed, Program Files included. Sign in once; nothing else to do.</p>
+        <ol class="mt-3 space-y-1 text-[14px] text-ink-muted">
+          <li><span class="num mr-1.5 text-ink-faint">1</span>Download and run the installer. Windows shows a warning because the app is not signed: click <strong class="text-ink">More info</strong>, then <strong class="text-ink">Run anyway</strong>.</li>
+          <li><span class="num mr-1.5 text-ink-faint">2</span>In the helper window click <strong class="text-ink">Sign in</strong>. Your browser opens this site; approve the code it shows.</li>
+          <li><span class="num mr-1.5 text-ink-faint">3</span>That is all. Play, log out, and the helper syncs on its own.</li>
+        </ol>
+      </div>
+      <Button href="https://github.com/adelrio3/wowwiki/releases/latest/download/WoWCompendiumHelper-Setup.exe">Download the helper for Windows</Button>
+    </div>
+  </section>
+
+  <h2 class="mb-3 text-[17px] font-semibold">Or sync from this page</h2>
+  <p class="mb-4 text-[14px] text-ink-muted">Works in Chrome, Edge and Brave when the game is installed outside Program Files.</p>
 
   {#if !supported}
     <Card><p class="text-[14px]">This browser can't open folders. Use <strong>Chrome</strong>, <strong>Edge</strong>, or <strong>Brave</strong> for one-click setup. A desktop helper for other browsers is coming.</p></Card>

@@ -150,27 +150,46 @@ count.
 
 ## The helper
 
-A Tauri tray application for Windows (macOS deferred, D-0025) hosting `sync-core` with
-a native file adapter. Behavior:
+A Tauri tray application for Windows (macOS deferred, D-0025) in `apps/helper`,
+hosting `sync-core` over a native file adapter. The native side is deliberately
+small: tray menu, "is the game running", install folder detection, host name.
+Behavior:
 
-- **Sign-in**: the helper opens the site in the default browser with a one-time device
-  code; the user approves; the helper receives a device token scoped to sync only.
-  Tokens are listed and revocable in account settings.
-- **Folder**: auto-detects the WoW install from the launcher's registry entry on
-  Windows and the default path on macOS; the user can pick another.
-- **Install and update**: same manifest flow as the browser. Updates are applied when
-  the game is not running (the helper can check the process list, which the browser
-  cannot).
-- **Watch**: filesystem watcher on every `WTF/Account/*/SavedVariables/` folder across
-  flavor folders. On a change to `WoWCompendium.lua`, wait for the file to settle (no
-  writes for 5 seconds), then run the standard upload flow and write the ack file.
-- **Status**: tray icon state (idle, syncing, error, paused), menu with last sync per
-  client and character, pause, open site, quit. No other UI.
-- **Updater**: Tauri's built-in updater against our release feed, verified with the
-  project's updater keys. The installer itself is unsigned. We show no warning of our
-  own; the download page has one line of instructions for the prompt Windows shows.
+- **Sign-in**: the helper asks the site for a six-character code
+  (`POST /api/device/start`), opens `/device?code=...` in the default browser, and
+  polls `POST /api/device/poll` every three seconds. The user, signed in on the
+  site, sees the code and the device name and approves. Approval creates a device
+  token (scoped to sync only) and hands it to the helper exactly once; the code
+  expires after ten minutes. Tokens are listed and revocable on the Account page
+  under "Helpers signed in". The helper reads the account's link token through
+  `GET /api/sync/link` with the device token, to write the add-on's link file.
+- **Folder**: on first run the helper reads the launcher's registry entry
+  (`HKLM\SOFTWARE\WOW6432Node\Blizzard Entertainment\World of Warcraft`,
+  `InstallPath`) and the usual install paths, steps up from a flavor folder to the
+  root, and accepts the first folder that contains a flavor folder. "Choose game
+  folder" in the tray or the window opens a native picker.
+- **Install and update**: same manifest flow as the browser, run at startup, on
+  every sync, and on a timer. Updates are applied only when no `Wow*.exe` process
+  is running; otherwise the helper logs that it waits for the game to close.
+- **Watch**: a recursive filesystem watch on every flavor's `WTF/Account` folder.
+  On a change to `WoWCompendium.lua`, wait five seconds for the file to settle,
+  then run the standard upload flow and write the ack file. A ten-minute timer is
+  the safety net.
+- **Status**: tray icon with a menu: status line, Sync now, Pause/Resume, Choose
+  game folder, Sign in (or "Signed in"), Open WoW Compendium, Status window, Quit.
+  The status window (D-0042) shows sign-in state, folder and add-on version per
+  client, and the last activity; closing it hides it, the tray keeps the helper
+  alive. The helper registers itself to start with Windows, minimized.
+- **Updater**: deferred; the Add-on page links to the latest GitHub release and the
+  helper reports its version. Tauri's updater joins once releases settle.
 - **Coexistence**: if both the browser and the helper are active, uploads dedupe by
-  hash and acks are idempotent, so nothing conflicts.
+  hash and acks are idempotent, so nothing conflicts. Each computer running the
+  helper is its own device token; the same account can have several.
+
+The installer is built by GitHub Actions on Windows and attached to a release
+(`helper-v<version>`); the Add-on page links to the latest release's
+`WoWCompendiumHelper-Setup.exe`. It is unsigned (D-0025); the page carries the
+one line about Windows' prompt.
 
 ## Unsynced detection
 
