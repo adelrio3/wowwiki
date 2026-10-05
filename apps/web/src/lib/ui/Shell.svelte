@@ -27,6 +27,7 @@
     { href: "/wiki", label: "Zones", icon: "map", exact: true },
     { href: "/wiki/npcs", label: "NPCs", icon: "user" },
     { href: "/wiki/creatures", label: "Creatures", icon: "paw" },
+    { href: "/wiki/items", label: "Items", icon: "bag" },
     { href: "/wiki/areas", label: "Areas", icon: "pin" },
   ] as const;
   const you = [
@@ -37,12 +38,13 @@
     const p = page.url.pathname;
     if (exact) return p === href || (href === "/wiki" && /^\/wiki\/[a-z]+\/zone\//.test(p));
     if (href === "/wiki/npcs" || href === "/wiki/creatures") return p === href || (p.includes("/creature/") && page.data?.kind === (href === "/wiki/npcs" ? "NPC" : "Creature"));
+    if (href === "/wiki/items") return p === href || /^\/wiki\/[a-z]+\/item\//.test(p);
     return p === href || p.startsWith(href + "/");
   };
   const item = "flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[14px] hover:no-underline";
 </script>
 
-{#snippet navlink(n: { href: string; label: string; icon: "map" | "user" | "paw" | "pin" | "journal" | "plug"; exact?: boolean })}
+{#snippet navlink(n: { href: string; label: string; icon: "map" | "user" | "paw" | "pin" | "bag" | "journal" | "plug"; exact?: boolean })}
   {@const on = active(n.href, n.exact)}
   <a href={n.href} class="{item} {on ? 'bg-surface-2 font-medium text-ink' : 'text-ink-muted hover:bg-surface-2 hover:text-ink'}" aria-current={on ? "page" : undefined}>
     <Icon name={n.icon} size={16} class={on ? "text-gold" : "text-ink-faint"} />

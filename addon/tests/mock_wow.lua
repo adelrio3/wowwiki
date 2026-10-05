@@ -17,6 +17,18 @@ M.zone, M.subzone = "Mulgore", "Bloodhoof Village"
 M.instance = { "Kalimdor", "none", 0, "", 0, 0, false, 1, 0 }
 M.registered = {}
 M.unknownEvents = { LEARNED_SPELL_IN_TAB = true, HARDCORE_DEATH = true }
+-- Items the client has cached: itemID -> GetItemInfo-style table; others are "not yet cached".
+M.items = {
+  [2589] = { name = "Linen Cloth", quality = 1, itemLevel = 5, reqLevel = 0, class = "Trade Goods", subclass = "Cloth", maxStack = 20, equipLoc = "", texture = 132889, sellPrice = 13, classID = 7, subclassID = 5, bindType = 0, expansionID = 0, setID = 0 },
+  [2092] = { name = "Worn Dagger", quality = 1, itemLevel = 2, reqLevel = 1, class = "Weapon", subclass = "Dagger", maxStack = 1, equipLoc = "INVTYPE_WEAPON", texture = 135641, sellPrice = 6, classID = 2, subclassID = 15, bindType = 0, expansionID = 0, setID = 0 },
+  [4540] = { name = "Tough Hunk of Bread", quality = 1, itemLevel = 5, reqLevel = 1, class = "Consumable", subclass = "Food & Drink", maxStack = 20, equipLoc = "", texture = 133964, sellPrice = 1, classID = 0, subclassID = 5, bindType = 0, expansionID = 0, setID = 0 },
+  [3184] = { name = "Venomstrike", quality = 3, itemLevel = 20, reqLevel = 15, class = "Weapon", subclass = "Dagger", maxStack = 1, equipLoc = "INVTYPE_WEAPON", texture = 135641, sellPrice = 1800, classID = 2, subclassID = 15, bindType = 2, expansionID = 0, setID = 0 },
+}
+M.itemTooltips = { [3184] = { "Venomstrike", "Binds when picked up", "One-Hand", "Dagger", "15 - 29 Damage", "Speed 1.60", "(13.8 damage per second)", "Chance on hit: Poisons target for 7 Nature damage every 3 sec for 15 sec.", "Requires Level 15", "Sell Price: 18 Silver" } }
+M.loot = { slots = {}, fishing = false }   -- slots: { link=, qty=, quest=, type=, sources={guid, qty, ...} }
+M.merchant = { items = {}, repair = false } -- items: { link=, price=, stack=, avail=, extended=, costs={ {value=, link=, name=} } }
+M.bags = {}        -- bag -> array of links
+M.equipment = {}   -- slot -> link
 
 function M.install()
   -- The real client does not expose math.randomseed (N-0014).
@@ -26,6 +38,34 @@ function M.install()
   _G.PVP = "PvP"
   _G.ERR_ZONE_EXPLORED_XP = "Discovered %s: %d experience gained"
   _G.ERR_ZONE_EXPLORED = "Discovered %s"
+  _G.LOOT_ITEM_SELF = "You receive loot: %s."
+  _G.LOOT_ITEM_SELF_MULTIPLE = "You receive loot: %sx%d."
+  local function itemFromLink(link)
+    local id = tonumber(string.match(tostring(link), "item:(%d+)"))
+    return id and M.items[id], id
+  end
+  M.itemFromLink = itemFromLink
+  _G.GetItemInfo = function(link)
+    local it = itemFromLink(link)
+    if not it then return nil end
+    return it.name, link, it.quality, it.itemLevel, it.reqLevel, it.class, it.subclass, it.maxStack, it.equipLoc, it.texture, it.sellPrice, it.classID, it.subclassID, it.bindType, it.expansionID, it.setID, false
+  end
+  _G.GetNumLootItems = function() return #M.loot.slots end
+  _G.GetLootSlotLink = function(i) return M.loot.slots[i] and M.loot.slots[i].link end
+  _G.GetLootSlotType = function(i) return M.loot.slots[i] and (M.loot.slots[i].type or 1) end
+  -- era order (N-0007): texture, name, quantity, currencyID, nil, quality, locked, isQuestItem, questID, isActive
+  _G.GetLootSlotInfo = function(i) local s = M.loot.slots[i] return 1, "x", s.qty or 1, nil, nil, 1, false, s.quest or false, nil, false end
+  _G.GetLootSourceInfo = function(i) local s = M.loot.slots[i] if s and s.sources then return unpack(s.sources) end end
+  _G.IsFishingLoot = function() return M.loot.fishing end
+  _G.UnitIsDead = function(t) local u = M.units[t] return u and u.dead or false end
+  _G.GetMerchantNumItems = function() return #M.merchant.items end
+  _G.GetMerchantItemLink = function(i) return M.merchant.items[i] and M.merchant.items[i].link end
+  _G.GetMerchantItemInfo = function(i) local m = M.merchant.items[i] return "x", 1, m.price, m.stack or 1, m.avail or -1, true, true, m.extended or false end
+  _G.GetMerchantItemCostInfo = function(i) local m = M.merchant.items[i] return m.costs and #m.costs or 0 end
+  _G.GetMerchantItemCostItem = function(i, j) local c = M.merchant.items[i].costs[j] return 1, c.value, c.link, c.name end
+  _G.CanMerchantRepair = function() return M.merchant.repair end
+  _G.C_Container = { GetContainerNumSlots = function(bag) return M.bags[bag] and #M.bags[bag] or 0 end, GetContainerItemLink = function(bag, slot) return M.bags[bag] and M.bags[bag][slot] end }
+  _G.GetInventoryItemLink = function(_, slot) return M.equipment[slot] end
   _G.UIParent = {}
   _G.print = function(...)
     local parts = {}
@@ -129,6 +169,14 @@ function M.install()
     function f:Hide() end
     function f:NumLines() return self.lines and #self.lines or 0 end
     function f:GetUnit() return self.unitName, self.unitToken end
+    function f:SetHyperlink(link)
+      local it, id = itemFromLink(link)
+      if not it then error("unknown item") end
+      self.lines = M.itemTooltips[id] or { it.name }
+      for i, line in ipairs(self.lines) do
+        _G[name .. "TextLeft" .. i] = { GetText = function() return line end }
+      end
+    end
     function f:SetUnit(token)
       local u = unit(token)
       if not u then error("bad unit") end

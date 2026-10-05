@@ -187,6 +187,72 @@ export const TaxiNodeRecordSchema = z.object({
   ft: z.number().int(),
 });
 
+/** One item as the client describes it (GetItemInfo) plus its tooltip lines. */
+export const ItemRecordSchema = z.object({
+  id: z.number().int(),
+  name: z.string().optional(),
+  /** quality 0 poor .. 7 heirloom */
+  q: z.number().int().optional(),
+  /** item level */
+  il: z.number().int().optional(),
+  /** required level */
+  rl: z.number().int().optional(),
+  /** class and subclass names, localized */
+  cls: z.string().optional(),
+  sub: z.string().optional(),
+  cid: z.number().int().optional(),
+  sid: z.number().int().optional(),
+  /** max stack */
+  st: z.number().int().optional(),
+  /** equip location token, e.g. INVTYPE_WEAPON */
+  eq: z.string().optional(),
+  /** icon FileDataID */
+  ic: z.number().int().optional(),
+  /** sell price in copper */
+  sp: z.number().int().optional(),
+  /** bind type: 0 none, 1 on pickup, 2 on equip, 3 on use, 4 quest */
+  bt: z.number().int().optional(),
+  xp: z.number().int().optional(),
+  set: z.number().int().optional(),
+  /** crafting reagent */
+  rg: z.boolean().optional(),
+  /** tooltip left-column lines, in order, as the client rendered them */
+  tip: luaArray(z.string()).optional(),
+  ft: z.number().int(),
+  lt: z.number().int(),
+});
+export type ItemRecord = z.infer<typeof ItemRecordSchema>;
+
+/** Loot windows from one source: a creature (c), a game object (o) or fishing on a map (f). */
+export const LootRecordSchema = z.object({
+  k: z.enum(["c", "o", "f"]),
+  id: z.number().int(),
+  /** windows opened this session, one per spawn, empty ones included */
+  w: z.number().int().default(0),
+  /** per itemID: windows that held it, quantity range, quest item flag */
+  items: luaRecord(z.object({ n: z.number().int(), min: z.number().int().optional(), max: z.number().int().optional(), q: z.boolean().optional() })).default({}),
+  ft: z.number().int(),
+  lt: z.number().int(),
+});
+export type LootRecord = z.infer<typeof LootRecordSchema>;
+
+/** A merchant's wares: per itemID the copper price, stack size, limited stock and extended costs. */
+export const VendorRecordSchema = z.object({
+  id: z.number().int(),
+  items: luaRecord(z.object({
+    p: z.number().int().optional(),
+    st: z.number().int().optional(),
+    /** stock on hand when limited; absent when unlimited */
+    lim: z.number().int().optional(),
+    ec: luaArray(z.object({ i: z.number().int().optional(), name: z.string().optional(), n: z.number().int().optional() })).optional(),
+  })).default({}),
+  /** can repair */
+  rep: z.boolean().optional(),
+  ft: z.number().int(),
+  lt: z.number().int(),
+});
+export type VendorRecord = z.infer<typeof VendorRecordSchema>;
+
 export const WorldSchema = z.object({
   creatures: luaRecord(CreatureRecordSchema).default({}),
   maps: luaRecord(MapRecordSchema).default({}),
@@ -194,6 +260,9 @@ export const WorldSchema = z.object({
   zoneTexts: luaRecord(ZoneTextRecordSchema).default({}),
   instances: luaRecord(InstanceRecordSchema).default({}),
   taxiNodes: luaRecord(TaxiNodeRecordSchema).default({}),
+  items: luaRecord(ItemRecordSchema).default({}),
+  loot: luaRecord(LootRecordSchema).default({}),
+  vendors: luaRecord(VendorRecordSchema).default({}),
 });
 export type World = z.infer<typeof WorldSchema>;
 
@@ -206,6 +275,7 @@ export const EVENT_KINDS = [
   "instance_enter",
   "death",
   "xp",
+  "loot",
 ] as const;
 
 export const JournalEventSchema = z.object({

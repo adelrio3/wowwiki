@@ -5,7 +5,7 @@
  * the finished map, and stores it with a row in `artwork`. Pure JavaScript;
  * runs inside the site's own serverless function.
  */
-import { composeMap, encodeJpeg, fetchFromCdn, layoutHash, type Locator, type MapLayout, type MapOverlay } from "@compendium/map-art";
+import { composeMap, decodeBlp, encodeJpeg, encodePng, fetchFromCdn, layoutHash, type Locator, type MapLayout, type MapOverlay } from "@compendium/map-art";
 import { serviceClient } from "../supabase";
 import { SUPABASE_URL } from "../env";
 
@@ -13,6 +13,10 @@ const locatorFiles = import.meta.glob("./locators/*.json", { eager: true, import
 export interface MapBounds { x: number; y: number; w: number; h: number }
 type BootstrapLayouts = Record<string, { name: string; parent: number; type: number; area?: number; bounds?: MapBounds; shape?: string; layer: MapLayout["layer"]; overlays: MapOverlay[] }>;
 const layoutFiles = import.meta.glob("./layouts/*.json", { eager: true, import: "default" }) as Record<string, BootstrapLayouts>;
+
+// Icon locators (D-0048) are big (every file under interface/icons/) and only
+// needed when an icon is missing, so they load on demand.
+const iconLocatorFiles = import.meta.glob("./icon-locators/*.json", { import: "default" }) as Record<string, () => Promise<Locator>>;
 
 /** Layouts from the client's own tables for a flavor's newest build (D-0044). */
 export function bootstrapLayouts(flavor: string): BootstrapLayouts {
@@ -26,7 +30,13 @@ export function locatorFor(flavor: string): Locator | undefined {
   return mine.sort((a, b) => b.build - a.build)[0];
 }
 
+async function iconLocatorFor(flavor: string): Promise<Locator | undefined> {
+  const mine = Object.entries(iconLocatorFiles).filter(([path]) => path.includes(`/${flavor}-`)).sort(([a], [b]) => b.localeCompare(a));
+  return mine[0] ? mine[0][1]() : undefined;
+}
+
 export const BUCKET = "assets";
+export const iconPath = (fdid: number) => `icons/${fdid}.png`;
 export const mapArtPath = (flavor: string, mapId: number) => `maps/${flavor}/${mapId}.jpg`;
 export const sourcePath = (flavor: string, fdid: number) => `source/${flavor}/${fdid}.blp`;
 export const publicUrl = (path: string, version?: string) => `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path}${version ? `?v=${version}` : ""}`;
@@ -128,3 +138,52 @@ export async function ensureMapArt(flavor: string, mapId: number): Promise<boole
   } finally { inFlight.delete(key); }
 }
 
+const iconsInFlight = new Set<number>();
+
+/**
+ * Icons by client file id (D-0048): our stored PNG for each, made on first
+ * view from the client's BLP like the maps. The same file id names the same
+ * picture in every flavor, so icons are stored once, without a flavor. At most
+ * `budget` missing icons are fetched per call, eight at a time; the rest come
+ * on a later view. Returns fdid -> public URL for every icon we have.
+ */
+export async function ensureIcons(flavor: string, fdids: number[], budget = 48): Promise<Map<number, string>> {
+  const out = new Map<number, string>();
+  const ids = [...new Set(fdids.filter((n) => Number.isInteger(n) && n > 0))];
+  if (!ids.length) return out;
+  const db = serviceClient();
+  const { data: have } = await db.from("artwork").select("entity_id, path, layout_hash").eq("entity_type", "item").eq("kind", "icon").in("entity_id", ids);
+  for (const a of have ?? []) out.set(a.entity_id, publicUrl(a.path, a.layout_hash));
+  const missing = ids.filter((id) => !out.has(id) && !iconsInFlight.has(id)).slice(0, budget);
+  if (!missing.length) return out;
+  const locator = await iconLocatorFor(flavor);
+  if (!locator) return out;
+  for (const id of missing) iconsInFlight.add(id);
+  try {
+    let next = 0;
+    await Promise.all(Array.from({ length: 8 }, async () => {
+      while (next < missing.length) {
+        const fdid = missing[next++]!;
+        try {
+          if (!(fdid in locator.files)) continue;
+          const png = encodePng(decodeBlp(await fetchFromCdn(locator, fdid)));
+          const path = iconPath(fdid);
+          const { error: upErr } = await db.storage.from(BUCKET).upload(path, png, { contentType: "image/png", upsert: true, cacheControl: "31536000" });
+          if (upErr) throw new Error(upErr.message);
+          const hash = String(locator.build);
+          const { error: rowErr } = await db.from("artwork").upsert(
+            { flavor, entity_type: "item", entity_id: fdid, kind: "icon", path, width: 64, height: 64, build: locator.build, layout_hash: hash, pieces: 0, updated_at: new Date().toISOString() },
+            { onConflict: "flavor,entity_type,entity_id,kind" },
+          );
+          if (rowErr) throw new Error(rowErr.message);
+          out.set(fdid, publicUrl(path, hash));
+        } catch (e) {
+          console.error(`icon ${fdid}: ${String(e)}`);
+        }
+      }
+    }));
+  } finally {
+    for (const id of missing) iconsInFlight.delete(id);
+  }
+  return out;
+}

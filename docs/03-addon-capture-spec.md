@@ -258,6 +258,12 @@ edges. Dedupe `[npcID, hash(text)]`.
 
 ### Vendors (`vendors.lua`)
 
+Implemented in 0.4.0: one scan per merchant window (throttled a few seconds
+apart so `MERCHANT_UPDATE` rescans pick up links the client cached late),
+recording price, stack, limited stock and extended costs per item, and whether
+the merchant repairs. Alternate-currency costs record the cost item's ID or, for
+currencies, the name shown.
+
 `MERCHANT_SHOW`, `MERCHANT_UPDATE` → `GetMerchantNumItems()`, per item
 `GetMerchantItemInfo(i)` (`VERIFIED` on era: name, texture file ID, price, stackCount,
 numAvailable (-1 unlimited), isPurchasable, isUsable, extendedCost), `GetMerchantItemLink(i)`, `GetMerchantItemCostInfo(i)` and
@@ -277,6 +283,12 @@ items, so no paging needed. Dedupe `[npcID, itemID]` per session.
 player's filters afterward. Dedupe `[npcID, serviceSpellID]`.
 
 ### Loot and drops (`loot.lua`)
+
+Implemented in 0.4.0 as below, keyed `c:<npcID>`, `o:<objectID>` or, for fishing,
+`f:<uiMapID>`. Sources come from `GetLootSourceInfo` per slot, else the dead
+target; a window with no source is not counted. Gathering kinds other than
+fishing are not yet recorded. The Journal `loot` event is written for uncommon
+and better items only (D-0048).
 
 `LOOT_OPENED` → `GetNumLootItems()`, per slot `GetLootSlotType(i)` (item/money/currency),
 `GetLootSlotInfo(i)` (`VERIFIED` on era the returns are shifted: 1 texture, 2 name,
@@ -302,6 +314,12 @@ line ID at 11, no GUID at 12; `LOOT_SLOT_CLEARED` fires per slot; `ITEM_PUSH`
 loot 4 Copper").
 
 ### Items (`items.lua`)
+
+Implemented in 0.4.0: links from loot, vendor windows, bags (six seconds after
+entering the world, then at most every thirty seconds on `BAG_UPDATE_DELAYED`)
+and equipment. `VERIFY` on era: the return positions of `expansionID` and `setID`
+in `GetItemInfo`, and that `GET_ITEM_INFO_RECEIVED` fires for links the client
+had not cached. Link variants (suffix, enchant) are parsed but not yet stored.
 
 Any item link seen anywhere (loot, vendor, quest reward, bags, equipment, inspect,
 trade, mail, chat) is queued. On `GET_ITEM_INFO_RECEIVED` or immediately if cached:
@@ -669,3 +687,5 @@ Still open, to be settled by the real add-on's debug output during normal play:
    name on era when a flight map is actually opened.
 6. Anniversary client: TOC suffix, project ID, build (run the probe there when a
    character exists).
+7. `GetItemInfo` positions 15 and 16 (`expansionID`, `setID`) on era, and whether
+   `GET_ITEM_INFO_RECEIVED` fires for an uncached link (0.4.0 debug output).

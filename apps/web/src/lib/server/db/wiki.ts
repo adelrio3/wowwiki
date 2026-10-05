@@ -1,8 +1,8 @@
 /** Read helpers for World Wiki pages. Public data only; uses the service client for speed. */
 import { serviceClient } from "../supabase";
 import { DEFAULT_LOCALE } from "@compendium/game-meta";
-import { MOCK, mockArtwork, mockCreatureFacts, mockListed, mockMaps, mockPositions, mockSummaries } from "./mock";
-import { bootstrapLayouts, ensureMapArt, publicUrl } from "../map-art";
+import { MOCK, mockArtwork, mockCreatureFacts, mockItemFacts, mockItems, mockListed, mockMaps, mockPositions, mockRelations, mockSummaries } from "./mock";
+import { bootstrapLayouts, ensureIcons, ensureMapArt, publicUrl } from "../map-art";
 import { kindSignalsFromFacts, unitKind } from "$lib/wiki-format";
 
 export interface FactRow {
@@ -29,15 +29,11 @@ export interface PositionRow {
 }
 
 export async function wikiCounts() {
-  if (MOCK) return { creatures: 128, areas: 41, zones: 6, contributors: 3 };
+  if (MOCK) return { creatures: 128, areas: 41, zones: 6, items: 57, contributors: 3 };
   const db = serviceClient();
-  const [c, a, m, k] = await Promise.all([
-    db.from("facts").select("entity_id", { count: "exact", head: true }).eq("entity_type", "creature").eq("field", "name").eq("locale", DEFAULT_LOCALE),
-    db.from("facts").select("entity_id", { count: "exact", head: true }).eq("entity_type", "area").eq("field", "name").eq("locale", DEFAULT_LOCALE),
-    db.from("facts").select("entity_id", { count: "exact", head: true }).eq("entity_type", "map").eq("field", "name").eq("locale", DEFAULT_LOCALE),
-    db.from("accounts").select("id", { count: "exact", head: true }),
-  ]);
-  return { creatures: c.count ?? 0, areas: a.count ?? 0, zones: m.count ?? 0, contributors: k.count ?? 0 };
+  const named = (type: string) => db.from("facts").select("entity_id", { count: "exact", head: true }).eq("entity_type", type).eq("field", "name").eq("locale", DEFAULT_LOCALE);
+  const [c, a, m, i, k] = await Promise.all([named("creature"), named("area"), named("map"), named("item"), db.from("accounts").select("id", { count: "exact", head: true })]);
+  return { creatures: c.count ?? 0, areas: a.count ?? 0, zones: m.count ?? 0, items: i.count ?? 0, contributors: k.count ?? 0 };
 }
 
 /** Most recently observed entities of a kind, by last_seen_at. */
@@ -59,6 +55,7 @@ export async function recentEntities(flavor: string, entityType: string, limit =
 export async function entityFacts(flavor: string, entityType: string, entityId: number, entityKey = ""): Promise<FactRow[]> {
   if (MOCK) {
     if (entityType === "creature") return mockCreatureFacts[entityId] ?? [];
+    if (entityType === "item") return mockItemFacts[entityId] ?? [];
     if (entityType === "map" && mockMaps[entityId]) return [{ field: "name", locale: "enUS", value_kind: "text", value_num: null, value_text: mockMaps[entityId]!, value_json: null, first_build: 70003, last_build: 70003, contributor_count: 1, observation_count: 5, status: "confirmed", source: "encounter" }, { field: "map_type", locale: "", value_kind: "num", value_num: 3, value_text: null, value_json: null, first_build: 70003, last_build: 70003, contributor_count: 1, observation_count: 5, status: "confirmed", source: "encounter" }];
     return [];
   }
@@ -360,3 +357,87 @@ export function bootstrapMap(flavor: string, mapId: number): { name: string; par
   return b ? { name: b.name, parent: b.parent || null, type: b.type } : null;
 }
 
+export interface ItemListed extends Listed {
+  quality: number | null;
+  item_level: number | null;
+  required_level: number | null;
+  class: string | null;
+  subclass: string | null;
+  equip_loc: string | null;
+  icon: number | null;
+  sell_price: number | null;
+}
+
+/** Name, quality, level, type and icon for a set of item ids. */
+export async function itemSummaries(flavor: string, ids: number[]): Promise<Map<number, ItemListed>> {
+  const out = new Map<number, ItemListed>();
+  if (!ids.length) return out;
+  if (MOCK) { for (const i of mockItems) if (ids.includes(i.entity_id)) out.set(i.entity_id, i); return out; }
+  const db = serviceClient();
+  const { data } = await db
+    .from("facts")
+    .select("entity_id, field, locale, value_text, value_num, status, contributor_count, last_build")
+    .eq("flavor", flavor)
+    .eq("entity_type", "item")
+    .in("field", ["name", "quality", "item_level", "required_level", "class", "subclass", "equip_loc", "icon", "sell_price"])
+    .in("entity_id", ids);
+  for (const id of ids) out.set(id, { entity_id: id, name: `#${id}`, status: "unconfirmed", contributor_count: 0, last_build: 0, quality: null, item_level: null, required_level: null, class: null, subclass: null, equip_loc: null, icon: null, sell_price: null });
+  for (const r of data ?? []) {
+    const i = out.get(r.entity_id)!;
+    const text = r.locale === DEFAULT_LOCALE;
+    if (r.field === "name" && (text || i.name.startsWith("#"))) { i.name = r.value_text ?? i.name; i.status = r.status; i.contributor_count = r.contributor_count; i.last_build = r.last_build; }
+    else if (r.field === "quality") i.quality = r.value_num;
+    else if (r.field === "item_level") i.item_level = r.value_num;
+    else if (r.field === "required_level") i.required_level = r.value_num;
+    else if (r.field === "class" && (text || !i.class)) i.class = r.value_text;
+    else if (r.field === "subclass" && (text || !i.subclass)) i.subclass = r.value_text;
+    else if (r.field === "equip_loc") i.equip_loc = r.value_text;
+    else if (r.field === "icon") i.icon = r.value_num;
+    else if (r.field === "sell_price") i.sell_price = r.value_num;
+  }
+  return out;
+}
+
+export interface RelationRow {
+  from_type: string;
+  from_id: number;
+  rel: string;
+  to_type: string;
+  to_id: number;
+  numerator: number;
+  denominator: number;
+  contributor_count: number;
+  status: string;
+  attrs: Record<string, unknown> | null;
+}
+
+/** Edges into a set of items (who drops or sells them), or out of one source (what it drops or sells). */
+export async function relationsTo(flavor: string, toType: string, toIds: number[]): Promise<RelationRow[]> {
+  if (!toIds.length) return [];
+  if (MOCK) return mockRelations.filter((r) => r.to_type === toType && toIds.includes(r.to_id));
+  const { data } = await serviceClient().from("relations").select("from_type, from_id, rel, to_type, to_id, numerator, denominator, contributor_count, status, attrs").eq("flavor", flavor).eq("to_type", toType).in("to_id", toIds).order("numerator", { ascending: false }).limit(2000);
+  return (data ?? []) as RelationRow[];
+}
+
+export async function relationsFrom(flavor: string, fromType: string, fromId: number): Promise<RelationRow[]> {
+  if (MOCK) return mockRelations.filter((r) => r.from_type === fromType && r.from_id === fromId);
+  const { data } = await serviceClient().from("relations").select("from_type, from_id, rel, to_type, to_id, numerator, denominator, contributor_count, status, attrs").eq("flavor", flavor).eq("from_type", fromType).eq("from_id", fromId).order("numerator", { ascending: false }).limit(500);
+  return (data ?? []) as RelationRow[];
+}
+
+/** Public URLs for icons by client file id; missing ones are made on the spot (D-0048). */
+export async function iconUrls(flavor: string, fdids: Array<number | null>): Promise<Map<number, string>> {
+  const ids = [...new Set(fdids.filter((n): n is number => n !== null))];
+  if (MOCK) return new Map(ids.map((id) => [id, "/mock/icon.svg"]));
+  return ensureIcons(flavor, ids);
+}
+
+/** Names for game objects (chests, nodes) seen as loot sources. */
+export async function objectNames(flavor: string, ids: number[]): Promise<Record<number, string>> {
+  if (!ids.length) return {};
+  if (MOCK) return Object.fromEntries(ids.map((id) => [id, `Object #${id}`]));
+  const { data } = await serviceClient().from("facts").select("entity_id, value_text, locale").eq("flavor", flavor).eq("entity_type", "gameobject").eq("field", "name").in("entity_id", ids);
+  const out: Record<number, string> = {};
+  for (const r of data ?? []) if (r.locale === DEFAULT_LOCALE || !out[r.entity_id]) out[r.entity_id] = r.value_text ?? "";
+  return out;
+}

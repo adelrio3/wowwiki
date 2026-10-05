@@ -122,6 +122,48 @@ function store.taxiNode(id)
   return b[key]
 end
 
+function store.item(id)
+  local b = bucket("items")
+  if not b then return nil end
+  local key = tostring(id)
+  local t = NS.now()
+  local rec = b[key]
+  if not rec then
+    rec = { id = id, ft = t, lt = t }
+    b[key] = rec
+  end
+  rec.lt = t
+  return rec
+end
+
+-- Loot windows by source: "c:<npcID>", "o:<objectID>" or "f:<uiMapID>" (fishing).
+function store.loot(key, kind, id)
+  local b = bucket("loot")
+  if not b then return nil end
+  local t = NS.now()
+  local rec = b[key]
+  if not rec then
+    rec = { k = kind, id = id, w = 0, items = {}, ft = t, lt = t }
+    b[key] = rec
+  end
+  rec.lt = t
+  return rec
+end
+
+function store.vendor(npcID)
+  local b = bucket("vendors")
+  if not b then return nil end
+  local key = tostring(npcID)
+  local t = NS.now()
+  local rec = b[key]
+  if not rec then
+    rec = { id = npcID, items = {}, ft = t, lt = t }
+    b[key] = rec
+  end
+  rec.lt = t
+  return rec
+end
+
 -- Journal event. `withPos` attaches the player's position.
 function store.event(kind, data, withPos)
   local s = NS.session

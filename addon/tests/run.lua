@@ -10,7 +10,7 @@ local FILES = {
   "Compendium_Link.lua", "Compendium_Ack.lua",
   "core/init.lua", "core/compat.lua", "core/ids.lua", "core/throttle.lua", "core/store.lua",
   "core/session.lua", "core/link.lua", "core/ack.lua", "core/login.lua",
-  "modules/units.lua", "modules/zones.lua",
+  "modules/units.lua", "modules/zones.lua", "modules/items.lua", "modules/loot.lua", "modules/vendors.lua",
 }
 
 local NS
@@ -243,6 +243,93 @@ test("level up, death, and played time land in the journal and state", function(
   local kinds = {}
   for _, e in ipairs(NS.session.events) do kinds[e.k] = (kinds[e.k] or 0) + 1 end
   eq(kinds.level_up, 1); eq(kinds.death, 1)
+end)
+
+test("item links are parsed and items recorded with info and tooltip once each", function()
+  loadAddon(); player(); login()
+  local id, suffix, str = NS.ids.itemLink("|cff1eff00|Hitem:3184:0:0:0:0:0:0:0:60|h[Venomstrike]|h|r")
+  eq(id, 3184); eq(suffix, 0); eq(str, "item:3184:0:0:0:0:0:0:0:60")
+  eq(NS.ids.itemLink("item:2589:0:0:0:0:0:-12:0"), 2589)
+  eq(select(2, NS.ids.itemLink("item:2589:0:0:0:0:0:-12:0")), -12)
+  eq(NS.ids.itemLink("nope"), nil)
+  local rec = NS.items.see("|cff0070dd|Hitem:3184:0:0:0:0:0:0:0:60|h[Venomstrike]|h|r")
+  assert(rec, "recorded"); eq(rec.name, "Venomstrike"); eq(rec.q, 3); eq(rec.il, 20); eq(rec.rl, 15); eq(rec.cls, "Weapon"); eq(rec.sub, "Dagger")
+  eq(rec.eq, "INVTYPE_WEAPON"); eq(rec.ic, 135641); eq(rec.sp, 1800); eq(rec.bt, 2); eq(#rec.tip, 10); eq(rec.tip[8], "Chance on hit: Poisons target for 7 Nature damage every 3 sec for 15 sec.")
+  eq(NS.items.see("|cff0070dd|Hitem:3184:0:0:0:0:0:0:0:60|h[Venomstrike]|h|r"), nil, "once per session")
+  -- not cached yet: recorded when the client delivers it
+  eq(NS.items.see("|cffffffff|Hitem:9999:0:0:0:0:0:0:0:60|h[Mystery]|h|r"), nil)
+  mock.items[9999] = { name = "Mystery", quality = 2, itemLevel = 9, reqLevel = 4, class = "Armor", subclass = "Cloth", maxStack = 1, equipLoc = "INVTYPE_CHEST", texture = 1, sellPrice = 2, classID = 4, subclassID = 1, bindType = 1, expansionID = 0, setID = 0 }
+  mock.fire("GET_ITEM_INFO_RECEIVED", 9999, true)
+  eq(NS.session.world.items["9999"].name, "Mystery")
+  mock.items[9999] = nil
+end)
+
+test("bags and equipment feed item discovery after entering the world", function()
+  loadAddon(); player()
+  mock.bags = { [0] = { "|cffffffff|Hitem:2589:0:0:0:0:0:0:0:60|h[Linen Cloth]|h|r" } }
+  mock.equipment = { [16] = "|cffffffff|Hitem:2092:0:0:0:0:0:0:0:60|h[Worn Dagger]|h|r" }
+  login()
+  assert(NS.session.world.items["2589"] and NS.session.world.items["2092"], "both recorded")
+  mock.bags = {}; mock.equipment = {}
+end)
+
+test("loot windows count once per spawn with items, quantities and quest flags", function()
+  loadAddon(); player(); login()
+  local corpse = "Creature-0-5162-1-56-2955-00003DC5F0"
+  mock.units.target = { guid = corpse, name = "Plainstrider", level = 2, dead = true, health = 0, healthMax = 42 }
+  mock.loot.slots = {
+    { link = "|cffffffff|Hitem:2589:0:0:0:0:0:0:0:60|h[Linen Cloth]|h|r", qty = 3, sources = { corpse, 3 } },
+    { link = "|cffffffff|Hitem:4540:0:0:0:0:0:0:0:60|h[Tough Hunk of Bread]|h|r", qty = 1, quest = true, sources = { corpse, 1 } },
+    { type = 2, sources = { corpse, 1 } },
+  }
+  mock.fire("LOOT_OPENED")
+  mock.fire("LOOT_OPENED") -- reopened: same spawn, counts once
+  local l = NS.session.world.loot["c:2955"]
+  assert(l, "loot source"); eq(l.k, "c"); eq(l.id, 2955); eq(l.w, 1)
+  eq(l.items["2589"].n, 1); eq(l.items["2589"].min, 3); eq(l.items["2589"].max, 3); eq(l.items["4540"].q, true); eq(l.items["4540"].n, 1)
+  assert(NS.session.world.items["2589"], "item discovered from loot")
+  -- another spawn with nothing in it still counts as a window
+  mock.units.target.guid = "Creature-0-5162-1-56-2955-00003DC5F1"
+  mock.loot.slots = {}
+  mock.fire("LOOT_OPENED")
+  eq(l.w, 2); eq(l.items["2589"].n, 1)
+  -- a chest
+  mock.units.target = nil
+  mock.loot.slots = { { link = "|cff1eff00|Hitem:2589:0:0:0:0:0:0:0:60|h[Linen Cloth]|h|r", qty = 1, sources = { "GameObject-0-5162-1-56-2912-000040695B", 1 } } }
+  mock.fire("LOOT_OPENED")
+  eq(NS.session.world.loot["o:2912"].w, 1); eq(NS.session.world.loot["o:2912"].items["2589"].n, 1)
+  -- fishing in Mulgore
+  mock.loot.fishing = true
+  mock.loot.slots = { { link = "|cffffffff|Hitem:4540:0:0:0:0:0:0:0:60|h[Tough Hunk of Bread]|h|r", qty = 1 } }
+  mock.fire("LOOT_OPENED")
+  eq(NS.session.world.loot["f:1412"].w, 1); eq(NS.session.world.loot["f:1412"].k, "f")
+  mock.loot = { slots = {}, fishing = false }
+end)
+
+test("own loot of uncommon quality or better becomes a journal event", function()
+  loadAddon(); player(); login()
+  local before = #NS.session.events
+  mock.fire("CHAT_MSG_LOOT", "You receive loot: |cffffffff|Hitem:2589:0:0:0:0:0:0:0:60|h[Linen Cloth]|h|rx3.", "", "", "", "Eigan")
+  eq(#NS.session.events, before, "common loot is not a journal event")
+  mock.fire("CHAT_MSG_LOOT", "You receive loot: |cff0070dd|Hitem:3184:0:0:0:0:0:0:0:60|h[Venomstrike]|h|r.", "", "", "", "Eigan")
+  local ev = NS.session.events[#NS.session.events]
+  eq(ev.k, "loot"); eq(ev.d.item, 3184); eq(ev.d.n, 1); eq(ev.d.q, 3); eq(ev.m, 1412)
+end)
+
+test("a merchant's wares are recorded with prices, stock and extended costs", function()
+  loadAddon(); player(); login()
+  mock.units.npc = { guid = "Creature-0-5162-1-56-3077-00003DC5F2", name = "Harn Longcast", level = 20, reaction = 5, health = 1, healthMax = 1 }
+  mock.merchant = { repair = true, items = {
+    { link = "|cffffffff|Hitem:4540:0:0:0:0:0:0:0:60|h[Tough Hunk of Bread]|h|r", price = 25, stack = 5 },
+    { link = "|cffffffff|Hitem:2092:0:0:0:0:0:0:0:60|h[Worn Dagger]|h|r", price = 30, stack = 1, avail = 2 },
+    { link = "|cff0070dd|Hitem:3184:0:0:0:0:0:0:0:60|h[Venomstrike]|h|r", price = 0, stack = 1, extended = true, costs = { { value = 5, link = "|cffffffff|Hitem:2589:0:0:0:0:0:0:0:60|h[Linen Cloth]|h|r" }, { value = 100, name = "Honor" } } },
+  } }
+  mock.fire("MERCHANT_SHOW")
+  local v = NS.session.world.vendors["3077"]
+  assert(v, "vendor recorded"); eq(v.rep, true); eq(v.items["4540"].p, 25); eq(v.items["4540"].st, 5); eq(v.items["4540"].lim, nil)
+  eq(v.items["2092"].lim, 2); eq(v.items["3184"].ec[1].i, 2589); eq(v.items["3184"].ec[1].n, 5); eq(v.items["3184"].ec[2].name, "Honor")
+  assert(NS.session.world.creatures["3077"].roles.vendor, "vendor role from the merchant window")
+  mock.merchant = { items = {}, repair = false }; mock.units.npc = nil
 end)
 
 test("the add-on never changes client settings", function()

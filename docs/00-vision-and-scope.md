@@ -154,6 +154,9 @@ Use these words exactly, in docs and code.
 | **Creature** | A beast or monster that exists to be fought. The other wiki category. Player pets are neither; they are never wiki data. |
 | **Scene** | A recorded sequence of NPC speech lines that occurred together in one place and time window. |
 | **Lore text** | Readable in-world text: books, signs, plaques, letters, pages. |
+| **Loot window** | One opening of a loot source (a corpse, a chest, a fishing cast) as the client showed it, counted once per spawn per session, empty or not. The unit of drop rates. |
+| **Source** | Where an item comes from, as observed: a creature or object that dropped it, a vendor that sold it, a map it was fished in. |
+| **Drop rate** | Loot windows from a source that held the item, over loot windows opened from that source. Never from kill counts. |
 | **Ack file** | The small Lua file the web app writes into the add-on folder to tell the add-on what has been uploaded. |
 | **Link file** | The Lua file the web app writes to bind the add-on's output to a Compendium account. |
 | **Helper** | The optional desktop application that syncs in the background. Never required. Same code as the browser sync module behind a different file adapter. |

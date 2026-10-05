@@ -4,7 +4,7 @@
  * and for local work on layout. Shapes mirror the real query results.
  */
 import { env } from "$env/dynamic/private";
-import type { FactRow, PositionRow, Listed, CreatureListed } from "./wiki";
+import type { FactRow, PositionRow, Listed, CreatureListed, ItemListed, RelationRow } from "./wiki";
 
 export const MOCK = env.COMPENDIUM_MOCK === "1";
 
@@ -38,6 +38,52 @@ export const mockCreatureFacts: Record<number, FactRow[]> = {
   ],
 };
 
+export const mockItemFacts: Record<number, FactRow[]> = {
+  3184: [
+    fact("name", { value_text: "Venomstrike" }),
+    fact("quality", { value_kind: "num", value_num: 3 }),
+    fact("item_level", { value_kind: "num", value_num: 20 }),
+    fact("required_level", { value_kind: "num", value_num: 15 }),
+    fact("class", { value_text: "Weapon" }),
+    fact("subclass", { value_text: "Dagger" }),
+    fact("equip_loc", { value_text: "INVTYPE_WEAPON" }),
+    fact("icon", { value_kind: "num", value_num: 135641, source: "client_catalog" }),
+    fact("sell_price", { value_kind: "num", value_num: 1800 }),
+    fact("bind_type", { value_kind: "num", value_num: 1 }),
+    fact("max_stack", { value_kind: "num", value_num: 1 }),
+    fact("tooltip", { value_kind: "json", value_json: ["Venomstrike", "Binds when picked up", "One-Hand", "Dagger", "15 - 29 Damage", "Speed 1.60", "(13.8 damage per second)", "Chance on hit: Poisons target for 7 Nature damage every 3 sec for 15 sec.", "Requires Level 15", "Sell Price: 18 Silver"] }),
+  ],
+  2589: [
+    fact("name", { value_text: "Linen Cloth", status: "unconfirmed" }),
+    fact("quality", { value_kind: "num", value_num: 1 }),
+    fact("item_level", { value_kind: "num", value_num: 5 }),
+    fact("class", { value_text: "Trade Goods" }),
+    fact("subclass", { value_text: "Cloth" }),
+    fact("icon", { value_kind: "num", value_num: 132889, source: "client_catalog" }),
+    fact("sell_price", { value_kind: "num", value_num: 13 }),
+    fact("max_stack", { value_kind: "num", value_num: 20 }),
+    fact("tooltip", { value_kind: "json", value_json: ["Linen Cloth", "Max Stack: 20", "Sell Price: 13 Copper"] }),
+  ],
+};
+
+export const mockItems: ItemListed[] = [
+  { entity_id: 3184, name: "Venomstrike", status: "confirmed", contributor_count: 2, last_build: 70003, quality: 3, item_level: 20, required_level: 15, class: "Weapon", subclass: "Dagger", equip_loc: "INVTYPE_WEAPON", icon: 135641, sell_price: 1800 },
+  { entity_id: 2589, name: "Linen Cloth", status: "unconfirmed", contributor_count: 1, last_build: 70003, quality: 1, item_level: 5, required_level: 0, class: "Trade Goods", subclass: "Cloth", equip_loc: null, icon: 132889, sell_price: 13 },
+  { entity_id: 4540, name: "Tough Hunk of Bread", status: "confirmed", contributor_count: 2, last_build: 70003, quality: 1, item_level: 5, required_level: 1, class: "Consumable", subclass: "Food & Drink", equip_loc: null, icon: 133964, sell_price: 1 },
+  { entity_id: 2092, name: "Worn Dagger", status: "unconfirmed", contributor_count: 1, last_build: 70003, quality: 1, item_level: 2, required_level: 1, class: "Weapon", subclass: "Dagger", equip_loc: "INVTYPE_WEAPON", icon: 135641, sell_price: 6 },
+  { entity_id: 774, name: "Malachite", status: "unconfirmed", contributor_count: 1, last_build: 70003, quality: 2, item_level: 7, required_level: 0, class: "Gem", subclass: "Simple", equip_loc: null, icon: 134071, sell_price: 50 },
+];
+
+export const mockRelations: RelationRow[] = [
+  { from_type: "creature", from_id: 2955, rel: "drops", to_type: "item", to_id: 2589, numerator: 7, denominator: 10, contributor_count: 2, status: "confirmed", attrs: { min: 1, max: 3 } },
+  { from_type: "creature", from_id: 2955, rel: "drops", to_type: "item", to_id: 3184, numerator: 1, denominator: 10, contributor_count: 1, status: "unconfirmed", attrs: { min: 1, max: 1 } },
+  { from_type: "creature", from_id: 2958, rel: "drops", to_type: "item", to_id: 3184, numerator: 2, denominator: 31, contributor_count: 1, status: "unconfirmed", attrs: { min: 1, max: 1 } },
+  { from_type: "gameobject", from_id: 2912, rel: "drops", to_type: "item", to_id: 774, numerator: 2, denominator: 5, contributor_count: 1, status: "unconfirmed", attrs: { min: 1, max: 2 } },
+  { from_type: "map", from_id: 1412, rel: "drops", to_type: "item", to_id: 4540, numerator: 1, denominator: 12, contributor_count: 1, status: "unconfirmed", attrs: { min: 1, max: 1 } },
+  { from_type: "creature", from_id: 2995, rel: "sells", to_type: "item", to_id: 4540, numerator: 3, denominator: 0, contributor_count: 2, status: "confirmed", attrs: { price: 25, stack: 5, limited: null, ec: null } },
+  { from_type: "creature", from_id: 2995, rel: "sells", to_type: "item", to_id: 2092, numerator: 1, denominator: 0, contributor_count: 1, status: "unconfirmed", attrs: { price: 30, stack: 1, limited: 2, ec: null } },
+];
+
 export const mockPositions: Record<number, PositionRow[]> = {
   3222: [{ map_id: 1412, cluster_x: 0.47, cluster_y: 0.6, observation_count: 2, contributor_count: 1 }],
   2995: [{ map_id: 1456, cluster_x: 0.46, cluster_y: 0.5, observation_count: 4, contributor_count: 1 }],
@@ -65,6 +111,7 @@ export const mockListed = {
     { entity_id: 221, name: "Red Cloud Mesa", status: "unconfirmed", contributor_count: 1, last_build: 70003 },
   ] as Listed[],
   taxi_node: [{ entity_id: 22, name: "Thunder Bluff, Mulgore", status: "confirmed", contributor_count: 1, last_build: 70003 }] as Listed[],
+  get item(): Listed[] { return mockItems.map(({ entity_id, name, status, contributor_count, last_build }) => ({ entity_id, name, status, contributor_count, last_build })); },
 };
 
 export const mockSummaries: CreatureListed[] = [
@@ -85,6 +132,7 @@ export const mockCharacterDetail = {
   events: [
     { kind: "logout", at: "2026-10-04T12:40:00.000Z", payload: { level: 7 }, map_id: 1412 },
     { kind: "level_up", at: "2026-10-04T12:31:00.000Z", payload: { level: 7 }, map_id: 1412 },
+    { kind: "loot", at: "2026-10-04T12:25:00.000Z", payload: { item: 3184, n: 1, name: "Venomstrike", q: 3 }, map_id: 1412 },
     { kind: "first_sighting", at: "2026-10-04T12:20:00.000Z", payload: { entity_type: "creature", entity_id: 2958, name: "Prairie Wolf" }, map_id: 1412 },
     { kind: "area_discovered", at: "2026-10-04T12:12:00.000Z", payload: { name: "Brambleblade Ravine", xp: 25 }, map_id: 1412 },
     { kind: "zone_enter", at: "2026-10-04T12:05:00.000Z", payload: { zone: "Mulgore" }, map_id: 1412 },

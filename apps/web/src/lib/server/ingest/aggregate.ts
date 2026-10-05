@@ -69,6 +69,14 @@ export async function aggregateOne(db: SupabaseClient, ref: EntityRef, trusted: 
     if (upErr) throw new Error(`facts upsert failed: ${upErr.message}`);
   }
 
+  const edges = computeRelations(ref, obs, trusted);
+  if (edges.length) {
+    let { error: relErr } = await db.from("relations").upsert(edges, { onConflict: "flavor,from_type,from_id,rel,to_type,to_id" });
+    // Before migration 0006 the table has no attrs column; keep the edges, lose the prices until it runs.
+    if (relErr && /attrs/.test(relErr.message)) ({ error: relErr } = await db.from("relations").upsert(edges.map(({ attrs: _a, ...e }) => e), { onConflict: "flavor,from_type,from_id,rel,to_type,to_id" }));
+    if (relErr) throw new Error(`relations upsert failed: ${relErr.message}`);
+  }
+
   const clusters = computePositions(obs);
   await db.from("positions").delete().eq("flavor", ref.flavor).eq("entity_type", ref.entityType).eq("entity_id", ref.entityId);
   if (clusters.length && ref.entityId !== 0) {
@@ -119,6 +127,84 @@ export interface FactRowOut {
   updated_at: string;
 }
 
+/** Fields that describe an edge to another entity rather than the entity itself. */
+const RELATION_FIELDS = new Set(["loot_window", "drops", "sells"]);
+
+export interface RelationRowOut {
+  flavor: string;
+  from_type: string;
+  from_id: number;
+  rel: string;
+  to_type: string;
+  to_id: number;
+  first_build: number;
+  last_build: number;
+  numerator: number;
+  denominator: number;
+  contributor_count: number;
+  status: "unconfirmed" | "confirmed" | "disputed";
+  attrs: unknown;
+  updated_at: string;
+}
+
+/**
+ * Pure: relation observations of one entity → edges (docs/02 "relation").
+ * `drops`: numerator = loot windows that held the item, denominator = loot
+ * windows seen from this source, so the drop rate is numerator / denominator.
+ * `sells`: numerator = sessions that saw the item on sale; attrs carry the
+ * price, stack and limited stock as last seen.
+ */
+export function computeRelations(ref: EntityRef, obs: Obs[], trusted: Set<string>): RelationRowOut[] {
+  const weight = (accountId: string | null) => (accountId && trusted.has(accountId) ? 2 : 1);
+  const windows = obs.filter((o) => o.field === "loot_window").reduce((n, o) => n + (o.value_num ?? 0), 0);
+  type Edge = { rel: string; to: number; numerator: number; accounts: Set<string>; firstBuild: number; lastBuild: number; attrs: Record<string, unknown>; lastAt: string };
+  const edges = new Map<string, Edge>();
+  for (const o of obs) {
+    if (o.field !== "drops" && o.field !== "sells") continue;
+    const v = o.value_json as { item: number; n?: number; min?: number | null; max?: number | null; quest?: boolean; price?: number | null; stack?: number | null; limited?: number | null; ec?: unknown };
+    if (!v || typeof v.item !== "number") continue;
+    const key = `${o.field}|${v.item}`;
+    let e = edges.get(key);
+    if (!e) {
+      e = { rel: o.field, to: v.item, numerator: 0, accounts: new Set(), firstBuild: o.build, lastBuild: o.build, attrs: {}, lastAt: "" };
+      edges.set(key, e);
+    }
+    e.numerator += o.field === "drops" ? (v.n ?? 1) : 1;
+    if (o.account_id) e.accounts.add(o.account_id);
+    e.firstBuild = Math.min(e.firstBuild, o.build);
+    e.lastBuild = Math.max(e.lastBuild, o.build);
+    if (o.field === "drops") {
+      const a = e.attrs as { min?: number; max?: number; quest?: boolean };
+      if (v.min != null) a.min = a.min === undefined ? v.min : Math.min(a.min, v.min);
+      if (v.max != null) a.max = a.max === undefined ? v.max : Math.max(a.max, v.max);
+      if (v.quest) a.quest = true;
+    } else if (o.server_time >= e.lastAt) {
+      e.lastAt = o.server_time;
+      e.attrs = { price: v.price ?? null, stack: v.stack ?? null, limited: v.limited ?? null, ec: v.ec ?? null };
+    }
+  }
+  const now = new Date().toISOString();
+  return [...edges.values()].map((e) => {
+    const contributors = [...e.accounts].reduce((n, a) => n + weight(a), 0);
+    return {
+      flavor: ref.flavor,
+      from_type: ref.entityType,
+      from_id: ref.entityId,
+      rel: e.rel,
+      to_type: "item",
+      to_id: e.to,
+      first_build: e.firstBuild,
+      last_build: e.lastBuild,
+      numerator: e.numerator,
+      denominator: e.rel === "drops" ? windows : 0,
+      contributor_count: e.accounts.size,
+      status: contributors >= CONFIRM_THRESHOLD ? "confirmed" : "unconfirmed",
+      attrs: e.attrs,
+      updated_at: now,
+    };
+  });
+}
+
 /** Pure: observations of one entity → fact rows with status (docs/02, docs/05). */
 export function computeFacts(ref: EntityRef, obs: Obs[], trusted: Set<string>): FactRowOut[] {
   const weight = (accountId: string | null) => (accountId && trusted.has(accountId) ? 2 : 1);
@@ -127,7 +213,7 @@ export function computeFacts(ref: EntityRef, obs: Obs[], trusted: Set<string>): 
   type Group = { field: string; locale: string; values: Map<string, Value> };
   const groups = new Map<string, Group>();
   for (const o of obs) {
-    if (o.field === "position") continue;
+    if (o.field === "position" || RELATION_FIELDS.has(o.field)) continue;
     const locale = o.value_kind === "text" ? o.locale : "";
     const gk = `${o.field}|${locale}`;
     let g = groups.get(gk);

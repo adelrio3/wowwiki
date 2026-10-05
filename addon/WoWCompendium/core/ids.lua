@@ -17,6 +17,18 @@ function ids.parse(guid)
   return nil
 end
 
+-- Item link or item string -> itemID, random suffix ID (0 when none), and the
+-- bare "item:..." string. Links look like |cff1eff00|Hitem:2589:0:0:0:0:0:0:0:60|h[Linen Cloth]|h|r.
+function ids.itemLink(link)
+  if type(link) ~= "string" then return nil end
+  local str = string.match(link, "|H(item:[^|]+)|h") or string.match(link, "^(item:[%d:%-]+)")
+  if not str then return nil end
+  local id, suffix = string.match(str, "^item:(%d+):%d*:%d*:%d*:%d*:%d*:(%-?%d*)")
+  id = tonumber(id or string.match(str, "^item:(%d+)"))
+  if not id then return nil end
+  return id, tonumber(suffix) or 0, str
+end
+
 -- World units only. "Pet" GUIDs are player-owned and never wiki data (D-0038).
 function ids.isCreature(parsed)
   return parsed and (parsed.kind == "Creature" or parsed.kind == "Vehicle")

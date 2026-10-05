@@ -67,7 +67,7 @@ ID across flavors may describe different things, so every entity key is `(flavor
 |--------|-----------|-------|
 | creature | npcID from GUID `Creature-0-...-<npcID>-...` | Also `Vehicle`. `Pet` GUIDs and player-controlled units are never recorded (D-0038); ingest drops any that arrive. The wiki presents the type as two categories, NPCs and Creatures, derived at read time. |
 | gameobject | objectID from GUID `GameObject-0-...-<objectID>-...` | Seen via loot source and some interactions only. |
-| item | itemID from item link | Variants (suffix, bonus IDs, enchants) stored as attributes of an observed item instance. |
+| item | itemID from item link | Fields: `name`, `quality`, `item_level`, `required_level`, `class`, `subclass`, `class_id`, `subclass_id`, `max_stack`, `equip_loc`, `sell_price`, `bind_type`, `expansion`, `set`, `reagent`, `tooltip` (one JSON array of the left-column lines per locale), `icon` (FileDataID, `client_catalog`). Variants (suffix, bonus IDs, enchants) are attributes of an observed item instance, not yet captured. |
 | quest | questID | |
 | spell | spellID | |
 | map | uiMapID (`C_Map`) | Zones, subzones, continents, instance maps. Fields include `art_layer` (one JSON: layer size, tile size, tile FileDataIDs) and `art_overlay` (one JSON per explored piece: size, offset, FileDataIDs), both `client_catalog` source; overlays are a set, never a dispute. |
@@ -97,7 +97,13 @@ either:
 - **text** (name, description), aggregated per locale with intervals;
 - **relation** (creature → drops item, quest → rewards item), aggregated as edges with
   counts (for drop rates, the counts are "times loot window seen" and "times item
-  present").
+  present"). Relation inputs are observations of the source entity with the fields
+  `loot_window` (windows this session, a number), `drops` (`{item, n, min, max,
+  quest}`) and `sells` (`{item, price, stack, limited, ec}`); the aggregator keeps
+  them out of `facts` and writes `relations` rows with `numerator`, `denominator`
+  and `attrs` (quantity range and quest flag for drops; price, stack, limited
+  stock and extended costs as last seen for wares). Loot sources are creatures,
+  game objects, and, for fishing, the map (D-0048).
 - **position** (creature seen at map X,Y), aggregated into clustered spawn points.
   Positions carry both the map-relative pair (`map_id`, `pos_x`, `pos_y` from
   `C_Map.GetPlayerMapPosition`) and world coordinates (`instance_id`, `world_x`,
@@ -173,7 +179,8 @@ facts(flavor, entity_type, entity_id, field, locale, value_hash,
 
 relations(flavor, from_type, from_id, rel, to_type, to_id,
           first_build, last_build, numerator, denominator,
-          contributor_count, status)      -- drop rates use numerator/denominator
+          contributor_count, status, attrs)   -- drop rates use numerator/denominator;
+                                             -- attrs: price, stack, limited, quantity range
 
 positions(flavor, entity_type, entity_id, map_id, cluster_x, cluster_y,
           instance_id, world_x, world_y, radius, observation_count,
@@ -231,12 +238,16 @@ compressed text in Storage. Data size is not a constraint for the foreseeable fu
 
 ### Artwork (`artwork`)
 
-One row per composed image the site serves (D-0041): flavor, entity type and ID,
-kind (`map`), object path in the public `assets` bucket, width, height, the client
-build the files came from, a hash of the layout facts that produced it, and the
-number of explored pieces composed. Unique per (flavor, entity, kind). Public read.
-Never a source of facts. Source files are kept beside the images under
+One row per image the site serves (D-0041): flavor, entity type and ID, kind
+(`map` or `icon`), object path in the public `assets` bucket, width, height, the
+client build the files came from, a hash of the layout facts that produced it, and
+the number of explored pieces composed. Unique per (flavor, entity, kind). Public
+read. Never a source of facts. Source files are kept beside the images under
 `source/<flavor>/<fdid>.blp` so a map can be recomposed without the content servers.
+Icons (D-0048) are rows with entity type `item`, kind `icon` and the client
+FileDataID as the entity ID, stored at `icons/<fdid>.png`; a file id names the same
+picture in every flavor, so the lookup ignores the flavor and the row carries the
+one it was fetched with.
 
 ### Helper state on `device_tokens`
 

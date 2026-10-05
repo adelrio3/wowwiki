@@ -5,17 +5,8 @@ local store, compat, throttle = NS.store, NS.compat, NS.throttle
 
 local lastMap, lastZoneKey, lastAreaId
 
--- Build a Lua pattern from a Blizzard format string like "Discovered %s: %d experience gained".
-local function patternFrom(fmt)
-  if type(fmt) ~= "string" then return nil end
-  local p = string.gsub(fmt, "([%(%)%.%%%+%-%*%?%[%]%^%$])", "%%%1")
-  p = string.gsub(p, "%%%%s", "(.-)")
-  p = string.gsub(p, "%%%%d", "(%%d+)")
-  return "^" .. p .. "$"
-end
-
-local DISCOVER_XP = patternFrom(ERR_ZONE_EXPLORED_XP)
-local DISCOVER = patternFrom(ERR_ZONE_EXPLORED)
+local DISCOVER_XP = compat.patternFrom(ERR_ZONE_EXPLORED_XP)
+local DISCOVER = compat.patternFrom(ERR_ZONE_EXPLORED)
 
 -- Map art layout: which client files make up the map and where the explored
 -- pieces go. The site fetches the files from Blizzard and composes them

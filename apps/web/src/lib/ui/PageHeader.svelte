@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
-  let { eyebrow, title, serif = true, lede, crumbs = [], children, aside }: { eyebrow?: string; title: string; serif?: boolean; lede?: string | null; crumbs?: Array<{ href?: string; label: string }>; children?: Snippet; aside?: Snippet } = $props();
+  let { eyebrow, title, serif = true, lede, crumbs = [], titleClass = "", children, aside }: { eyebrow?: string; title: string; serif?: boolean; lede?: string | null; crumbs?: Array<{ href?: string; label: string }>; titleClass?: string; children?: Snippet; aside?: Snippet } = $props();
 </script>
 
 <header class="mb-7 flex flex-wrap items-end justify-between gap-x-8 gap-y-4 border-b border-line pb-5">
@@ -15,7 +15,7 @@
     {:else if eyebrow}
       <div class="eyebrow">{eyebrow}</div>
     {/if}
-    <h1 class="{serif ? 'serif text-[34px] sm:text-[40px]' : 'text-[28px] sm:text-[32px]'} leading-none text-ink">{title}</h1>
+    <h1 class="{serif ? 'serif text-[34px] sm:text-[40px]' : 'text-[28px] sm:text-[32px]'} leading-none {titleClass || 'text-ink'}">{title}</h1>
     {#if lede}<p class="max-w-2xl pt-1 text-[15px] text-ink-muted">{lede}</p>{/if}
     {#if children}<div class="pt-1">{@render children()}</div>{/if}
   </div>

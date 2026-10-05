@@ -4,7 +4,8 @@
   import Infobox from "$lib/ui/Infobox.svelte";
   import MapImage from "$lib/ui/MapImage.svelte";
   import PageHeader from "$lib/ui/PageHeader.svelte";
-  import { CLASSIFICATION_LABEL, ROLE_LABEL, coord, levelRange, reactionLabel } from "$lib/wiki-format";
+  import ItemIcon from "$lib/ui/ItemIcon.svelte";
+  import { CLASSIFICATION_LABEL, ROLE_LABEL, coord, dropRate, levelRange, money, qualityClass, reactionLabel } from "$lib/wiki-format";
   let { data } = $props();
   const cls = $derived(data.classification && data.classification !== "normal" ? CLASSIFICATION_LABEL[data.classification] ?? data.classification : null);
   const home = $derived(data.locations[0]?.mapName ?? null);
@@ -61,6 +62,57 @@
           <table class="tbl">
             <thead><tr><th>Level</th><th class="r">Max health</th></tr></thead>
             <tbody>{#each data.health as h}<tr><td class="num">{h.level}</td><td class="num r">{h.max.toLocaleString()}</td></tr>{/each}</tbody>
+          </table>
+        </div>
+      </section>
+    {/if}
+
+    {#if data.drops.length}
+      <section>
+        <h2 class="mb-1 text-[17px] font-semibold">Drops</h2>
+        <p class="mb-3 text-[13px] text-ink-faint">From <span class="num text-ink-muted">{data.lootWindows}</span> loot window{data.lootWindows === 1 ? "" : "s"} players opened, empty ones included.</p>
+        <div class="card overflow-x-auto">
+          <table class="tbl">
+            <thead><tr><th>Item</th><th>Type</th><th class="r">Drop rate</th><th class="r">Seen</th></tr></thead>
+            <tbody>
+              {#each data.drops as d (d.id)}
+                <tr>
+                  <td>
+                    <a class="name flex items-center gap-2.5" href="/wiki/{data.flavor}/item/{d.id}"><ItemIcon url={d.iconUrl} name={d.name} size={30} /><span class={qualityClass(d.quality)}>{d.name}</span></a>
+                    {#if d.quest}<span class="ml-2 text-xs text-gold">Quest</span>{/if}
+                    {#if d.min !== null && d.max !== null && (d.min > 1 || d.max > 1)}<span class="num ml-2 text-xs text-ink-faint">×{d.min === d.max ? d.min : `${d.min}–${d.max}`}</span>{/if}
+                  </td>
+                  <td class="text-ink-muted">{d.itemClass ?? ""}{#if d.subclass && d.subclass !== d.itemClass}<span class="mx-1.5 text-ink-faint">·</span>{d.subclass}{/if}</td>
+                  <td class="num r">{dropRate(d.seen, d.windows)}</td>
+                  <td class="num r text-ink-muted">{d.seen}<span class="text-ink-faint">&nbsp;/&nbsp;{d.windows}</span></td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    {/if}
+
+    {#if data.sells.length}
+      <section>
+        <h2 class="mb-1 text-[17px] font-semibold">Sells</h2>
+        <p class="mb-3 text-[13px] text-ink-faint">Prices as the vendor window showed them{data.repairs ? "; also repairs" : ""}.</p>
+        <div class="card overflow-x-auto">
+          <table class="tbl">
+            <thead><tr><th>Item</th><th>Type</th><th class="r">Price</th><th>Stock</th></tr></thead>
+            <tbody>
+              {#each data.sells as v (v.id)}
+                <tr>
+                  <td><a class="name flex items-center gap-2.5" href="/wiki/{data.flavor}/item/{v.id}"><ItemIcon url={v.iconUrl} name={v.name} size={30} /><span class={qualityClass(v.quality)}>{v.name}</span></a></td>
+                  <td class="text-ink-muted">{v.itemClass ?? ""}{#if v.subclass && v.subclass !== v.itemClass}<span class="mx-1.5 text-ink-faint">·</span>{v.subclass}{/if}</td>
+                  <td class="num r whitespace-nowrap">
+                    {#if v.price}{#each money(v.price) as m}<span>{m.n}</span><span class="mr-1 text-ink-faint">{m.unit}</span>{/each}{#if v.stack && v.stack > 1}<span class="text-ink-faint">for {v.stack}</span>{/if}{/if}
+                    {#if v.ec}{#each v.ec as c}<span class="block text-ink-muted">{c.n ?? ""} {c.i ? `item #${c.i}` : (c.name ?? "")}</span>{/each}{/if}
+                  </td>
+                  <td class="text-ink-muted">{v.limited !== null ? `Limited (${v.limited} seen)` : "Unlimited"}</td>
+                </tr>
+              {/each}
+            </tbody>
           </table>
         </div>
       </section>

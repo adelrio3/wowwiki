@@ -28,7 +28,7 @@ The sidebar (`Shell`) is the only navigation. Top to bottom:
 2. Search (`/` focuses it; submits to `/wiki?q=`).
 3. Game version selector (Classic Era now; other versions listed as "soon").
 4. **World**: Zones (`/wiki`), NPCs (`/wiki/npcs`), Creatures (`/wiki/creatures`),
-   Areas (`/wiki/areas`). Every world entity type that people look up by name gets
+   Items (`/wiki/items`), Areas (`/wiki/areas`). Every world entity type that people look up by name gets
    a category page here; flight paths do not (D-0045), they live on zone pages.
 5. **You**: Journal (`/journal`), Add-on (`/sync`).
 6. Account (email, sign out, or sign in) and the theme toggle.
@@ -65,6 +65,7 @@ themes and two widths, and a change is not deployed until it passes.
 | `warn` on `warn-soft` | `#92400e` on `#fef3c7` | `#fcd34d` on `#3a2a08` | disputed, update available |
 | `bad` on `bad-soft` | `#991b1b` on `#fee2e2` | `#fca5a5` on `#3c1414` | errors |
 | `info` on `info-soft` | `#1e40af` on `#dbeafe` | `#93c5fd` on `#152a4d` | corrected |
+| `q0` … `q7` | `#6b6660`, `#1c1917`, `#15803d`, `#1d4ed8`, `#7e22ce`, `#c2410c`, `#854d0e`, `#0e7490` | `#948f85`, `#ece9e2`, `#4ade80`, `#7fb2ff`, `#c084fc`, `#fb923c`, `#fcd34d`, `#22d3ee` | item quality, poor to heirloom: the game's palette made readable; item names only (D-0048) |
 
 Cards have a 12px radius, a hairline border and a one-pixel shadow. Base element
 styles live in Tailwind's `base` layer so utilities always win (N-0018); the dense
@@ -103,6 +104,9 @@ table (`.tbl`) and the input (`.field`) are the two component classes.
 | `Card` | surface with optional uppercase title |
 | `StatTile` | big mono number with a label (Journal) |
 | `UnitList` | the NPC/creature table: name, level, type, where (zone and coordinates) |
+| `ItemList` | the item table: icon and name in quality colour, type, slot, item level, required level, how it is obtained |
+| `ItemTooltip` | the item as the game's tooltip showed it: icon, name in quality colour, every captured line; effects in `ok`, flavour text in gold italics, requirements muted |
+| `ItemIcon` | an item's icon from our copy of the client file; a dashed empty frame until one is stored |
 | `ZoneMap` | a world or continent map with an invisible clickable region per continent or zone, shaped as the map draws it; gold highlight on hover, no text on the map; the hovered id is bound so the list beside it lights up too |
 | `MapImage` | a composed zone map at its true aspect ratio, with optional pins drawn in map units (0.45% of the map width, a little larger with sightings) so they scale with the map and stay on the exact spot |
 | `CategoryToolbar` | filter by name, type and sort for category pages (plain GET form) |
@@ -140,13 +144,25 @@ live in `src/lib/server/wiki-lists.ts` and `category-load.ts`.
   linking to their page, coordinates, and destination chips linking to zones.
   Rail: About (kind, part of, counts, map ID) and Evidence, or "No one has
   recorded this zone yet" for a map only the client tables know.
+- **Items** (`/wiki/items`): toolbar (name filter, type, quality, sort by name,
+  item level, quality or type) and the `ItemList` table. The last column says how
+  the item is obtained ("2 drop sources · 1 vendor · fishing") or that it has only
+  been seen in bags.
+- **Item**: breadcrumbs (Items / name), serif name in its quality colour, a line
+  with quality, type, slot, item level and required level. Main: "As the game
+  shows it" (`ItemTooltip`), then "Where to get it" with Drops from (source,
+  level, where, drop rate, seen as "windows with it / windows opened"), Fished in,
+  and Sold by (vendor, where, price in g/s/c, stock); "Every recorded fact"
+  collapsed. Rail: fact sheet titled Item, then Evidence.
 - **NPC / Creature**: breadcrumbs (category / home zone / name), serif name,
   `<subtitle>`, level with Elite/Rare in gold, type and family, role chips. Main:
   "Where to find them/it" (zone, up to six coordinate spots most-seen first,
   sightings), Health by level, and "Every recorded fact" collapsed. When map art
   exists, a map of the home zone with this entity's spots marked (gold dots, larger
   with more sightings) sits above the location table; this is the only place pins
-  are drawn (D-0040). Rail: fact
+  are drawn (D-0040). After Health: Drops (item with icon, type, drop rate, seen
+  over the loot windows players opened) and Sells (item, type, price, stock) when
+  there are any. Rail: fact
   sheet titled NPC or Creature, then Evidence with the observation count.
 - **Journal index**: character cards with a class-tinted initial, level, race,
   class, realm, last seen.
@@ -170,7 +186,8 @@ live in `src/lib/server/wiki-lists.ts` and `category-load.ts`.
 - Trust status is a sentence on the entity page (`Evidence`); lists never show it.
 - Links are the accent color, underlined on hover only. Buttons never rely on the
   link color.
-- Gold is a mark, not a text color for body copy.
+- Gold is a mark, not a text color for body copy. Item quality colours are for item
+  names only, never for other text.
 - Icons are inline SVG from `Icon`; no icon fonts, no emoji.
 - No animation beyond 150ms color transitions and a 2px arrow nudge on card hover.
 - Separators between inline items are explicit `·` spans with margins (Svelte trims

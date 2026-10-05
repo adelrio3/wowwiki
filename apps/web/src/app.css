@@ -30,6 +30,15 @@
   --info: #1e40af;
   --info-soft: #dbeafe;
   --shadow: 0 1px 2px rgb(28 25 23 / 0.06), 0 1px 1px rgb(28 25 23 / 0.04);
+  /* item quality, the game's palette made readable on our surfaces (D-0048) */
+  --q0: #6b6660;
+  --q1: #1c1917;
+  --q2: #15803d;
+  --q3: #1d4ed8;
+  --q4: #7e22ce;
+  --q5: #c2410c;
+  --q6: #854d0e;
+  --q7: #0e7490;
 }
 
 :root[data-theme="dark"] {
@@ -58,6 +67,14 @@
   --info: #93c5fd;
   --info-soft: #152a4d;
   --shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+  --q0: #948f85;
+  --q1: #ece9e2;
+  --q2: #4ade80;
+  --q3: #7fb2ff;
+  --q4: #c084fc;
+  --q5: #fb923c;
+  --q6: #fcd34d;
+  --q7: #22d3ee;
 }
 
 @theme inline {
@@ -84,6 +101,14 @@
   --color-bad-soft: var(--bad-soft);
   --color-info: var(--info);
   --color-info-soft: var(--info-soft);
+  --color-q0: var(--q0);
+  --color-q1: var(--q1);
+  --color-q2: var(--q2);
+  --color-q3: var(--q3);
+  --color-q4: var(--q4);
+  --color-q5: var(--q5);
+  --color-q6: var(--q6);
+  --color-q7: var(--q7);
   --font-sans: "Inter", system-ui, sans-serif;
   --font-serif: "Fraunces", Georgia, serif;
   --font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;

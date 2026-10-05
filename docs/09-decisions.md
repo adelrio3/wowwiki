@@ -651,3 +651,35 @@ the breadcrumb and the right-hand list as the shortcut. The zone page's breadcru
 reads Azeroth / continent / zone. Shapes are regenerated with the layout file at
 each build; a zone whose explored pieces change shape moves with them.
 
+## D-0048: Items are looked up by what the game showed and where to get them
+Date: 2026-10-05  Status: accepted
+Context: Phase 2 step 2 (items, loot, vendors). The owner asked for an Items
+section built the way this round's pages were: start from what a player comes to
+look up, then capture what that needs. A player looks up an item to see what it
+is (the tooltip they half remember) and how to get one.
+Decision: The item page opens with the tooltip as the game rendered it, line for
+line, name in the game's quality colour, our own copy of the client's icon beside
+it, then "Where to get it": every source players have seen, with drop rates,
+vendor prices and where each source stands. The Items category lists icon, name
+(in quality colour), type, slot, item level, required level and how it is
+obtained; it filters by name, type and quality. NPC and creature pages gain Drops
+and Sells. Drop rate is (loot windows that held the item) / (loot windows opened
+from that source), so the add-on records every loot window including empty ones,
+once per spawn per session. Loot windows and wares are relation inputs
+(`loot_window`, `drops`, `sells`), never facts of the source; the aggregator turns
+them into edges with numerator, denominator and edge attributes (price, stack,
+limited stock, quantity range). Fishing counts as a source on the map it happened
+on. Icons are artwork like maps (D-0041): the client file, fetched through the
+locator on first view, stored once as PNG under `icons/<fdid>.png`, served only
+from our bucket. The Journal records loot of uncommon quality or better as
+`loot` events; common loot would drown the timeline.
+Alternatives: a stats grid instead of the tooltip (loses the recognition; the
+tooltip is the item to a player); drop rates from kills instead of windows (kills
+are not observed; windows are, and empty windows are the denominator the rate
+needs); fetching icons at ingest (slows every upload for icons nobody has asked
+for); icons linked from Blizzard's servers (owner: never at page view).
+Consequences: Add-on 0.4.0 adds items, loot and vendors modules; schema v1 gains
+`items`, `loot`, `vendors` and the `loot` event; migration 0006 adds
+`relations.attrs`; until it runs, edges are stored without prices. Trainers,
+the last part of this phase step, are not yet captured. The item quality colours
+are the one place a text colour carries meaning outside links and gold marks.

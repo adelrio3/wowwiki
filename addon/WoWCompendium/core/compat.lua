@@ -37,6 +37,81 @@ function compat.unitTooltip(unit)
   return compat.tooltipLines("SetUnit", unit)
 end
 
+-- Item tooltip from a link (verified on era: SetHyperlink works, docs/03).
+function compat.itemTooltip(link)
+  return compat.tooltipLines("SetHyperlink", link)
+end
+
+-- Build a Lua pattern from a Blizzard format string like "Discovered %s: %d experience gained".
+function compat.patternFrom(fmt)
+  if type(fmt) ~= "string" then return nil end
+  local p = string.gsub(fmt, "([%(%)%.%%%+%-%*%?%[%]%^%$])", "%%%1")
+  p = string.gsub(p, "%%%%s", "(.-)")
+  p = string.gsub(p, "%%%%d", "(%%d+)")
+  return "^" .. p .. "$"
+end
+
+-- GetItemInfo as a table, or nil while the client has not cached the item
+-- (GET_ITEM_INFO_RECEIVED follows). The texture is a FileDataID number on
+-- every current client. VERIFY on era: expansionID and setID positions.
+function compat.itemInfo(link)
+  local fn = (C_Item and C_Item.GetItemInfo) or GetItemInfo
+  if not fn then return nil end
+  local name, _, quality, itemLevel, reqLevel, class, subclass, maxStack, equipLoc, texture, sellPrice, classID, subclassID, bindType, expansionID, setID, isReagent = fn(link)
+  if not name then return nil end
+  return {
+    name = name, quality = quality, itemLevel = itemLevel, reqLevel = reqLevel, class = class, subclass = subclass,
+    maxStack = maxStack, equipLoc = equipLoc, texture = texture, sellPrice = sellPrice, classID = classID,
+    subclassID = subclassID, bindType = bindType, expansionID = expansionID, setID = setID, isReagent = isReagent,
+  }
+end
+
+-- One loot slot: quantity, quest flag, quest ID. Era's GetLootSlotInfo returns
+-- are shifted by one from retail's (N-0007): quantity 3, isQuestItem 8, questID 9
+-- there; quantity 3, isQuestItem 7, questID 8 elsewhere.
+function compat.lootSlot(i)
+  if not GetLootSlotInfo then return nil end
+  local r = { GetLootSlotInfo(i) }
+  if WOW_PROJECT_ID == 2 then
+    return r[3], r[8] and true or false, r[9]
+  end
+  return r[3], r[7] and true or false, r[8]
+end
+
+-- Loot slot kinds: 1 item, 2 money, 3 currency.
+function compat.lootSlotIsItem(i)
+  if not GetLootSlotType then return true end
+  local kind = GetLootSlotType(i)
+  return kind == nil or kind == 1 or kind == (Enum and Enum.LootSlotType and Enum.LootSlotType.Item)
+end
+
+-- GUIDs that produced slot i (retail area loot can mix sources), or nil.
+function compat.lootSources(i)
+  if not GetLootSourceInfo then return nil end
+  local r = { GetLootSourceInfo(i) }
+  local out = {}
+  for j = 1, #r, 2 do if type(r[j]) == "string" then out[#out + 1] = r[j] end end
+  return out
+end
+
+-- Merchant slot: price in copper, stack, limited stock (-1 unlimited), extended cost flag.
+function compat.merchantItem(i)
+  if not GetMerchantItemInfo then return nil end
+  local name, texture, price, stack, avail, purchasable, usable, extended = GetMerchantItemInfo(i)
+  return name, price, stack, avail, extended
+end
+
+function compat.containerSlots(bag)
+  if C_Container and C_Container.GetContainerNumSlots then return C_Container.GetContainerNumSlots(bag) end
+  if GetContainerNumSlots then return GetContainerNumSlots(bag) end
+  return 0
+end
+
+function compat.containerItemLink(bag, slot)
+  if C_Container and C_Container.GetContainerItemLink then return C_Container.GetContainerItemLink(bag, slot) end
+  if GetContainerItemLink then return GetContainerItemLink(bag, slot) end
+end
+
 -- Map position of the player: uiMapID, x, y (fractions) or nil.
 function compat.playerMapPosition()
   if not (C_Map and C_Map.GetBestMapForUnit) then return nil end

@@ -17,11 +17,11 @@
       <label class="sr-only" for="home-search">Search</label>
       <div class="relative flex-1">
         <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint"><Icon name="search" size={18} /></span>
-        <input id="home-search" name="q" type="search" placeholder="Search an NPC, creature, zone or area" class="field py-2.5 pl-10 text-[15px]" />
+        <input id="home-search" name="q" type="search" placeholder="Search an NPC, creature, item, zone or area" class="field py-2.5 pl-10 text-[15px]" />
       </div>
       <Button type="submit">Search</Button>
     </form>
-    <p class="text-[13px] text-ink-faint"><span class="num text-ink-muted">{n(data.counts.creatures)}</span> NPCs and creatures · <span class="num text-ink-muted">{n(data.counts.zones)}</span> zones · <span class="num text-ink-muted">{n(data.counts.areas)}</span> areas · <span class="num text-ink-muted">{n(data.counts.contributors)}</span> contributor{data.counts.contributors === 1 ? "" : "s"}</p>
+    <p class="text-[13px] text-ink-faint"><span class="num text-ink-muted">{n(data.counts.creatures)}</span> NPCs and creatures · <span class="num text-ink-muted">{n(data.counts.items)}</span> items · <span class="num text-ink-muted">{n(data.counts.zones)}</span> zones · <span class="num text-ink-muted">{n(data.counts.areas)}</span> areas · <span class="num text-ink-muted">{n(data.counts.contributors)}</span> contributor{data.counts.contributors === 1 ? "" : "s"}</p>
   </section>
 
   <section>

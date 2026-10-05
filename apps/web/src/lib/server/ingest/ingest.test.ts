@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { SessionSchema } from "@compendium/schema";
 import { observationsFor } from "./index";
-import { computeFacts, computePositions, type Obs } from "./aggregate";
+import { computeFacts, computePositions, computeRelations, type Obs } from "./aggregate";
 
 const session = SessionSchema.parse({
   seq: 1,
@@ -14,6 +14,9 @@ const session = SessionSchema.parse({
     maps: { "1412": { id: 1412, name: "Mulgore", type: 3, parent: 1414, ft: 1790998608, art: { w: 1002, h: 668, tw: 256, th: 256, t: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], aid: 6412 }, ovl: [{ w: 256, h: 256, x: 300, y: 200, t: [272173] }] } },
     areas: { "222": { id: 222, name: "Bloodhoof Village", m: 1412, zone: "Mulgore", sub: "Bloodhoof Village", ft: 1790998608, lt: 1790998700 } },
     taxiNodes: { "22": { id: 22, name: "Thunder Bluff, Mulgore", m: 1412, x: 0.39, y: 0.27, faction: 1, undiscovered: false, known: true, fm: 2995, routes: { "25": true }, ft: 1790998608 } },
+    items: { "3184": { id: 3184, name: "Venomstrike", q: 3, il: 20, rl: 15, cls: "Weapon", sub: "Dagger", cid: 2, sid: 15, st: 1, eq: "INVTYPE_WEAPON", ic: 135641, sp: 1800, bt: 2, xp: 0, tip: ["Venomstrike", "Binds when picked up", "One-Hand"], ft: 1790998650, lt: 1790998650 } },
+    loot: { "c:2955": { k: "c", id: 2955, w: 4, items: { "2589": { n: 3, min: 1, max: 3 }, "3184": { n: 1, min: 1, max: 1, q: false } }, ft: 1790998640, lt: 1790998700 }, "f:1412": { k: "f", id: 1412, w: 2, items: { "6291": { n: 2, min: 1, max: 1 } }, ft: 1790998640, lt: 1790998700 } },
+    vendors: { "3077": { id: 3077, items: { "4540": { p: 25, st: 5 }, "2092": { p: 30, st: 1, lim: 2 } }, rep: true, ft: 1790998660, lt: 1790998660 } },
   },
   events: [{ t: 1790998608, k: "login", d: { level: 5 } }],
   state: { level: 5 },
@@ -44,6 +47,24 @@ describe("observationsFor", () => {
     const layer = rows.find((r) => r.entity_type === "map" && r.field === "art_layer");
     expect(layer).toMatchObject({ source: "client_catalog", value_kind: "json", value_json: { w: 1002, tw: 256, t: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] } });
     expect(rows.filter((r) => r.entity_type === "map" && r.field === "art_overlay")).toHaveLength(1);
+  });
+  it("records items with their tooltip and the icon as a client catalog", () => {
+    const rows = observationsFor(session, ctx);
+    const item = rows.filter((r) => r.entity_type === "item" && r.entity_id === 3184);
+    expect(item.find((r) => r.field === "name")?.value_text).toBe("Venomstrike");
+    expect(item.find((r) => r.field === "quality")?.value_num).toBe(3);
+    expect(item.find((r) => r.field === "icon")).toMatchObject({ value_num: 135641, source: "client_catalog" });
+    expect(item.find((r) => r.field === "tooltip")?.value_json).toEqual(["Venomstrike", "Binds when picked up", "One-Hand"]);
+  });
+  it("records loot windows and wares on their source", () => {
+    const rows = observationsFor(session, ctx);
+    expect(rows.find((r) => r.entity_type === "creature" && r.entity_id === 2955 && r.field === "loot_window")?.value_num).toBe(4);
+    expect(rows.filter((r) => r.entity_type === "creature" && r.entity_id === 2955 && r.field === "drops")).toHaveLength(2);
+    expect(rows.find((r) => r.entity_type === "map" && r.entity_id === 1412 && r.field === "drops")?.value_json).toMatchObject({ item: 6291, n: 2 });
+    const wares = rows.filter((r) => r.entity_type === "creature" && r.entity_id === 3077 && r.field === "sells").map((r) => r.value_json);
+    expect(wares).toContainEqual({ item: 4540, price: 25, stack: 5, limited: null, ec: null });
+    expect(wares).toContainEqual({ item: 2092, price: 30, stack: 1, limited: 2, ec: null });
+    expect(rows.find((r) => r.entity_type === "creature" && r.entity_id === 3077 && r.field === "repairs")?.value_num).toBe(1);
   });
   it("drops player pets sent by older add-ons", () => {
     const rows = observationsFor(session, ctx);
@@ -123,5 +144,28 @@ describe("computePositions", () => {
     expect(big.x).toBeCloseTo(0.5025, 4);
     expect(big.accounts.size).toBe(2);
     expect(big.wx).toBeCloseTo(502.5, 1);
+  });
+});
+
+describe("computeRelations", () => {
+  const ref = { flavor: "era", entityType: "creature", entityId: 2955, entityKey: "" };
+  it("turns loot windows into drop rates and wares into priced edges", () => {
+    const rows = computeRelations(ref, [
+      obs({ field: "loot_window", account_id: "a", value_kind: "num", value_num: 4 }),
+      obs({ field: "loot_window", account_id: "b", value_kind: "num", value_num: 6 }),
+      obs({ field: "drops", account_id: "a", value_kind: "json", value_json: { item: 2589, n: 3, min: 1, max: 3 } }),
+      obs({ field: "drops", account_id: "b", value_kind: "json", value_json: { item: 2589, n: 4, min: 2, max: 5, quest: false } }),
+      obs({ field: "drops", account_id: "b", value_kind: "json", value_json: { item: 3184, n: 1, min: 1, max: 1 } }),
+      obs({ field: "sells", account_id: "a", value_kind: "json", value_json: { item: 4540, price: 25, stack: 5, limited: null }, server_time: "2026-10-03T00:00:00.000Z" }),
+      obs({ field: "sells", account_id: "a", value_kind: "json", value_json: { item: 4540, price: 24, stack: 5, limited: null }, server_time: "2026-10-04T00:00:00.000Z" }),
+    ], new Set());
+    const cloth = rows.find((r) => r.rel === "drops" && r.to_id === 2589)!;
+    expect(cloth).toMatchObject({ numerator: 7, denominator: 10, contributor_count: 2, status: "confirmed", attrs: { min: 1, max: 5 } });
+    expect(rows.find((r) => r.rel === "drops" && r.to_id === 3184)).toMatchObject({ numerator: 1, denominator: 10, status: "unconfirmed" });
+    expect(rows.find((r) => r.rel === "sells")).toMatchObject({ numerator: 2, denominator: 0, attrs: { price: 24, stack: 5 } });
+  });
+  it("keeps relation inputs out of the facts", () => {
+    const facts = computeFacts(ref, [obs({ field: "loot_window", account_id: "a", value_kind: "num", value_num: 4 }), obs({ field: "name", account_id: "a", value_text: "Plainstrider" })], new Set());
+    expect(facts.map((f) => f.field)).toEqual(["name"]);
   });
 });

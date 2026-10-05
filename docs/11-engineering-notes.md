@@ -404,3 +404,36 @@ maps and the continent outlines over Azeroth on 2026-10-05 (build 1.15.9.70003);
 each region fills its drawn patch and stops at the border, the coasts and the
 sea, including Silverpine with the Gilneas peninsula, Stranglethorn to its tip,
 Feralas with its islands and Lordaeron as part of the Eastern Kingdoms.
+
+## N-0024: Item icons on demand, and loot windows as the drop-rate denominator
+Area: assets / ingest / add-on
+Problem: Items need their icons without ever linking to Blizzard at page view
+(D-0048), and drop rates need a denominator the add-on can actually observe.
+Solution:
+- Icons: `tools/assets locator --prefix interface/icons/` writes a second
+  locator (`icon-locators/<flavor>-<build>.json`, 6,364 files in era 1.15.9,
+  386 KB) that the site loads lazily (`import.meta.glob` without `eager`), so the
+  function bundle does not carry it for pages without icons. `ensureIcons`
+  looks the file ids up in `artwork` (entity type `item`, kind `icon`), fetches
+  the missing ones eight at a time through the locator, decodes the BLP and
+  writes a PNG (`packages/map-art/png.ts`: RGBA, one IDAT, zlib from Node; JPEG
+  would lose the transparent corners), uploads it and records the row. At most
+  48 missing icons per page view; the rest show an empty frame and arrive on a
+  later view. Icon file ids are the same picture in every flavor, so the path is
+  `icons/<fdid>.png` with no flavor in it.
+- Loot windows: `LOOT_OPENED` is recorded once per spawn per session (set of
+  spawn UIDs per source key), empty windows included, with the items the window
+  held counted once each; the ingest turns that into `loot_window` (count) and
+  `drops` observations on the source, and `computeRelations` sums them across
+  sessions and contributors: numerator = Σ windows with the item, denominator =
+  Σ windows. These fields are skipped by `computeFacts`, so a source's fact
+  sheet never shows them.
+- `GetLootSlotInfo` on era returns one position shifted from retail (N-0007);
+  `compat.lootSlot` hides that behind one call that returns quantity, quest flag
+  and quest ID.
+Why: The site must serve only its own copies, the ingest must stay inline and
+fast, and a rate needs a denominator that is observed rather than inferred.
+Verified: PNG round-trips in `png.test.ts`; relation sums in `ingest.test.ts`;
+loot counting in the add-on tests (reopened corpse counts once, empty window
+counts, chest and fishing sources). Live icon fetch waits for the first upload
+from add-on 0.4.0.

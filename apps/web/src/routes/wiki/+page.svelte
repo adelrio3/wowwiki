@@ -1,12 +1,13 @@
 <script lang="ts">
   import Empty from "$lib/ui/Empty.svelte";
   import Icon from "$lib/ui/Icon.svelte";
+  import ItemList from "$lib/ui/ItemList.svelte";
   import PageHeader from "$lib/ui/PageHeader.svelte";
   import UnitList from "$lib/ui/UnitList.svelte";
   import ZoneMap from "$lib/ui/ZoneMap.svelte";
   let { data } = $props();
   const r = $derived(data.results);
-  const total = $derived(r ? r.npcs.length + r.creatures.length + r.zones.length + r.areas.length : 0);
+  const total = $derived(r ? r.npcs.length + r.creatures.length + r.zones.length + r.areas.length + r.items.length : 0);
   // Zones (type 3) grouped under their continent; continents themselves get a card at the top of their group.
   // Battlegrounds sit under the world map rather than a continent (Classic Era: Alterac Valley, Arathi Basin, Warsong Gulch).
   const isZone = (z: (typeof data.zones)[number]) => z.mapType !== 2 && z.mapType !== 1 && z.mapType !== 0;
@@ -21,7 +22,7 @@
 <svelte:head><title>{data.q ? `“${data.q}” · ` : "Zones · "}Classic Era · WoW Compendium</title></svelte:head>
 
 {#if r}
-  <PageHeader eyebrow="Search · Classic Era" title={`“${data.q}”`} lede={`${total} result${total === 1 ? "" : "s"} across NPCs, creatures, zones and areas.`}>
+  <PageHeader eyebrow="Search · Classic Era" title={`“${data.q}”`} lede={`${total} result${total === 1 ? "" : "s"} across NPCs, creatures, items, zones and areas.`}>
     <a href="/wiki" class="text-[13px]">Clear search</a>
   </PageHeader>
   {#if !total}
@@ -41,6 +42,9 @@
     {/if}
     {#if r.creatures.length}
       <section><h2 class="mb-3 text-[17px] font-semibold">Creatures <span class="num text-[13px] font-normal text-ink-faint">{r.creatures.length}</span></h2><UnitList rows={r.creatures} flavor={data.flavor} /></section>
+    {/if}
+    {#if r.items.length}
+      <section><h2 class="mb-3 text-[17px] font-semibold">Items <span class="num text-[13px] font-normal text-ink-faint">{r.items.length}</span></h2><ItemList rows={r.items} flavor={data.flavor} /></section>
     {/if}
     {#if r.areas.length}
       <section><h2 class="mb-3 text-[17px] font-semibold">Areas <span class="num text-[13px] font-normal text-ink-faint">{r.areas.length}</span></h2><ul class="card divide-y divide-line text-[14px]">{#each r.areas as a}<li class="px-4 py-2">{a.name}</li>{/each}</ul></section>

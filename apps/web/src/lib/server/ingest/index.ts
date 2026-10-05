@@ -6,7 +6,7 @@
  * source; the parse here is the authoritative one.
  */
 import { parseSavedVariables } from "@compendium/lua-parser";
-import { parseSavedVariablesDocument, type CreatureRecord, type Position, type SavedVariables, type Session } from "@compendium/schema";
+import { parseSavedVariablesDocument, type CreatureRecord, type ItemRecord, type Position, type SavedVariables, type Session } from "@compendium/schema";
 import { findBuild, guessExpansion } from "@compendium/game-meta";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { serviceClient } from "../supabase";
@@ -277,6 +277,17 @@ export function observationsFor(s: Session, c: Ctx): ObservationRow[] {
     if (i.type) push("instance", i.id, "", "type", { text: i.type }, i.ft);
     if (i.diff !== undefined) push("instance", i.id, "", "difficulty", { json: { id: i.diff, name: i.diffName ?? null, max: i.max ?? null } }, i.ft);
   }
+  for (const it of Object.values(w.items)) itemObservations(it, push);
+  // Loot windows and wares are relation inputs (drop rates, prices), not facts of the source (docs/02 "relation").
+  for (const l of Object.values(w.loot)) {
+    const type = l.k === "c" ? "creature" : l.k === "o" ? "gameobject" : "map";
+    if (l.w > 0) push(type, l.id, "", "loot_window", { num: l.w }, l.ft);
+    for (const [itemId, d] of Object.entries(l.items)) push(type, l.id, "", "drops", { json: { item: Number(itemId), n: d.n, min: d.min ?? null, max: d.max ?? null, quest: d.q ?? false } }, l.ft);
+  }
+  for (const v of Object.values(w.vendors)) {
+    if (v.rep) push("creature", v.id, "", "repairs", { bool: true }, v.ft);
+    for (const [itemId, d] of Object.entries(v.items)) push("creature", v.id, "", "sells", { json: { item: Number(itemId), price: d.p ?? null, stack: d.st ?? null, limited: d.lim ?? null, ec: d.ec ?? null } }, v.ft);
+  }
   for (const n of Object.values(w.taxiNodes)) {
     if (n.name) push("taxi_node", n.id, "", "name", { text: n.name }, n.ft, undefined, "client_catalog");
     if (n.m !== undefined && n.x !== undefined) push("taxi_node", n.id, "", "position", { json: { k: "catalog" } }, n.ft, { t: n.ft, m: n.m, x: n.x, y: n.y }, "client_catalog");
@@ -316,6 +327,27 @@ function creatureObservations(cr: CreatureRecord, push: Push): void {
   for (const p of cr.pos ?? []) push("creature", id, "", "position", { json: { k: p.k ?? "target" } }, p.t, p);
 }
 
+function itemObservations(it: ItemRecord, push: Push): void {
+  const id = it.id, t = it.ft;
+  if (it.name) push("item", id, "", "name", { text: it.name }, t);
+  if (it.q !== undefined) push("item", id, "", "quality", { num: it.q }, t);
+  if (it.il !== undefined) push("item", id, "", "item_level", { num: it.il }, t);
+  if (it.rl !== undefined) push("item", id, "", "required_level", { num: it.rl }, t);
+  if (it.cls) push("item", id, "", "class", { text: it.cls }, t);
+  if (it.sub) push("item", id, "", "subclass", { text: it.sub }, t);
+  if (it.cid !== undefined) push("item", id, "", "class_id", { num: it.cid }, t);
+  if (it.sid !== undefined) push("item", id, "", "subclass_id", { num: it.sid }, t);
+  if (it.st !== undefined) push("item", id, "", "max_stack", { num: it.st }, t);
+  if (it.eq) push("item", id, "", "equip_loc", { text: it.eq }, t);
+  if (it.ic !== undefined) push("item", id, "", "icon", { num: it.ic }, t, undefined, "client_catalog");
+  if (it.sp !== undefined) push("item", id, "", "sell_price", { num: it.sp }, t);
+  if (it.bt !== undefined) push("item", id, "", "bind_type", { num: it.bt }, t);
+  if (it.xp !== undefined) push("item", id, "", "expansion", { num: it.xp }, t);
+  if (it.set !== undefined) push("item", id, "", "set", { num: it.set }, t);
+  if (it.rg) push("item", id, "", "reagent", { bool: true }, t);
+  if (it.tip?.length) push("item", id, "", "tooltip", { json: it.tip }, t);
+}
+
 async function writeJournal(db: SupabaseClient, characterId: string, sessionId: string, s: Session): Promise<void> {
   type EventRow = { character_id: string; session_id: string; kind: string; at: string; map_id: number | null; pos_x: number | null; pos_y: number | null; instance_id: number | null; world_x: number | null; world_y: number | null; payload: Record<string, unknown> };
   const events: EventRow[] = s.events.map((e) => ({
@@ -338,6 +370,7 @@ async function writeJournal(db: SupabaseClient, characterId: string, sessionId: 
   for (const a of Object.values(s.world.areas)) sightings.push({ type: "area", id: a.id, at: a.ft, name: a.name });
   for (const m of Object.values(s.world.maps)) sightings.push({ type: "map", id: m.id, at: m.ft, name: m.name });
   for (const i of Object.values(s.world.instances)) sightings.push({ type: "instance", id: i.id, at: i.ft, name: i.name });
+  for (const it of Object.values(s.world.items)) sightings.push({ type: "item", id: it.id, at: it.ft, name: it.name });
   for (const sg of sightings) {
     const { data: existing } = await db
       .from("character_sightings")

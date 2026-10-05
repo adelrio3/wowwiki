@@ -7,7 +7,7 @@
   let { data } = $props();
   const c = $derived(data.character);
   type Ev = (typeof data.events)[number];
-  const glyph: Record<string, string> = { login: "○", logout: "●", level_up: "▲", zone_enter: "→", area_discovered: "✦", instance_enter: "⌂", death: "✕", first_sighting: "◇" };
+  const glyph: Record<string, string> = { login: "○", logout: "●", level_up: "▲", zone_enter: "→", area_discovered: "✦", instance_enter: "⌂", death: "✕", first_sighting: "◇", loot: "◆" };
   const describe = (e: Ev): string => {
     const p = (e.payload ?? {}) as Record<string, unknown>;
     switch (e.kind) {
@@ -19,6 +19,7 @@
       case "instance_enter": return "Entered an instance";
       case "death": return `Died at level ${p.level}`;
       case "first_sighting": return `First saw ${p.name ?? `${p.entity_type} #${p.entity_id}`}`;
+      case "loot": return `Looted ${p.name ?? `item #${p.item}`}${Number(p.n) > 1 ? ` ×${p.n}` : ""}`;
       default: return e.kind;
     }
   };

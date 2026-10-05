@@ -42,7 +42,9 @@ dedupes and prunes correctly via ack.
 Add modules in this order, each with ingest, aggregation, wiki pages, Journal views:
 
 1. Quests, gossip (quest text, givers, enders, rewards).
-2. Items, loot, vendors, trainers (drop rates, sources, prices).
+2. Items, loot, vendors, trainers (drop rates, sources, prices). Items, loot and
+   vendors shipped in add-on 0.4.0 with the Items section (D-0048); trainers are
+   still to come.
 3. Lore text, speech, scenes.
 4. Spells, combat (creature abilities), kills, deaths, encounters.
 5. Professions, recipes, reputation.
