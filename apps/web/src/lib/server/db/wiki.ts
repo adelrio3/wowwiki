@@ -1,7 +1,7 @@
 /** Read helpers for World Wiki pages. Public data only; uses the service client for speed. */
 import { serviceClient } from "../supabase";
 import { DEFAULT_LOCALE } from "@compendium/game-meta";
-import { MOCK, mockArtwork, mockCreatureFacts, mockItemFacts, mockItems, mockListed, mockMaps, mockPositions, mockRelations, mockSummaries } from "./mock";
+import { MOCK, mockArtwork, mockCreatureFacts, mockItemFacts, mockItems, mockListed, mockMaps, mockPositions, mockQuestFacts, mockRelations, mockSummaries } from "./mock";
 import { bootstrapLayouts, ensureIcons, ensureMapArt, publicUrl } from "../map-art";
 import { kindSignalsFromFacts, unitKind } from "$lib/wiki-format";
 
@@ -29,11 +29,11 @@ export interface PositionRow {
 }
 
 export async function wikiCounts() {
-  if (MOCK) return { creatures: 128, areas: 41, zones: 6, items: 57, contributors: 3 };
+  if (MOCK) return { creatures: 128, areas: 41, zones: 6, items: 57, quests: 23, contributors: 3 };
   const db = serviceClient();
   const named = (type: string) => db.from("facts").select("entity_id", { count: "exact", head: true }).eq("entity_type", type).eq("field", "name").eq("locale", DEFAULT_LOCALE);
-  const [c, a, m, i, k] = await Promise.all([named("creature"), named("area"), named("map"), named("item"), db.from("accounts").select("id", { count: "exact", head: true })]);
-  return { creatures: c.count ?? 0, areas: a.count ?? 0, zones: m.count ?? 0, items: i.count ?? 0, contributors: k.count ?? 0 };
+  const [c, a, m, i, q, k] = await Promise.all([named("creature"), named("area"), named("map"), named("item"), named("quest"), db.from("accounts").select("id", { count: "exact", head: true })]);
+  return { creatures: c.count ?? 0, areas: a.count ?? 0, zones: m.count ?? 0, items: i.count ?? 0, quests: q.count ?? 0, contributors: k.count ?? 0 };
 }
 
 /** Most recently observed entities of a kind, by last_seen_at. */
@@ -56,6 +56,7 @@ export async function entityFacts(flavor: string, entityType: string, entityId: 
   if (MOCK) {
     if (entityType === "creature") return mockCreatureFacts[entityId] ?? [];
     if (entityType === "item") return mockItemFacts[entityId] ?? [];
+    if (entityType === "quest") return mockQuestFacts[entityId] ?? [];
     if (entityType === "map" && mockMaps[entityId]) return [{ field: "name", locale: "enUS", value_kind: "text", value_num: null, value_text: mockMaps[entityId]!, value_json: null, first_build: 70003, last_build: 70003, contributor_count: 1, observation_count: 5, status: "confirmed", source: "encounter" }, { field: "map_type", locale: "", value_kind: "num", value_num: 3, value_text: null, value_json: null, first_build: 70003, last_build: 70003, contributor_count: 1, observation_count: 5, status: "confirmed", source: "encounter" }];
     return [];
   }
@@ -496,4 +497,47 @@ export async function hunterBeasts(flavor: string): Promise<HunterBeast[]> {
   const places = await unitPlaces(flavor, beasts.map((b) => b.entity_id));
   for (const b of beasts) b.places = places.get(b.entity_id) ?? [];
   return beasts.sort((a, b) => a.family.localeCompare(b.family) || (a.level_min ?? 999) - (b.level_min ?? 999) || a.name.localeCompare(b.name));
+}
+
+export interface QuestListed extends Listed {
+  level: number | null;
+  log_header: string | null;
+  item_started: boolean;
+}
+
+/** Name, level and log header for a set of quest ids. */
+export async function questSummaries(flavor: string, ids: number[]): Promise<Map<number, QuestListed>> {
+  const out = new Map<number, QuestListed>();
+  if (!ids.length) return out;
+  const rows = MOCK
+    ? ids.flatMap((id) => (mockQuestFacts[id] ?? []).map((f) => ({ entity_id: id, field: f.field, locale: f.locale, value_text: f.value_text, value_num: f.value_num, status: f.status, contributor_count: f.contributor_count, last_build: f.last_build })))
+    : ((await serviceClient().from("facts").select("entity_id, field, locale, value_text, value_num, status, contributor_count, last_build").eq("flavor", flavor).eq("entity_type", "quest").in("field", ["name", "level", "log_header", "item_started"]).in("entity_id", ids)).data ?? []);
+  for (const id of ids) out.set(id, { entity_id: id, name: `#${id}`, status: "unconfirmed", contributor_count: 0, last_build: 0, level: null, log_header: null, item_started: false });
+  for (const r of rows) {
+    const q = out.get(r.entity_id)!;
+    const text = r.locale === DEFAULT_LOCALE;
+    if (r.field === "name" && (text || q.name.startsWith("#"))) { q.name = r.value_text ?? q.name; q.status = r.status; q.contributor_count = r.contributor_count; q.last_build = r.last_build; }
+    else if (r.field === "level") q.level = r.value_num;
+    else if (r.field === "log_header" && (text || !q.log_header)) q.log_header = r.value_text;
+    else if (r.field === "item_started" && r.value_num === 1) q.item_started = true;
+  }
+  return out;
+}
+
+/** The map each quest's giver stood on, most-seen first. */
+export async function questMaps(flavor: string, ids: number[]): Promise<Map<number, number>> {
+  const out = new Map<number, number>();
+  if (!ids.length) return out;
+  const rows = MOCK
+    ? ids.flatMap((id) => (mockPositions[id] ?? []).map((p) => ({ entity_id: id, map_id: p.map_id, observation_count: p.observation_count })))
+    : ((await serviceClient().from("positions").select("entity_id, map_id, observation_count").eq("flavor", flavor).eq("entity_type", "quest").in("entity_id", ids).order("observation_count", { ascending: false }).limit(4000)).data ?? []);
+  for (const r of rows) if (r.map_id !== null && !out.has(r.entity_id)) out.set(r.entity_id, r.map_id);
+  return out;
+}
+
+/** Quests whose giver was seen on a map. */
+export async function questsOnMap(flavor: string, mapId: number): Promise<number[]> {
+  if (MOCK) return Object.entries(mockPositions).filter(([id, ps]) => mockQuestFacts[Number(id)] && ps.some((p) => p.map_id === mapId)).map(([id]) => Number(id));
+  const { data } = await serviceClient().from("positions").select("entity_id").eq("flavor", flavor).eq("entity_type", "quest").eq("map_id", mapId).limit(1000);
+  return [...new Set((data ?? []).map((r) => r.entity_id))];
 }

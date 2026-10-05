@@ -164,6 +164,20 @@ function store.vendor(npcID)
   return rec
 end
 
+function store.quest(id)
+  local b = bucket("quests")
+  if not b then return nil end
+  local key = tostring(id)
+  local t = NS.now()
+  local rec = b[key]
+  if not rec then
+    rec = { id = id, ft = t, lt = t }
+    b[key] = rec
+  end
+  rec.lt = t
+  return rec
+end
+
 -- A beast seen as someone's hunter pet, keyed by its creature ID (D-0049).
 function store.tamed(npcID)
   local b = bucket("tamed")

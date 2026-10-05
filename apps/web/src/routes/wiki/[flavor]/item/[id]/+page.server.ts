@@ -1,6 +1,6 @@
 import { error } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
-import { buildsFor, creatureSummaries, entityFacts, iconUrls, mapNames, objectNames, pickNum, pickText, relationsTo, unitPlaces } from "$lib/server/db/wiki";
+import { buildsFor, creatureSummaries, entityFacts, iconUrls, mapNames, objectNames, pickNum, pickText, questSummaries, relationsTo, unitPlaces } from "$lib/server/db/wiki";
 import { FLAVORS } from "@compendium/schema";
 
 export const load: PageServerLoad = async ({ params }) => {
@@ -36,6 +36,10 @@ export const load: PageServerLoad = async ({ params }) => {
       return { id: e.from_id, name: u?.name ?? `#${e.from_id}`, place: where(e.from_id), price: a.price ?? null, stack: a.stack ?? null, limited: a.limited ?? null, ec: a.ec ?? null, status: e.status };
     })
     .sort((a, b) => a.name.localeCompare(b.name));
+  const questIds = [...new Set(edges.filter((e) => e.from_type === "quest").map((e) => e.from_id))];
+  const quests = await questSummaries(flavor, questIds);
+  const questEdges = (rel: string) => edges.filter((e) => e.rel === rel && e.from_type === "quest").map((e) => { const q = quests.get(e.from_id)!; const a = (e.attrs ?? {}) as { n?: number; choice?: boolean }; return { id: e.from_id, name: q.name, level: q.level, n: a.n ?? 1, choice: a.choice ?? false }; }).sort((a, b) => (a.level ?? 999) - (b.level ?? 999));
+  const rewardedBy = questEdges("rewards"), neededBy = questEdges("requires");
   const firstBuild = Math.min(...facts.map((f) => f.first_build));
   const lastBuild = Math.max(...facts.map((f) => f.last_build));
   return {
@@ -60,6 +64,8 @@ export const load: PageServerLoad = async ({ params }) => {
     drops,
     fished,
     sold,
+    rewardedBy,
+    neededBy,
     patch: builds.find((b) => b.build === lastBuild)?.patch ?? String(lastBuild),
     expansions: [...new Set(builds.filter((b) => b.build >= firstBuild && b.build <= lastBuild).map((b) => b.expansion))],
     facts,

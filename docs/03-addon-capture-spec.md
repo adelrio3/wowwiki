@@ -210,6 +210,15 @@ Game objects have no unit token. We observe them via:
 
 ### Quests (`quests.lua`)
 
+Implemented in 0.6.0 (D-0050): `QUEST_DETAIL`, `QUEST_PROGRESS`, `QUEST_COMPLETE`
+with the `questnpc` source, rewards and choices with counts, required items and
+money; the quest log on `QUEST_LOG_UPDATE` every thirty seconds (and a second
+after `QUEST_ACCEPTED`); `GetQuestsCompleted()` ten seconds after entering the
+world; `QUEST_ACCEPTED` (either argument order), `QUEST_TURNED_IN` and
+`QUEST_REMOVED` (an abandon when the quest was not turned in this session) as
+Journal events. Greeting lists, gossip quest lists and reward spells are not yet
+recorded.
+
 - Quest log scan on `QUEST_LOG_UPDATE` (throttled): era uses `GetNumQuestLogEntries`,
   `GetQuestLogTitle(i)` (`VERIFIED`: 17 returns; index 4 isHeader, index 8 questID;
   headers are zone names such as "Red Cloud Mesa"), `SelectQuestLogEntry(i)` then
@@ -704,7 +713,9 @@ Still open, to be settled by the real add-on's debug output during normal play:
    name on era when a flight map is actually opened.
 6. Anniversary client: TOC suffix, project ID, build (run the probe there when a
    character exists).
-7. `PlayerModel:GetDisplayInfo()` after `SetUnit("target")` on era, and the
+7. `QUEST_ACCEPTED` argument order on era 1.15 (the module accepts both) and
+   whether `GetQuestLogRewardXP` returns a value for log entries (0.6.0 output).
+8. `PlayerModel:GetDisplayInfo()` after `SetUnit("target")` on era, and the
    creature ID inside a hunter pet's GUID (0.5.0 debug output).
-8. `GetItemInfo` positions 15 and 16 (`expansionID`, `setID`) on era, and whether
+9. `GetItemInfo` positions 15 and 16 (`expansionID`, `setID`) on era, and whether
    `GET_ITEM_INFO_RECEIVED` fires for an uncached link (0.4.0 debug output).

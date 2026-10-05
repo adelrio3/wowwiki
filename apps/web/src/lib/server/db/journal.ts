@@ -25,7 +25,7 @@ export async function characterDetail(accountId: string, characterId: string) {
   const db = serviceClient();
   const { data: c } = await db.from("characters").select("id, flavor, name, class, race, faction, level, player_guid, created_at, last_seen_at, realms(name)").eq("id", characterId).eq("account_id", accountId).maybeSingle();
   if (!c) return null;
-  const [{ data: stats }, { data: events }, { data: sessions }, { count: explored }, { data: taxi }, { data: visits }, { data: petRows }] = await Promise.all([
+  const [{ data: stats }, { data: events }, { data: sessions }, { count: explored }, { data: taxi }, { data: visits }, { data: petRows }, { count: questsCompleted }, { data: questRows }] = await Promise.all([
     db.from("character_stats").select("stat_key, value_num").eq("character_id", characterId),
     db.from("journal_events").select("kind, at, payload, map_id").eq("character_id", characterId).order("at", { ascending: false }).limit(300),
     db.from("sessions").select("seq, started_at, ended_at, build, level_start, level_end").eq("character_id", characterId).order("seq", { ascending: false }).limit(50),
@@ -33,12 +33,15 @@ export async function characterDetail(accountId: string, characterId: string) {
     db.from("character_state").select("key, value_json, as_of").eq("character_id", characterId).eq("kind", "taxi"),
     db.from("journal_events").select("map_id, at").eq("character_id", characterId).eq("kind", "zone_enter").not("map_id", "is", null).order("at", { ascending: true }).limit(2000),
     db.from("character_state").select("key, value_json").eq("character_id", characterId).eq("kind", "pet"),
+    db.from("character_state").select("key", { count: "exact", head: true }).eq("character_id", characterId).eq("kind", "quest"),
+    db.from("character_state").select("key, value_json, as_of").eq("character_id", characterId).eq("kind", "quest").order("as_of", { ascending: false }).limit(400),
   ]);
+  const recentQuests = (questRows ?? []).map((r) => { const v = r.value_json as { title?: string | null; at?: string | null }; return { id: Number(r.key), title: v.title ?? null, at: v.at ?? null }; }).filter((q) => q.at).sort((a, b) => (b.at ?? "").localeCompare(a.at ?? "")).slice(0, 8);
   const pets = (petRows ?? []).map((p) => { const v = p.value_json as { name?: string | null; family?: string | null; level?: number | null; skills?: Array<{ n: string; r?: number }>; active?: boolean }; return { id: p.key.startsWith("stable:") ? null : Number(p.key), name: v.name ?? null, family: v.family ?? null, level: v.level ?? null, skills: v.skills ?? [], active: v.active ?? false }; }).sort((a, b) => Number(b.active) - Number(a.active) || (a.name ?? "").localeCompare(b.name ?? ""));
   const flightPaths = (taxi ?? []).map((t) => ({ nodeId: Number(t.key), name: ((t.value_json as { name?: string | null })?.name ?? `#${t.key}`), mapId: (t.value_json as { map?: number | null })?.map ?? null, since: t.as_of })).sort((a, b) => a.name.localeCompare(b.name));
   const firstVisit = new Map<number, string>();
   for (const v of visits ?? []) if (v.map_id !== null && !firstVisit.has(v.map_id)) firstVisit.set(v.map_id, v.at);
-  return { character: c, stats: Object.fromEntries((stats ?? []).map((s) => [s.stat_key, Number(s.value_num)])), events: events ?? [], sessions: sessions ?? [], exploredCount: explored ?? 0, pets, flightPaths, zonesVisited: [...firstVisit].map(([mapId, at]) => ({ mapId, at })) };
+  return { character: c, stats: Object.fromEntries((stats ?? []).map((s) => [s.stat_key, Number(s.value_num)])), events: events ?? [], sessions: sessions ?? [], exploredCount: explored ?? 0, questsCompleted: questsCompleted ?? 0, recentQuests, pets, flightPaths, zonesVisited: [...firstVisit].map(([mapId, at]) => ({ mapId, at })) };
 }
 
 export async function uploadsFor(accountId: string) {

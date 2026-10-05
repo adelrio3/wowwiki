@@ -41,7 +41,8 @@ dedupes and prunes correctly via ack.
 
 Add modules in this order, each with ingest, aggregation, wiki pages, Journal views:
 
-1. Quests, gossip (quest text, givers, enders, rewards).
+1. Quests, gossip (quest text, givers, enders, rewards). Quests shipped in add-on
+   0.6.0 with the Quests section (D-0050); gossip is still to come.
 2. Items, loot, vendors, trainers (drop rates, sources, prices). Items, loot and
    vendors shipped in add-on 0.4.0 with the Items section (D-0048); trainers are
    still to come.

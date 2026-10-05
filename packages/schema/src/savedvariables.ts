@@ -274,6 +274,42 @@ export const PetStateSchema = z.object({
   sk: luaArray(PetSkillSchema).optional(),
 });
 
+export const QuestSourceSchema = z.object({ k: z.enum(["c", "i"]), id: z.number().int().optional() });
+export const QuestItemSchema = z.object({ i: z.number().int(), n: z.number().int().optional() });
+/** A quest as the windows and the log showed it. */
+export const QuestRecordSchema = z.object({
+  id: z.number().int(),
+  title: z.string().optional(),
+  lvl: z.number().int().optional(),
+  /** suggested group size */
+  grp: z.number().int().optional(),
+  /** quest log header the quest sat under (usually a zone name) */
+  hdr: z.string().optional(),
+  /** frequency: 2 daily, 3 weekly */
+  freq: z.number().int().optional(),
+  /** description, objectives text, progress text, completion text */
+  desc: z.string().optional(),
+  obj: z.string().optional(),
+  prog: z.string().optional(),
+  done: z.string().optional(),
+  /** structured objectives from the log */
+  objs: luaArray(z.object({ t: z.string(), type: z.string().optional(), n: z.number().int().optional() })).optional(),
+  xp: z.number().int().optional(),
+  money: z.number().int().optional(),
+  reqMoney: z.number().int().optional(),
+  /** rewards given, choices offered, items required to turn in */
+  rw: luaArray(QuestItemSchema).optional(),
+  ch: luaArray(QuestItemSchema).optional(),
+  req: luaArray(QuestItemSchema).optional(),
+  giver: QuestSourceSchema.optional(),
+  ender: QuestSourceSchema.optional(),
+  ft: z.number().int(),
+  lt: z.number().int(),
+  /** where the giver stood when the detail window opened */
+  pos: luaArray(PositionSchema).optional(),
+});
+export type QuestRecord = z.infer<typeof QuestRecordSchema>;
+
 export const WorldSchema = z.object({
   creatures: luaRecord(CreatureRecordSchema).default({}),
   maps: luaRecord(MapRecordSchema).default({}),
@@ -285,6 +321,7 @@ export const WorldSchema = z.object({
   loot: luaRecord(LootRecordSchema).default({}),
   vendors: luaRecord(VendorRecordSchema).default({}),
   tamed: luaRecord(TamedRecordSchema).default({}),
+  quests: luaRecord(QuestRecordSchema).default({}),
 });
 export type World = z.infer<typeof WorldSchema>;
 
@@ -298,6 +335,9 @@ export const EVENT_KINDS = [
   "death",
   "xp",
   "loot",
+  "quest_accept",
+  "quest_complete",
+  "quest_abandon",
 ] as const;
 
 export const JournalEventSchema = z.object({
@@ -347,6 +387,8 @@ export const CharacterStateSchema = z.object({
   /** explored area IDs accumulated this session */
   explored: luaArray(z.number().int()).optional(),
   bind: z.string().optional(),
+  /** completed quest IDs, as the client lists them */
+  quests: luaArray(z.number().int()).optional(),
   /** the hunter's active pet, as last seen */
   pet: PetStateSchema.optional(),
   /** stabled pets, when the stable was opened */

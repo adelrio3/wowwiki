@@ -1,5 +1,5 @@
 /** Shared loaders for the category pages and search. */
-import { creatureSummaries, iconUrls, itemSummaries, listEntities, relationsTo, unitPlaces, type CreatureListed, type ItemListed, type UnitPlace } from "./db/wiki";
+import { creatureSummaries, iconUrls, itemSummaries, listEntities, mapNames, questMaps, questSummaries, relationsTo, unitPlaces, type CreatureListed, type ItemListed, type QuestListed, type UnitPlace } from "./db/wiki";
 
 export interface UnitRow extends CreatureListed { places: UnitPlace[] }
 
@@ -43,4 +43,25 @@ export function sortItems(rows: ItemRow[], sort: string): ItemRow[] {
   if (sort === "quality") return [...rows].sort((a, b) => (b.quality ?? -1) - (a.quality ?? -1) || (b.item_level ?? -1) - (a.item_level ?? -1) || a.name.localeCompare(b.name));
   if (sort === "type") return [...rows].sort((a, b) => (a.class ?? "").localeCompare(b.class ?? "") || (a.subclass ?? "").localeCompare(b.subclass ?? "") || a.name.localeCompare(b.name));
   return rows;
+}
+
+export interface QuestRow extends QuestListed {
+  mapId: number | null;
+  zone: string | null;
+  giver: { id: number; name: string } | null;
+  ender: { id: number; name: string } | null;
+  rewards: number;
+}
+
+/** Quests with where they start and who gives them, for the category page, search and zone pages. */
+export async function questRows(flavor: string, q = "", limit = 500, ids?: number[]): Promise<QuestRow[]> {
+  const questIds = ids ?? (await listEntities(flavor, "quest", limit, q)).map((n) => n.entity_id);
+  if (!questIds.length) return [];
+  const [summaries, maps, edges] = await Promise.all([questSummaries(flavor, questIds), questMaps(flavor, questIds), relationsTo(flavor, "quest", questIds)]);
+  const npcIds = [...new Set(edges.filter((e) => e.from_type === "creature").map((e) => e.from_id))];
+  const [npcs, zones] = await Promise.all([creatureSummaries(flavor, npcIds), mapNames(flavor, [...new Set(maps.values())])]);
+  const who = (qid: number, rel: string) => { const e = edges.filter((x) => x.to_id === qid && x.rel === rel).sort((a, b) => b.numerator - a.numerator)[0]; return e ? { id: e.from_id, name: npcs.get(e.from_id)?.name ?? `#${e.from_id}` } : null; };
+  return questIds
+    .map((id) => { const s = summaries.get(id)!; const mapId = maps.get(id) ?? null; return { ...s, mapId, zone: mapId !== null ? (zones[mapId] ?? null) : null, giver: who(id, "starts"), ender: who(id, "ends"), rewards: 0 }; })
+    .sort((a, b) => (a.level ?? 999) - (b.level ?? 999) || a.name.localeCompare(b.name));
 }

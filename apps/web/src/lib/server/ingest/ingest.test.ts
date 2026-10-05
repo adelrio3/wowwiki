@@ -17,11 +17,12 @@ const session = SessionSchema.parse({
     taxiNodes: { "22": { id: 22, name: "Thunder Bluff, Mulgore", m: 1412, x: 0.39, y: 0.27, faction: 1, undiscovered: false, known: true, fm: 2995, routes: { "25": true }, ft: 1790998608 } },
     items: { "3184": { id: 3184, name: "Venomstrike", q: 3, il: 20, rl: 15, cls: "Weapon", sub: "Dagger", cid: 2, sid: 15, st: 1, eq: "INVTYPE_WEAPON", ic: 135641, sp: 1800, bt: 2, xp: 0, tip: ["Venomstrike", "Binds when picked up", "One-Hand"], ft: 1790998650, lt: 1790998650 } },
     loot: { "c:2955": { k: "c", id: 2955, w: 4, items: { "2589": { n: 3, min: 1, max: 3 }, "3184": { n: 1, min: 1, max: 1, q: false } }, ft: 1790998640, lt: 1790998700 }, "f:1412": { k: "f", id: 1412, w: 2, items: { "6291": { n: 2, min: 1, max: 1 } }, ft: 1790998640, lt: 1790998700 } },
+    quests: { "753": { id: 753, title: "Rites of the Earthmother", lvl: 3, hdr: "Mulgore", desc: "Go to Red Cloud Mesa.", obj: "Speak with Chief Hawkwind.", done: "Well done.", objs: [{ t: "Chief Hawkwind spoken to", type: "object", n: 1 }], xp: 250, money: 35, rw: [{ i: 4540, n: 5 }], ch: [{ i: 2092 }], giver: { k: "c", id: 2980 }, ender: { k: "c", id: 2981 }, ft: 1790998680, lt: 1790998700, pos: [{ t: 1790998680, m: 1412, x: 0.45, y: 0.75, k: "interact" }] } },
     tamed: { "2958": { id: 2958, fam: "Wolf", ft: 1790998670 } },
     vendors: { "3077": { id: 3077, items: { "4540": { p: 25, st: 5 }, "2092": { p: 30, st: 1, lim: 2 } }, rep: true, ft: 1790998660, lt: 1790998660 } },
   },
-  events: [{ t: 1790998608, k: "login", d: { level: 5 } }],
-  state: { level: 5 },
+  events: [{ t: 1790998608, k: "login", d: { level: 5 } }, { t: 1790998700, k: "quest_complete", d: { id: 753, xp: 250 } }],
+  state: { level: 5, quests: [747, 753] },
 });
 
 const ctx = { uploadId: "u1", accountId: "acct-a", characterId: "c1", sessionId: "s1", realmId: 7 };
@@ -77,6 +78,17 @@ describe("observationsFor", () => {
     expect(wolf.filter((r) => r.field === "pet_skill").map((r) => r.value_json)).toEqual([{ name: "Bite", rank: 2 }, { name: "Dash", rank: 1 }]);
     expect(wolf.find((r) => r.field === "tamed")?.value_num).toBe(1);
     expect(beastLore(["Thunder Bluff", "PvP"])).toEqual({ tameable: false, diet: null, skills: [] });
+  });
+  it("records quests with their text and the edges to givers, enders and rewards", () => {
+    const rows = observationsFor(session, ctx);
+    const quest = rows.filter((r) => r.entity_type === "quest" && r.entity_id === 753);
+    expect(quest.find((r) => r.field === "name")?.value_text).toBe("Rites of the Earthmother");
+    expect(quest.find((r) => r.field === "level")?.value_num).toBe(3);
+    expect(quest.find((r) => r.field === "objective")?.value_json).toEqual({ text: "Chief Hawkwind spoken to", type: "object", n: 1 });
+    expect(quest.filter((r) => r.field === "rewards").map((r) => r.value_json)).toEqual([{ item: 4540, n: 5, choice: false }, { item: 2092, n: 1, choice: true }]);
+    expect(quest.find((r) => r.field === "position")).toMatchObject({ map_id: 1412, pos_x: 0.45 });
+    expect(rows.find((r) => r.entity_type === "creature" && r.entity_id === 2980 && r.field === "starts")?.value_json).toEqual({ quest: 753 });
+    expect(rows.find((r) => r.entity_type === "creature" && r.entity_id === 2981 && r.field === "ends")?.value_json).toEqual({ quest: 753 });
   });
   it("drops player pets sent by older add-ons", () => {
     const rows = observationsFor(session, ctx);
@@ -175,6 +187,12 @@ describe("computeRelations", () => {
     expect(cloth).toMatchObject({ numerator: 7, denominator: 10, contributor_count: 2, status: "confirmed", attrs: { min: 1, max: 5 } });
     expect(rows.find((r) => r.rel === "drops" && r.to_id === 3184)).toMatchObject({ numerator: 1, denominator: 10, status: "unconfirmed" });
     expect(rows.find((r) => r.rel === "sells")).toMatchObject({ numerator: 2, denominator: 0, attrs: { price: 24, stack: 5 } });
+  });
+  it("points quest edges at quests and reward edges at items", () => {
+    const giver = computeRelations({ flavor: "era", entityType: "creature", entityId: 2980, entityKey: "" }, [obs({ field: "starts", account_id: "a", value_kind: "json", value_json: { quest: 753 } })], new Set());
+    expect(giver[0]).toMatchObject({ rel: "starts", to_type: "quest", to_id: 753, numerator: 1 });
+    const quest = computeRelations({ flavor: "era", entityType: "quest", entityId: 753, entityKey: "" }, [obs({ field: "rewards", account_id: "a", value_kind: "json", value_json: { item: 2092, n: 1, choice: true } })], new Set());
+    expect(quest[0]).toMatchObject({ rel: "rewards", to_type: "item", to_id: 2092, attrs: { n: 1, choice: true } });
   });
   it("keeps relation inputs out of the facts", () => {
     const facts = computeFacts(ref, [obs({ field: "loot_window", account_id: "a", value_kind: "num", value_num: 4 }), obs({ field: "name", account_id: "a", value_text: "Plainstrider" })], new Set());

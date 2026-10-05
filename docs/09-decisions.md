@@ -714,3 +714,30 @@ Consequences: Add-on 0.5.0 (`pets.lua`, tooltip lines, display ID). `VERIFY` on
 era: `PlayerModel:GetDisplayInfo` after `SetUnit`, and that a pet's GUID carries
 the wild creature ID. Beast Lore parsing reads the enUS words "Tameable" and
 "Diet:"; other locales keep the raw lines until their words are added.
+
+## D-0050: Quests are shown as the game tells them, with where they start
+Date: 2026-10-05  Status: accepted
+Context: Phase 2 step 1 (quests) was still open when the owner asked for quests,
+the Journal and achievements together. Quests are what players look up most.
+Decision: The quest page reads like the quest window: the description as given,
+the objectives (text and the log's structured list), what to hand in, then the
+rewards (choices first, then what is always given, experience and money), then
+"Where it starts and ends": the giver and the taker as NPC links with zone and
+coordinates, and the zone map with one pin where the giver stood (the quest's
+own position, so D-0040 holds: pins only on entity pages). Progress and
+completion text sit in a collapsed "What they say on the way". The Quests
+category lists level, the zone it starts in, giver and taker, filtered by name
+and zone. NPC pages gain Gives and Takes; item pages gain "Reward from" and
+"Needed for"; zone pages gain a Quests section listing quests whose giver was
+seen there. The add-on records the three quest windows, the quest log (level,
+header, structured objectives, log rewards) once per thirty seconds, and the
+completed set at login; the Journal gets accept, complete and abandon events, a
+"quests completed" count and recent quests. Givers and takers are relation
+inputs on the creature (`starts`, `ends`); rewards and hand-ins on the quest
+(`rewards`, `requires`).
+Alternatives: a quest's zone from the log header (a header is a category the
+client chose, not where the giver stands; kept as a fact, shown as "log header");
+inferring prerequisites (not exposed; the spec allows a weak hint later).
+Consequences: Add-on 0.6.0 (`quests.lua`); the log scan selects each entry in
+turn and restores the player's selection, which the client treats as UI state,
+not a setting (D-0036). Quest text is per locale like every text fact.

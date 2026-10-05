@@ -28,7 +28,8 @@ The sidebar (`Shell`) is the only navigation. Top to bottom:
 2. Search (`/` focuses it; submits to `/wiki?q=`).
 3. Game version selector (Classic Era now; other versions listed as "soon").
 4. **World**: Zones (`/wiki`), NPCs (`/wiki/npcs`), Creatures (`/wiki/creatures`),
-   Items (`/wiki/items`), Hunter pets (`/wiki/pets`), Areas (`/wiki/areas`). Every world entity type that people look up by name gets
+   Quests (`/wiki/quests`), Items (`/wiki/items`), Hunter pets (`/wiki/pets`),
+   Areas (`/wiki/areas`). Every world entity type that people look up by name gets
    a category page here; flight paths do not (D-0045), they live on zone pages.
 5. **You**: Journal (`/journal`), Add-on (`/sync`).
 6. Account (email, sign out, or sign in) and the theme toggle.
@@ -104,6 +105,7 @@ table (`.tbl`) and the input (`.field`) are the two component classes.
 | `Card` | surface with optional uppercase title |
 | `StatTile` | big mono number with a label (Journal) |
 | `UnitList` | the NPC/creature table: name, level, type, where (zone and coordinates) |
+| `QuestList` | the quest table: name, level, the zone it starts in, giver, taker |
 | `ItemList` | the item table: icon and name in quality colour, type, slot, item level, required level, how it is obtained |
 | `ItemTooltip` | the item as the game's tooltip showed it: icon, name in quality colour, every captured line; effects in `ok`, flavour text in gold italics, requirements muted |
 | `ItemIcon` | an item's icon from our copy of the client file; a dashed empty frame until one is stored |
@@ -136,7 +138,7 @@ live in `src/lib/server/wiki-lists.ts` and `category-load.ts`.
   NPCs and Creatures are always separate pages, never one list with a tag (D-0038).
 - **Areas**: name filter and a table with the zone.
 - **Zone**: breadcrumbs (Azeroth / continent / zone), title, section chips with counts
-  that jump to NPCs, Creatures, Areas, Flight paths. The zone map (`MapImage`) is
+  that jump to NPCs, Creatures, Quests, Areas, Flight paths. The zone map (`MapImage`) is
   the first thing on the page, full width. The only marks on it are flight masters
   (dark diamonds with a gold edge, D-0045); nothing else is drawn and there is no
   switch (D-0040). Tables show coordinates within this zone. The Flight paths
@@ -144,6 +146,16 @@ live in `src/lib/server/wiki-lists.ts` and `category-load.ts`.
   linking to their page, coordinates, and destination chips linking to zones.
   Rail: About (kind, part of, counts, map ID) and Evidence, or "No one has
   recorded this zone yet" for a map only the client tables know.
+- **Quests** (`/wiki/quests`): toolbar (name filter, zone, sort by level, name or
+  zone) and the `QuestList` table.
+- **Quest**: breadcrumbs (Quests / starting zone / name), serif name, level,
+  group size, log header, Daily or Weekly in gold. Main: "The quest" card (the
+  description in paragraphs, Objectives with 0/N counters, Hand in with item
+  icons), Rewards card (Choose one, You will receive, experience and money),
+  "Where it starts and ends" (the starting zone's map with one pin where the
+  giver stood, then a table of giver and taker with zone and coordinates), "What
+  they say on the way" collapsed, "Every recorded fact" collapsed. Rail: fact
+  sheet titled Quest, then Evidence (D-0050).
 - **Items** (`/wiki/items`): toolbar (name filter, type, quality, sort by name,
   item level, quality or type) and the `ItemList` table. The last column says how
   the item is obtained ("2 drop sources · 1 vendor · fishing") or that it has only
@@ -167,7 +179,7 @@ live in `src/lib/server/wiki-lists.ts` and `category-load.ts`.
   sightings), Health by level, and "Every recorded fact" collapsed. When map art
   exists, a map of the home zone with this entity's spots marked (gold dots, larger
   with more sightings) sits above the location table; this is the only place pins
-  are drawn (D-0040). After Health: Drops (item with icon, type, drop rate, seen
+  are drawn (D-0040). After Health: Quests (Gives and Takes as two lists), Drops (item with icon, type, drop rate, seen
   over the loot windows players opened) and Sells (item, type, price, stock) when
   there are any. Rail: fact
   sheet titled NPC or Creature, an "As a hunter pet" card for beasts with a
@@ -176,9 +188,10 @@ live in `src/lib/server/wiki-lists.ts` and `category-load.ts`.
 - **Journal index**: character cards with a class-tinted initial, level, race,
   class, realm, last seen.
 - **Journal character**: breadcrumbs, class dot and meta line, stat tiles (played,
-  areas explored, flight paths known, deaths, sessions), timeline grouped by day
-  with gold glyphs; in the rail: zones visited, pets (the active one marked "with
-  you", with skills), flight paths known, sessions, privacy.
+  quests completed, areas explored, flight paths known, deaths, sessions),
+  timeline grouped by day with gold glyphs; in the rail: zones visited, recent
+  quests, pets (the active one marked "with you", with skills), flight paths
+  known, sessions, privacy.
 - **Add-on** (`/sync`): a vertical checklist of four cards (Connect folder, Install,
   Play then log out, Sync); the current step has an ink number, done steps a green
   check, later steps are faint. Per-client rows under Install; results under Sync;

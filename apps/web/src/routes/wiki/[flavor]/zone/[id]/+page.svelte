@@ -4,11 +4,13 @@
   import PageHeader from "$lib/ui/PageHeader.svelte";
   import MapImage from "$lib/ui/MapImage.svelte";
   import UnitList from "$lib/ui/UnitList.svelte";
+  import QuestList from "$lib/ui/QuestList.svelte";
   import { coord, titleCase } from "$lib/wiki-format";
   let { data } = $props();
   const sections = $derived([
     { id: "npcs", label: "NPCs", n: data.npcs.length },
     { id: "creatures", label: "Creatures", n: data.creatures.length },
+    { id: "quests", label: "Quests", n: data.quests.length },
     { id: "areas", label: "Areas", n: data.areas.length },
     { id: "flight", label: "Flight paths", n: data.flight.length },
   ]);
@@ -41,6 +43,10 @@
     <section id="creatures" class="scroll-mt-20">
       <h2 class="mb-3 text-[17px] font-semibold">Creatures <span class="num text-[13px] font-normal text-ink-faint">{data.creatures.length}</span></h2>
       <UnitList rows={data.creatures} flavor={data.flavor} showZone={false} mapId={data.id} emptyText="No creatures recorded here yet." />
+    </section>
+    <section id="quests" class="scroll-mt-20">
+      <h2 class="mb-3 text-[17px] font-semibold">Quests <span class="num text-[13px] font-normal text-ink-faint">{data.quests.length}</span></h2>
+      <QuestList rows={data.quests} flavor={data.flavor} showZone={false} emptyText="No quest has been picked up here yet." />
     </section>
     <section id="areas" class="scroll-mt-20">
       <h2 class="mb-3 text-[17px] font-semibold">Areas <span class="num text-[13px] font-normal text-ink-faint">{data.areas.length}</span></h2>

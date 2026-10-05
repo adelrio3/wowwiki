@@ -6,7 +6,7 @@
   import { BIND_LABEL, coord, dropRate, equipLabel, levelRange, money, qualityClass, qualityLabel } from "$lib/wiki-format";
   let { data } = $props();
   const typeLine = $derived([data.itemClass, data.subclass && data.subclass !== data.itemClass ? data.subclass : null].filter(Boolean).join(" · "));
-  const hasSources = $derived(data.drops.length || data.sold.length || data.fished.length);
+  const hasSources = $derived(data.drops.length || data.sold.length || data.fished.length || data.rewardedBy.length);
 </script>
 
 <svelte:head><title>{data.name} · Classic Era · WoW Compendium</title></svelte:head>
@@ -64,6 +64,14 @@
           {/each}
         </ul>
       {/if}
+      {#if data.rewardedBy.length}
+        <h3 class="eyebrow mb-1.5 px-1">Reward from</h3>
+        <ul class="card mb-5 divide-y divide-line text-[14px]">
+          {#each data.rewardedBy as q (q.id)}
+            <li class="flex items-center justify-between gap-3 px-4 py-2"><a class="font-medium text-ink" href="/wiki/{data.flavor}/quest/{q.id}">{q.name}</a><span class="text-[12px] text-ink-faint">{#if q.level !== null}<span class="num">level {q.level}</span> · {/if}{q.choice ? "one of the choices" : "given"}{#if q.n > 1} ×{q.n}{/if}</span></li>
+          {/each}
+        </ul>
+      {/if}
       {#if data.sold.length}
         <h3 class="eyebrow mb-1.5 px-1">Sold by</h3>
         <div class="card overflow-x-auto">
@@ -86,6 +94,17 @@
         </div>
       {/if}
     </section>
+
+    {#if data.neededBy.length}
+      <section>
+        <h2 class="mb-3 text-[17px] font-semibold">Needed for</h2>
+        <ul class="card divide-y divide-line text-[14px]">
+          {#each data.neededBy as q (q.id)}
+            <li class="flex items-center justify-between gap-3 px-4 py-2"><a class="font-medium text-ink" href="/wiki/{data.flavor}/quest/{q.id}">{q.name}</a><span class="num text-[12px] text-ink-faint">{#if q.n > 1}×{q.n}{/if}</span></li>
+          {/each}
+        </ul>
+      </section>
+    {/if}
 
     <details class="group">
       <summary class="text-[14px] text-ink-muted hover:text-ink">Every recorded fact <span class="num">({data.facts.length})</span></summary>

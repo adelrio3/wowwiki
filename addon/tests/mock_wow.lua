@@ -31,6 +31,9 @@ M.pet = nil        -- { guid=, name=, level=, family=, spells={ {name, rank} } }
 M.stable = {}      -- { { name, level, family } }
 M.auras = {}       -- token -> array of spell ids on the unit
 M.displayIds = {}  -- token -> display id
+M.quest = { id = 0 } -- the open quest window: id, title, text, objectives, progress, reward, rewards={links}, choices={links}, required={links}, money, xp, moneyToGet
+M.questLog = {}      -- entries: { title=, level=, header=true } or { title=, level=, id=, objectives={ {text, type, numRequired} }, desc=, obj= }
+M.completedQuests = {}
 M.bags = {}        -- bag -> array of links
 M.equipment = {}   -- slot -> link
 
@@ -70,6 +73,31 @@ function M.install()
   _G.CanMerchantRepair = function() return M.merchant.repair end
   _G.C_Container = { GetContainerNumSlots = function(bag) return M.bags[bag] and #M.bags[bag] or 0 end, GetContainerItemLink = function(bag, slot) return M.bags[bag] and M.bags[bag][slot] end }
   _G.GetInventoryItemLink = function(_, slot) return M.equipment[slot] end
+  _G.GetQuestID = function() return M.quest.id end
+  _G.GetTitleText = function() return M.quest.title end
+  _G.GetQuestText = function() return M.quest.text end
+  _G.GetObjectiveText = function() return M.quest.objectives end
+  _G.GetProgressText = function() return M.quest.progress end
+  _G.GetRewardText = function() return M.quest.reward end
+  _G.GetNumQuestRewards = function() return M.quest.rewards and #M.quest.rewards or 0 end
+  _G.GetNumQuestChoices = function() return M.quest.choices and #M.quest.choices or 0 end
+  _G.GetNumQuestItems = function() return M.quest.required and #M.quest.required or 0 end
+  local function qlist(kind) return kind == "reward" and M.quest.rewards or kind == "choice" and M.quest.choices or M.quest.required end
+  _G.GetQuestItemLink = function(kind, i) local l = qlist(kind) return l and l[i] and l[i].link end
+  _G.GetQuestItemInfo = function(kind, i) local l = qlist(kind) return "x", 1, l[i].n or 1, 1, true end
+  _G.GetRewardMoney = function() return M.quest.money or 0 end
+  _G.GetRewardXP = function() return M.quest.xp or 0 end
+  _G.GetQuestMoneyToGet = function() return M.quest.moneyToGet or 0 end
+  _G.GetNumQuestLogEntries = function() return #M.questLog end
+  _G.GetQuestLogTitle = function(i) local e = M.questLog[i] return e.title, e.level or 0, e.group or 0, e.header or false, false, false, 1, e.id or 0 end
+  M.selectedQuest = 0
+  _G.GetQuestLogSelection = function() return M.selectedQuest end
+  _G.SelectQuestLogEntry = function(i) M.selectedQuest = i end
+  _G.GetQuestLogQuestText = function() local e = M.questLog[M.selectedQuest] return e and e.desc, e and e.obj end
+  _G.GetQuestLogRewardMoney = function() local e = M.questLog[M.selectedQuest] return e and e.money or 0 end
+  _G.GetQuestLogRewardXP = function() local e = M.questLog[M.selectedQuest] return e and e.xp or 0 end
+  _G.C_QuestLog = { GetQuestObjectives = function(id) for _, e in ipairs(M.questLog) do if e.id == id then return e.objectives or {} end end return {} end }
+  _G.GetQuestsCompleted = function() return M.completedQuests end
   _G.HasPetSpells = function() return M.pet and M.pet.spells and #M.pet.spells or nil end
   _G.GetSpellBookItemName = function(i, book) local sp = M.pet and M.pet.spells and M.pet.spells[i] if sp then return sp[1], sp[2] end end
   _G.GetNumStablePets = function() return #M.stable end

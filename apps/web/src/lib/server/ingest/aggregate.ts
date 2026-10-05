@@ -128,7 +128,9 @@ export interface FactRowOut {
 }
 
 /** Fields that describe an edge to another entity rather than the entity itself. */
-const RELATION_FIELDS = new Set(["loot_window", "drops", "sells"]);
+const RELATION_FIELDS = new Set(["loot_window", "drops", "sells", "starts", "ends", "rewards", "requires"]);
+/** field -> what the edge points at */
+const RELATION_TARGET: Record<string, { key: "item" | "quest"; type: string }> = { drops: { key: "item", type: "item" }, sells: { key: "item", type: "item" }, rewards: { key: "item", type: "item" }, requires: { key: "item", type: "item" }, starts: { key: "quest", type: "quest" }, ends: { key: "quest", type: "quest" } };
 
 export interface RelationRowOut {
   flavor: string;
@@ -157,16 +159,18 @@ export interface RelationRowOut {
 export function computeRelations(ref: EntityRef, obs: Obs[], trusted: Set<string>): RelationRowOut[] {
   const weight = (accountId: string | null) => (accountId && trusted.has(accountId) ? 2 : 1);
   const windows = obs.filter((o) => o.field === "loot_window").reduce((n, o) => n + (o.value_num ?? 0), 0);
-  type Edge = { rel: string; to: number; numerator: number; accounts: Set<string>; firstBuild: number; lastBuild: number; attrs: Record<string, unknown>; lastAt: string };
+  type Edge = { rel: string; to: number; toType: string; numerator: number; accounts: Set<string>; firstBuild: number; lastBuild: number; attrs: Record<string, unknown>; lastAt: string };
   const edges = new Map<string, Edge>();
   for (const o of obs) {
-    if (o.field !== "drops" && o.field !== "sells") continue;
-    const v = o.value_json as { item: number; n?: number; min?: number | null; max?: number | null; quest?: boolean; price?: number | null; stack?: number | null; limited?: number | null; ec?: unknown };
-    if (!v || typeof v.item !== "number") continue;
-    const key = `${o.field}|${v.item}`;
+    const target = RELATION_TARGET[o.field];
+    if (!target) continue;
+    const v = o.value_json as { item?: number; quest?: number; n?: number; min?: number | null; max?: number | null; choice?: boolean; price?: number | null; stack?: number | null; limited?: number | null; ec?: unknown };
+    const to = v?.[target.key];
+    if (typeof to !== "number") continue;
+    const key = `${o.field}|${to}`;
     let e = edges.get(key);
     if (!e) {
-      e = { rel: o.field, to: v.item, numerator: 0, accounts: new Set(), firstBuild: o.build, lastBuild: o.build, attrs: {}, lastAt: "" };
+      e = { rel: o.field, to, toType: target.type, numerator: 0, accounts: new Set(), firstBuild: o.build, lastBuild: o.build, attrs: {}, lastAt: "" };
       edges.set(key, e);
     }
     e.numerator += o.field === "drops" ? (v.n ?? 1) : 1;
@@ -178,9 +182,10 @@ export function computeRelations(ref: EntityRef, obs: Obs[], trusted: Set<string
       if (v.min != null) a.min = a.min === undefined ? v.min : Math.min(a.min, v.min);
       if (v.max != null) a.max = a.max === undefined ? v.max : Math.max(a.max, v.max);
       if (v.quest) a.quest = true;
-    } else if (o.server_time >= e.lastAt) {
-      e.lastAt = o.server_time;
-      e.attrs = { price: v.price ?? null, stack: v.stack ?? null, limited: v.limited ?? null, ec: v.ec ?? null };
+    } else if (o.field === "sells") {
+      if (o.server_time >= e.lastAt) { e.lastAt = o.server_time; e.attrs = { price: v.price ?? null, stack: v.stack ?? null, limited: v.limited ?? null, ec: v.ec ?? null }; }
+    } else if (o.field === "rewards" || o.field === "requires") {
+      e.attrs = { n: v.n ?? 1, choice: v.choice ?? false };
     }
   }
   const now = new Date().toISOString();
@@ -191,7 +196,7 @@ export function computeRelations(ref: EntityRef, obs: Obs[], trusted: Set<string
       from_type: ref.entityType,
       from_id: ref.entityId,
       rel: e.rel,
-      to_type: "item",
+      to_type: e.toType,
       to_id: e.to,
       first_build: e.firstBuild,
       last_build: e.lastBuild,

@@ -104,6 +104,29 @@ export const mockItemFacts: Record<number, FactRow[]> = {
   ],
 };
 
+export const mockQuestFacts: Record<number, FactRow[]> = {
+  753: [
+    fact("name", { value_text: "Rites of the Earthmother" }),
+    fact("level", { value_kind: "num", value_num: 3 }),
+    fact("log_header", { value_text: "Mulgore" }),
+    fact("description", { value_text: "You have proven yourself, young one. Now go to Red Cloud Mesa and speak with Chief Hawkwind.\n\nHe awaits you at the village to the north." }),
+    fact("objectives_text", { value_text: "Speak with Chief Hawkwind in Camp Narache." }),
+    fact("objective", { value_kind: "json", value_json: { text: "Chief Hawkwind spoken to", type: "object", n: 1 } }),
+    fact("progress_text", { value_text: "Have you seen the mesa?" }),
+    fact("completion_text", { value_text: "Well done. The Earthmother smiles upon you." }),
+    fact("reward_xp", { value_kind: "num", value_num: 250 }),
+    fact("reward_money", { value_kind: "num", value_num: 35 }),
+  ],
+  752: [
+    fact("name", { value_text: "A Humble Task", status: "unconfirmed" }),
+    fact("level", { value_kind: "num", value_num: 2 }),
+    fact("log_header", { value_text: "Mulgore" }),
+    fact("objective", { value_kind: "json", value_json: { text: "Grull Hawkwind's Shrine visited", type: "object", n: 1 } }),
+    fact("reward_xp", { value_kind: "num", value_num: 170 }),
+    fact("item_started", { value_kind: "bool", value_num: 1 }),
+  ],
+};
+
 export const mockItems: ItemListed[] = [
   { entity_id: 3184, name: "Venomstrike", status: "confirmed", contributor_count: 2, last_build: 70003, quality: 3, item_level: 20, required_level: 15, class: "Weapon", subclass: "Dagger", equip_loc: "INVTYPE_WEAPON", icon: 135641, sell_price: 1800 },
   { entity_id: 2589, name: "Linen Cloth", status: "unconfirmed", contributor_count: 1, last_build: 70003, quality: 1, item_level: 5, required_level: 0, class: "Trade Goods", subclass: "Cloth", equip_loc: null, icon: 132889, sell_price: 13 },
@@ -119,6 +142,13 @@ export const mockRelations: RelationRow[] = [
   { from_type: "gameobject", from_id: 2912, rel: "drops", to_type: "item", to_id: 774, numerator: 2, denominator: 5, contributor_count: 1, status: "unconfirmed", attrs: { min: 1, max: 2 } },
   { from_type: "map", from_id: 1412, rel: "drops", to_type: "item", to_id: 4540, numerator: 1, denominator: 12, contributor_count: 1, status: "unconfirmed", attrs: { min: 1, max: 1 } },
   { from_type: "creature", from_id: 2995, rel: "sells", to_type: "item", to_id: 4540, numerator: 3, denominator: 0, contributor_count: 2, status: "confirmed", attrs: { price: 25, stack: 5, limited: null, ec: null } },
+  { from_type: "creature", from_id: 2995, rel: "starts", to_type: "quest", to_id: 753, numerator: 2, denominator: 0, contributor_count: 2, status: "confirmed", attrs: null },
+  { from_type: "creature", from_id: 3222, rel: "ends", to_type: "quest", to_id: 753, numerator: 1, denominator: 0, contributor_count: 1, status: "unconfirmed", attrs: null },
+  { from_type: "creature", from_id: 3222, rel: "ends", to_type: "quest", to_id: 752, numerator: 1, denominator: 0, contributor_count: 1, status: "unconfirmed", attrs: null },
+  { from_type: "quest", from_id: 753, rel: "rewards", to_type: "item", to_id: 4540, numerator: 2, denominator: 0, contributor_count: 2, status: "confirmed", attrs: { n: 5, choice: false } },
+  { from_type: "quest", from_id: 753, rel: "rewards", to_type: "item", to_id: 2092, numerator: 2, denominator: 0, contributor_count: 2, status: "confirmed", attrs: { n: 1, choice: true } },
+  { from_type: "quest", from_id: 753, rel: "rewards", to_type: "item", to_id: 3184, numerator: 1, denominator: 0, contributor_count: 1, status: "unconfirmed", attrs: { n: 1, choice: true } },
+  { from_type: "quest", from_id: 753, rel: "requires", to_type: "item", to_id: 2589, numerator: 1, denominator: 0, contributor_count: 1, status: "unconfirmed", attrs: { n: 3, choice: false } },
   { from_type: "creature", from_id: 2995, rel: "sells", to_type: "item", to_id: 2092, numerator: 1, denominator: 0, contributor_count: 1, status: "unconfirmed", attrs: { price: 30, stack: 1, limited: 2, ec: null } },
 ];
 
@@ -130,6 +160,8 @@ export const mockPositions: Record<number, PositionRow[]> = {
     { map_id: 1412, cluster_x: 0.49, cluster_y: 0.81, observation_count: 3, contributor_count: 1 },
   ],
   2958: [{ map_id: 1412, cluster_x: 0.4, cluster_y: 0.55, observation_count: 5, contributor_count: 2 }],
+  753: [{ map_id: 1456, cluster_x: 0.46, cluster_y: 0.5, observation_count: 2, contributor_count: 2 }],
+  752: [{ map_id: 1412, cluster_x: 0.47, cluster_y: 0.6, observation_count: 1, contributor_count: 1 }],
   2959: [{ map_id: 1412, cluster_x: 0.36, cluster_y: 0.42, observation_count: 1, contributor_count: 1 }],
   2949: [{ map_id: 1412, cluster_x: 0.6, cluster_y: 0.3, observation_count: 2, contributor_count: 1 }],
 };
@@ -152,6 +184,7 @@ export const mockListed = {
     { entity_id: 221, name: "Red Cloud Mesa", status: "unconfirmed", contributor_count: 1, last_build: 70003 },
   ] as Listed[],
   taxi_node: [{ entity_id: 22, name: "Thunder Bluff, Mulgore", status: "confirmed", contributor_count: 1, last_build: 70003 }] as Listed[],
+  get quest(): Listed[] { return Object.entries(mockQuestFacts).map(([id, f]) => ({ entity_id: Number(id), name: f[0]!.value_text ?? "", status: f[0]!.status, contributor_count: f[0]!.contributor_count, last_build: f[0]!.last_build })); },
   get item(): Listed[] { return mockItems.map(({ entity_id, name, status, contributor_count, last_build }) => ({ entity_id, name, status, contributor_count, last_build })); },
 };
 
@@ -174,6 +207,8 @@ export const mockCharacterDetail = {
     { kind: "logout", at: "2026-10-04T12:40:00.000Z", payload: { level: 7 }, map_id: 1412 },
     { kind: "level_up", at: "2026-10-04T12:31:00.000Z", payload: { level: 7 }, map_id: 1412 },
     { kind: "loot", at: "2026-10-04T12:25:00.000Z", payload: { item: 3184, n: 1, name: "Venomstrike", q: 3 }, map_id: 1412 },
+    { kind: "quest_complete", at: "2026-10-04T12:22:00.000Z", payload: { id: 753, title: "Rites of the Earthmother", xp: 250, money: 35 }, map_id: 1412 },
+    { kind: "quest_accept", at: "2026-10-04T12:08:00.000Z", payload: { id: 753, title: "Rites of the Earthmother" }, map_id: 1412 },
     { kind: "first_sighting", at: "2026-10-04T12:20:00.000Z", payload: { entity_type: "creature", entity_id: 2958, name: "Prairie Wolf" }, map_id: 1412 },
     { kind: "area_discovered", at: "2026-10-04T12:12:00.000Z", payload: { name: "Brambleblade Ravine", xp: 25 }, map_id: 1412 },
     { kind: "zone_enter", at: "2026-10-04T12:05:00.000Z", payload: { zone: "Mulgore" }, map_id: 1412 },
@@ -185,6 +220,8 @@ export const mockCharacterDetail = {
     { seq: 2, started_at: "2026-10-03T21:00:00.000Z", ended_at: "2026-10-03T22:30:00.000Z", build: 70003, level_start: 5, level_end: 6 },
   ],
   exploredCount: 4,
+  questsCompleted: 2,
+  recentQuests: [{ id: 753, title: "Rites of the Earthmother", at: "2026-10-04T12:22:00.000Z" }, { id: 752, title: "A Humble Task", at: "2026-10-03T22:00:00.000Z" }],
   pets: [{ id: 2958, name: "Fang", family: "Wolf", level: 7, skills: [{ n: "Bite", r: 2 }, { n: "Growl", r: 1 }], active: true }, { id: null, name: "Shadow", family: "Cat", level: 12, skills: [], active: false }],
   flightPaths: [{ nodeId: 22, name: "Thunder Bluff, Mulgore", mapId: 1412, since: t }, { nodeId: 25, name: "The Crossroads, The Barrens", mapId: 1413, since: t }],
   zonesVisited: [{ mapId: 1412, at: "2026-10-03T21:00:00.000Z" }, { mapId: 1456, at: "2026-10-04T12:30:00.000Z" }],

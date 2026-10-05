@@ -1,6 +1,6 @@
 import { error } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
-import { allOf, artworkFor, buildsFor, entityFacts, entityPositions, iconUrls, itemSummaries, mapNames, pickNum, pickText, relationsFrom } from "$lib/server/db/wiki";
+import { allOf, artworkFor, buildsFor, entityFacts, entityPositions, iconUrls, itemSummaries, mapNames, pickNum, pickText, questSummaries, relationsFrom } from "$lib/server/db/wiki";
 import { FLAVORS } from "@compendium/schema";
 import { kindSignalsFromFacts, unitKind } from "$lib/wiki-format";
 
@@ -25,6 +25,10 @@ export const load: PageServerLoad = async ({ params }) => {
     .map((e) => { const a = (e.attrs ?? {}) as { price?: number | null; stack?: number | null; limited?: number | null; ec?: Array<{ i?: number; name?: string; n?: number }> | null }; return { ...itemOf(e.to_id), price: a.price ?? null, stack: a.stack ?? null, limited: a.limited ?? null, ec: a.ec ?? null, status: e.status }; })
     .sort((a, b) => (a.itemClass ?? "").localeCompare(b.itemClass ?? "") || a.name.localeCompare(b.name));
   const lootWindows = Math.max(0, ...drops.map((d) => d.windows));
+  const questIds = [...new Set(edges.filter((e) => e.to_type === "quest").map((e) => e.to_id))];
+  const quests = await questSummaries(flavor, questIds);
+  const questList = (rel: string) => edges.filter((e) => e.rel === rel && e.to_type === "quest").map((e) => { const q = quests.get(e.to_id)!; return { id: e.to_id, name: q.name, level: q.level, status: e.status }; }).sort((a, b) => (a.level ?? 999) - (b.level ?? 999) || a.name.localeCompare(b.name));
+  const starts = questList("starts"), ends = questList("ends");
   const mapIds = [...new Set(positions.map((p) => p.map_id).filter((m): m is number => m !== null))];
   const maps = await mapNames(flavor, mapIds);
   const builds = await buildsFor(flavor);
@@ -70,6 +74,8 @@ export const load: PageServerLoad = async ({ params }) => {
     drops,
     lootWindows,
     sells,
+    starts,
+    ends,
     repairs: pickNum(facts, "repairs")?.value_num === 1,
     // Hunter pet card (D-0049): the family alone marks a tamable beast; Beast Lore and tamed pets confirm.
     pet: pickText(facts, "creature_family") ? {

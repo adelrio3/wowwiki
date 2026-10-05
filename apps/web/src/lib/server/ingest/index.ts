@@ -6,7 +6,7 @@
  * source; the parse here is the authoritative one.
  */
 import { parseSavedVariables } from "@compendium/lua-parser";
-import { parseSavedVariablesDocument, type CreatureRecord, type ItemRecord, type Position, type SavedVariables, type Session } from "@compendium/schema";
+import { parseSavedVariablesDocument, type CreatureRecord, type ItemRecord, type Position, type QuestRecord, type SavedVariables, type Session } from "@compendium/schema";
 import { findBuild, guessExpansion } from "@compendium/game-meta";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { serviceClient } from "../supabase";
@@ -278,6 +278,7 @@ export function observationsFor(s: Session, c: Ctx): ObservationRow[] {
     if (i.diff !== undefined) push("instance", i.id, "", "difficulty", { json: { id: i.diff, name: i.diffName ?? null, max: i.max ?? null } }, i.ft);
   }
   for (const it of Object.values(w.items)) itemObservations(it, push);
+  for (const q of Object.values(w.quests)) questObservations(q, push);
   for (const tm of Object.values(w.tamed)) {
     push("creature", tm.id, "", "tamed", { bool: true }, tm.ft);
     if (tm.fam) push("creature", tm.id, "", "creature_family", { text: tm.fam }, tm.ft);
@@ -355,6 +356,31 @@ export function beastLore(lines: string[]): { tameable: boolean; diet: string | 
   return out;
 }
 
+function questObservations(q: QuestRecord, push: Push): void {
+  const id = q.id, t = q.ft;
+  if (q.title) push("quest", id, "", "name", { text: q.title }, t);
+  if (q.lvl !== undefined) push("quest", id, "", "level", { num: q.lvl }, t);
+  if (q.grp !== undefined) push("quest", id, "", "suggested_group", { num: q.grp }, t);
+  if (q.hdr) push("quest", id, "", "log_header", { text: q.hdr }, t);
+  if (q.freq !== undefined) push("quest", id, "", "frequency", { num: q.freq }, t);
+  if (q.desc) push("quest", id, "", "description", { text: q.desc }, t);
+  if (q.obj) push("quest", id, "", "objectives_text", { text: q.obj }, t);
+  if (q.prog) push("quest", id, "", "progress_text", { text: q.prog }, t);
+  if (q.done) push("quest", id, "", "completion_text", { text: q.done }, t);
+  for (const o of q.objs ?? []) push("quest", id, "", "objective", { json: { text: o.t, type: o.type ?? null, n: o.n ?? null } }, t);
+  if (q.xp !== undefined) push("quest", id, "", "reward_xp", { num: q.xp }, t);
+  if (q.money !== undefined) push("quest", id, "", "reward_money", { num: q.money }, t);
+  if (q.reqMoney !== undefined) push("quest", id, "", "required_money", { num: q.reqMoney }, t);
+  // Relation inputs: who starts and ends it (on the creature), what it rewards and needs (on the quest).
+  if (q.giver?.k === "c" && q.giver.id !== undefined) push("creature", q.giver.id, "", "starts", { json: { quest: id } }, t);
+  if (q.giver?.k === "i") push("quest", id, "", "item_started", { bool: true }, t);
+  if (q.ender?.k === "c" && q.ender.id !== undefined) push("creature", q.ender.id, "", "ends", { json: { quest: id } }, t);
+  for (const r of q.rw ?? []) push("quest", id, "", "rewards", { json: { item: r.i, n: r.n ?? 1, choice: false } }, t);
+  for (const r of q.ch ?? []) push("quest", id, "", "rewards", { json: { item: r.i, n: r.n ?? 1, choice: true } }, t);
+  for (const r of q.req ?? []) push("quest", id, "", "requires", { json: { item: r.i, n: r.n ?? 1 } }, t);
+  for (const p of q.pos ?? []) push("quest", id, "", "position", { json: { k: "giver" } }, p.t, p);
+}
+
 function itemObservations(it: ItemRecord, push: Push): void {
   const id = it.id, t = it.ft;
   if (it.name) push("item", id, "", "name", { text: it.name }, t);
@@ -399,6 +425,7 @@ async function writeJournal(db: SupabaseClient, characterId: string, sessionId: 
   for (const m of Object.values(s.world.maps)) sightings.push({ type: "map", id: m.id, at: m.ft, name: m.name });
   for (const i of Object.values(s.world.instances)) sightings.push({ type: "instance", id: i.id, at: i.ft, name: i.name });
   for (const it of Object.values(s.world.items)) sightings.push({ type: "item", id: it.id, at: it.ft, name: it.name });
+  for (const q of Object.values(s.world.quests)) sightings.push({ type: "quest", id: q.id, at: q.ft, name: q.title });
   for (const sg of sightings) {
     const { data: existing } = await db
       .from("character_sightings")
@@ -442,6 +469,13 @@ async function writeJournal(db: SupabaseClient, characterId: string, sessionId: 
       known.map((n) => ({ character_id: characterId, kind: "taxi", key: String(n.id), value_json: { name: n.name ?? null, map: n.m ?? null }, as_of: asOf })),
       { onConflict: "character_id,kind,key" },
     );
+  }
+  if (st.quests?.length) {
+    const titles = new Map(Object.values(s.world.quests).map((q) => [q.id, q.title ?? null]));
+    const doneAt = new Map<number, string>();
+    for (const e of s.events) if (e.k === "quest_complete" && typeof e.d?.id === "number") doneAt.set(e.d.id, iso(e.t));
+    const rows = [...new Set(st.quests)].map((qid) => ({ character_id: characterId, kind: "quest", key: String(qid), value_json: { title: titles.get(qid) ?? null, at: doneAt.get(qid) ?? null }, as_of: asOf }));
+    for (let i = 0; i < rows.length; i += 500) await db.from("character_state").upsert(rows.slice(i, i + 500), { onConflict: "character_id,kind,key", ignoreDuplicates: true });
   }
   const petRows: Array<{ character_id: string; kind: string; key: string; value_json: unknown; as_of: string }> = [];
   if (st.pet) petRows.push({ character_id: characterId, kind: "pet", key: String(st.pet.id), value_json: { name: st.pet.name ?? null, family: st.pet.fam ?? null, level: st.pet.lvl ?? null, skills: st.pet.sk ?? [], active: true }, as_of: asOf });

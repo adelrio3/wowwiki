@@ -1,14 +1,14 @@
 <script lang="ts">
   /** Filter row above a category table: search within, type, sort. Plain GET form. */
   import type { Snippet } from "svelte";
-  let { q, type, sort, types, count, noun, sorts = [{ value: "name", label: "Sort by name" }, { value: "level", label: "Sort by level" }, { value: "type", label: "Sort by type" }], children }: { q: string; type: string; sort: string; types: string[]; count: number; noun: string; sorts?: Array<{ value: string; label: string }>; children?: Snippet } = $props();
+  let { typeName = "type", typeLabel = "All types", q, type, sort, types, count, noun, sorts = [{ value: "name", label: "Sort by name" }, { value: "level", label: "Sort by level" }, { value: "type", label: "Sort by type" }], children }: { q: string; type: string; sort: string; types: string[]; count: number; noun: string; sorts?: Array<{ value: string; label: string }>; children?: Snippet; typeName?: string; typeLabel?: string } = $props();
 </script>
 
 <form class="mb-4 flex flex-wrap items-center gap-2">
   <input name="q" value={q} type="search" placeholder="Filter by name" class="field w-full sm:w-56" />
   {#if types.length}
-    <select name="type" class="field w-auto">
-      <option value="">All types</option>
+    <select name={typeName} class="field w-auto">
+      <option value="">{typeLabel}</option>
       {#each types as t}<option value={t} selected={t === type}>{t}</option>{/each}
     </select>
   {/if}

@@ -10,7 +10,7 @@ local FILES = {
   "Compendium_Link.lua", "Compendium_Ack.lua",
   "core/init.lua", "core/compat.lua", "core/ids.lua", "core/throttle.lua", "core/store.lua",
   "core/session.lua", "core/link.lua", "core/ack.lua", "core/login.lua",
-  "modules/units.lua", "modules/zones.lua", "modules/items.lua", "modules/loot.lua", "modules/vendors.lua", "modules/pets.lua",
+  "modules/units.lua", "modules/zones.lua", "modules/items.lua", "modules/loot.lua", "modules/vendors.lua", "modules/pets.lua", "modules/quests.lua",
 }
 
 local NS
@@ -359,6 +359,48 @@ test("the player's pet is journal state and proof the beast is tamable", functio
   mock.fire("PET_STABLE_SHOW")
   eq(NS.session.state.stable[1].name, "Shadow"); eq(NS.session.state.stable[1].fam, "Cat")
   mock.pet = nil; mock.stable = {}
+end)
+
+test("quest windows record text, giver, ender and rewards; the log adds level, header and objectives", function()
+  loadAddon(); player()
+  mock.completedQuests = { [747] = true, [750] = true }
+  mock.questLog = {
+    { title = "Mulgore", header = true },
+    { title = "A Humble Task", level = 2, id = 752, objectives = { { text = "Grull Hawkwind's Shrine visited", type = "object", numRequired = 1 } }, desc = "Find the shrine.", obj = "Visit the shrine.", xp = 170 },
+  }
+  login()
+  local st = NS.session.state
+  eq(#st.quests, 2); eq(st.quests[1], 747)
+  local q = NS.session.world.quests["752"]
+  assert(q, "quest from log"); eq(q.title, "A Humble Task"); eq(q.lvl, 2); eq(q.hdr, "Mulgore"); eq(q.objs[1].t, "Grull Hawkwind's Shrine visited"); eq(q.objs[1].n, 1); eq(q.desc, "Find the shrine."); eq(q.xp, 170)
+  eq(mock.selectedQuest, 0, "selection restored")
+  -- a quest giver opens the detail window
+  mock.units.questnpc = { guid = "Creature-0-5162-1-56-2980-00003DC5F4", name = "Grull Hawkwind", level = 7, reaction = 5, health = 1, healthMax = 1 }
+  mock.quest = { id = 753, title = "Rites of the Earthmother", text = "Go to Red Cloud Mesa.", objectives = "Speak with Chief Hawkwind.", rewards = { { link = "|cffffffff|Hitem:4540:0:0:0:0:0:0:0:60|h[Tough Hunk of Bread]|h|r", n = 5 } }, choices = { { link = "|cffffffff|Hitem:2092:0:0:0:0:0:0:0:60|h[Worn Dagger]|h|r" } }, money = 35, xp = 250 }
+  mock.fire("QUEST_DETAIL")
+  q = NS.session.world.quests["753"]
+  eq(q.title, "Rites of the Earthmother"); eq(q.desc, "Go to Red Cloud Mesa."); eq(q.obj, "Speak with Chief Hawkwind."); eq(q.giver.k, "c"); eq(q.giver.id, 2980)
+  eq(q.rw[1].i, 4540); eq(q.rw[1].n, 5); eq(q.ch[1].i, 2092); eq(q.money, 35); eq(q.xp, 250); eq(#q.pos, 1)
+  assert(NS.session.world.items["4540"], "reward item discovered")
+  mock.fire("QUEST_ACCEPTED", 2, 753)
+  eq(NS.session.events[#NS.session.events].k, "quest_accept"); eq(NS.session.events[#NS.session.events].d.id, 753)
+  -- turned in at a different NPC
+  mock.units.questnpc = { guid = "Creature-0-5162-1-56-2981-00003DC5F5", name = "Chief Hawkwind", level = 10, reaction = 5, health = 1, healthMax = 1 }
+  mock.quest.progress = "Have you seen the mesa?"; mock.quest.required = { { link = "|cffffffff|Hitem:2589:0:0:0:0:0:0:0:60|h[Linen Cloth]|h|r", n = 3 } }
+  mock.fire("QUEST_PROGRESS")
+  eq(q.prog, "Have you seen the mesa?"); eq(q.req[1].i, 2589); eq(q.req[1].n, 3); eq(q.ender.id, 2981)
+  mock.quest.reward = "Well done."
+  mock.fire("QUEST_COMPLETE")
+  eq(q.done, "Well done.")
+  mock.fire("QUEST_TURNED_IN", 753, 250, 35)
+  local ev = NS.session.events[#NS.session.events]
+  eq(ev.k, "quest_complete"); eq(ev.d.id, 753); eq(ev.d.xp, 250); eq(ev.d.title, "Rites of the Earthmother")
+  eq(st.quests[#st.quests], 753)
+  mock.fire("QUEST_REMOVED", 753)
+  eq(NS.session.events[#NS.session.events].k, "quest_complete", "removal after turn-in is not an abandon")
+  mock.fire("QUEST_REMOVED", 752)
+  eq(NS.session.events[#NS.session.events].k, "quest_abandon")
+  mock.quest = { id = 0 }; mock.questLog = {}; mock.completedQuests = {}; mock.units.questnpc = nil
 end)
 
 test("the add-on never changes client settings", function()

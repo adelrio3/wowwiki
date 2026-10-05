@@ -7,7 +7,7 @@
   let { data } = $props();
   const c = $derived(data.character);
   type Ev = (typeof data.events)[number];
-  const glyph: Record<string, string> = { login: "○", logout: "●", level_up: "▲", zone_enter: "→", area_discovered: "✦", instance_enter: "⌂", death: "✕", first_sighting: "◇", loot: "◆" };
+  const glyph: Record<string, string> = { login: "○", logout: "●", level_up: "▲", zone_enter: "→", area_discovered: "✦", instance_enter: "⌂", death: "✕", first_sighting: "◇", loot: "◆", quest_accept: "❯", quest_complete: "✔", quest_abandon: "✘" };
   const describe = (e: Ev): string => {
     const p = (e.payload ?? {}) as Record<string, unknown>;
     switch (e.kind) {
@@ -19,6 +19,9 @@
       case "instance_enter": return "Entered an instance";
       case "death": return `Died at level ${p.level}`;
       case "first_sighting": return `First saw ${p.name ?? `${p.entity_type} #${p.entity_id}`}`;
+      case "quest_accept": return `Accepted ${p.title ?? `quest #${p.id}`}`;
+      case "quest_complete": return `Completed ${p.title ?? `quest #${p.id}`}${p.xp ? ` (+${Number(p.xp).toLocaleString()} xp)` : ""}`;
+      case "quest_abandon": return `Abandoned ${p.title ?? `quest #${p.id}`}`;
       case "loot": return `Looted ${p.name ?? `item #${p.item}`}${Number(p.n) > 1 ? ` ×${p.n}` : ""}`;
       default: return e.kind;
     }
@@ -35,8 +38,9 @@
   </div>
 </PageHeader>
 
-<div class="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-5">
+<div class="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
   <StatTile value={played(data.stats.played_total)} label="played" />
+  <StatTile value={data.questsCompleted} label="quests completed" />
   <StatTile value={data.exploredCount} label="areas explored" />
   <StatTile value={data.flightPaths.length} label="flight paths known" />
   <StatTile value={data.stats.deaths ?? 0} label="deaths" />
@@ -76,6 +80,15 @@
         {#if !data.zonesVisited.length}<li class="text-ink-muted">None yet.</li>{/if}
       </ul>
     </Card>
+    {#if data.recentQuests.length}
+      <Card title="Recent quests">
+        <ul class="space-y-1.5 text-[14px]">
+          {#each data.recentQuests as q (q.id)}
+            <li class="flex justify-between gap-2"><a href="/wiki/{c.flavor}/quest/{q.id}">{q.title ?? `Quest #${q.id}`}</a>{#if q.at}<span class="num text-ink-faint">{new Date(q.at).toLocaleDateString()}</span>{/if}</li>
+          {/each}
+        </ul>
+      </Card>
+    {/if}
     {#if data.pets.length}
       <Card title="Pets">
         <ul class="space-y-1.5 text-[14px]">

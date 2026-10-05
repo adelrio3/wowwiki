@@ -67,6 +67,24 @@
       </section>
     {/if}
 
+    {#if data.starts.length || data.ends.length}
+      <section>
+        <h2 class="mb-3 text-[17px] font-semibold">Quests</h2>
+        <div class="grid gap-4 sm:grid-cols-2">
+          {#each [{ label: "Gives", list: data.starts }, { label: "Takes", list: data.ends }] as g}
+            {#if g.list.length}
+              <div>
+                <h3 class="eyebrow mb-1.5 px-1">{g.label}</h3>
+                <ul class="card divide-y divide-line text-[14px]">
+                  {#each g.list as q (q.id)}<li class="flex items-center justify-between gap-3 px-4 py-2"><a class="font-medium text-ink" href="/wiki/{data.flavor}/quest/{q.id}">{q.name}</a>{#if q.level !== null}<span class="num text-ink-faint">{q.level}</span>{/if}</li>{/each}
+                </ul>
+              </div>
+            {/if}
+          {/each}
+        </div>
+      </section>
+    {/if}
+
     {#if data.drops.length}
       <section>
         <h2 class="mb-1 text-[17px] font-semibold">Drops</h2>
