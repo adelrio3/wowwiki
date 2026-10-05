@@ -63,3 +63,23 @@ uniform spacious layouts (wiki pages become long scrolls); dark only (reference
 sites are read in daylight).
 Consequences: docs/12 is binding on every page; the design lands before Phase 2
 pages so each new entity page is built once.
+
+## D-0046: Zones are picked from the continent map
+Date: 2026-10-05  Status: superseded by D-0047
+Context: The Zones page was an alphabetical card grid per continent. Players
+think of zones by where they are, not by their first letter; the client's level
+ranges for Classic maps are unset, so ordering by level was not available.
+Decision: The Zones page shows each continent's own map with an invisible
+clickable region per zone (highlighted on hover, named in a caption) beside a
+list of that continent's zones ordered top to bottom, then left to right, as
+they sit on the map. Battlegrounds, whose parent is the world map, are a group
+of cards below. Each zone's rectangle on its continent comes from the client's
+map assignment table (world-coordinate boxes of zone and continent), carried in
+the per-build layout file beside the art layout; it is artwork plumbing, not a
+fact.
+Alternatives: alphabetical (rejected: not how players find a zone); by level
+range (not in the client data for Classic; may return as "observed levels" from
+our own facts once enough is recorded); faction groupings (zones are shared).
+Consequences: The continent maps are composed like any other map; the regions
+are rectangles, so neighbours overlap at the edges and the hover caption names
+the one under the pointer.

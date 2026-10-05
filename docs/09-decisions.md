@@ -616,22 +616,34 @@ the flight master and known nodes when the flight map opens (0.3.1). D-0040 gain
 its one exception: flight masters on the zone map.
 
 ## D-0046: Zones are picked from the continent map
+Status: superseded by D-0047. Rejected because rectangles overlap at the edges and
+named zones with text on the map, and the page skipped the world map.
+
+## D-0047: Zones are found by drilling down from the world map
 Date: 2026-10-05  Status: accepted
-Context: The Zones page was an alphabetical card grid per continent. Players
-think of zones by where they are, not by their first letter; the client's level
-ranges for Classic maps are unset, so ordering by level was not available.
-Decision: The Zones page shows each continent's own map with an invisible
-clickable region per zone (highlighted on hover, named in a caption) beside a
-list of that continent's zones ordered top to bottom, then left to right, as
-they sit on the map. Battlegrounds, whose parent is the world map, are a group
-of cards below. Each zone's rectangle on its continent comes from the client's
-map assignment table (world-coordinate boxes of zone and continent), carried in
-the per-build layout file beside the art layout; it is artwork plumbing, not a
-fact.
-Alternatives: alphabetical (rejected: not how players find a zone); by level
-range (not in the client data for Classic; may return as "observed levels" from
-our own facts once enough is recorded); faction groupings (zones are shared).
-Consequences: The continent maps are composed like any other map; the regions
-are rectangles, so neighbours overlap at the edges and the hover caption names
-the one under the pointer.
+Context: Supersedes D-0046. One page showing every continent's map with rectangles
+and labels was busy, and the rectangles of neighbouring zones overlapped. The
+owner asked for a drill-down: the world first, then a continent, then its zones,
+with each clickable region shaped like the zone as drawn, no text over the map,
+and the choices listed beside it.
+Decision: `/wiki` shows the world map (Azeroth) with one clickable region per
+continent, shaped like its drawn land, and the continents listed to the right
+with their zone counts; battlegrounds, which hang off the world map, are listed
+below the continents. `/wiki?continent=<id>` shows that continent's map with one
+clickable region per zone, shaped like the zone, and the zones listed to the
+right in map order (top to bottom, then left to right). Hovering a region or a
+row highlights both; nothing is drawn or written on the map otherwise. Shapes are
+build-specific artwork plumbing kept in the layout file beside the art layout:
+a zone's shape is the outline of the union of its explored pieces, placed on the
+continent through the world-coordinate boxes of both; a continent's shape on the
+world map is traced from the drawn land colour. A zone without explored pieces
+(cities, most battlegrounds) falls back to its box. How: N-0023.
+Alternatives: rectangles with labels (D-0046; overlapping edges, text on the map);
+a single page of every continent (busy, and no world map to start from); drawing
+zone names on the map (owner: no text over the map; the list carries the names);
+hand-drawn shapes (labour per build, and the client already draws the borders).
+Consequences: Three clicks from the index to a zone (world, continent, zone), with
+the breadcrumb and the right-hand list as the shortcut. The zone page's breadcrumb
+reads Azeroth / continent / zone. Shapes are regenerated with the layout file at
+each build; a zone whose explored pieces change shape moves with them.
 

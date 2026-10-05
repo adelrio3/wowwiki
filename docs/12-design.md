@@ -103,7 +103,7 @@ table (`.tbl`) and the input (`.field`) are the two component classes.
 | `Card` | surface with optional uppercase title |
 | `StatTile` | big mono number with a label (Journal) |
 | `UnitList` | the NPC/creature table: name, level, type, where (zone and coordinates) |
-| `ZoneMap` | a continent map with an invisible clickable rectangle per zone; gold highlight and a caption on hover |
+| `ZoneMap` | a world or continent map with an invisible clickable region per continent or zone, shaped as the map draws it; gold highlight on hover, no text on the map; the hovered id is bound so the list beside it lights up too |
 | `MapImage` | a composed zone map at its true aspect ratio, with optional pins drawn in map units (0.45% of the map width, a little larger with sightings) so they scale with the map and stay on the exact spot |
 | `CategoryToolbar` | filter by name, type and sort for category pages (plain GET form) |
 | `UnitCategoryPage` | the NPCs and Creatures pages, parameterised by kind |
@@ -120,15 +120,18 @@ live in `src/lib/server/wiki-lists.ts` and `category-load.ts`.
   count, most-seen first), Notable finds (rares, elites, bosses), Recently seen
   (table with kind, level, zone), and a "Add what you see" card with three steps and
   the add-on button.
-- **Zones** (`/wiki`): jump chips per continent, then one section per continent
-  (D-0046): its map (`ZoneMap`) with a clickable region per zone on the left,
-  the zone list on the right in map order (top to bottom, left to right), each
-  row with counts or "not recorded yet". Battlegrounds follow as cards. With `?q=`, the same page shows search results grouped by
+- **Zones** (`/wiki`): a drill-down (D-0047). First the world map (`ZoneMap`) with a
+  clickable region per continent on the left and, on the right, the continents
+  with zone counts and then the battlegrounds. `?continent=<id>` shows that
+  continent's map with a region per zone and the zone list on the right in map
+  order (top to bottom, left to right), each row with counts or "not recorded
+  yet", then a link to the continent's own page. Hover syncs map and list; no text
+  is drawn over the map. With `?q=`, the same page shows search results grouped by
   category and an empty state that explains names match as typed in-game.
 - **NPCs / Creatures**: toolbar (name filter, type, sort) and the `UnitList` table.
   NPCs and Creatures are always separate pages, never one list with a tag (D-0038).
 - **Areas**: name filter and a table with the zone.
-- **Zone**: breadcrumbs (Zones / continent / zone), title, section chips with counts
+- **Zone**: breadcrumbs (Azeroth / continent / zone), title, section chips with counts
   that jump to NPCs, Creatures, Areas, Flight paths. The zone map (`MapImage`) is
   the first thing on the page, full width. The only marks on it are flight masters
   (dark diamonds with a gold edge, D-0045); nothing else is drawn and there is no

@@ -111,5 +111,6 @@ export const mockArtwork: Record<number, { url: string; width: number; height: n
   1456: { url: "/mock/map.svg", width: 1002, height: 668, pieces: 1 },
   1414: { url: "/mock/map.svg", width: 1002, height: 668, pieces: 0 },
   1415: { url: "/mock/map.svg", width: 1002, height: 668, pieces: 0 },
+  947: { url: "/mock/map.svg", width: 1002, height: 668, pieces: 0 },
 };
 

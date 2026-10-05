@@ -7,19 +7,24 @@ export const load: PageServerLoad = async ({ url }) => {
   const q = (url.searchParams.get("q") ?? "").trim();
   const zones = await zoneOverview(flavor);
   if (!q) {
-    // Continent maps (the ones under the world map) with their zones placed on them (D-0046).
-    const continents = zones.filter((z) => z.mapType === 2 && z.parent !== null).sort((a, b) => a.name.localeCompare(b.name));
-    const continentArt: Record<number, Artwork | null> = Object.fromEntries(await Promise.all(continents.map(async (c) => [c.entity_id, await artworkFor(flavor, "map", c.entity_id)] as const)));
-    return { flavor, q, zones, continents, continentArt, results: null };
-  }
-  const [units, areas] = await Promise.all([unitRows(flavor, q, 100), listEntities(flavor, "area", 50, q)]);
+    // Drill-down (D-0047): the world map with its continents, or one continent with its zones.
+    const continentId = Number(url.searchParams.get("continent") ?? 0);
+    const world = zones.find((z) => z.mapType === 1) ?? null;
+    const continents = zones.filter((z) => z.mapType === 2 && z.parent !== null && z.parent === world?.entity_id).sort((a, b) => a.name.localeCompare(b.name));
+    const continent = continents.find((c) => c.entity_id === continentId) ?? null;
+    const focus = continent ?? world;
+    const art = focus ? await artworkFor(flavor, "map", focus.entity_id) : null;
+    return { flavor, q, zones, world, continents, continent, art, results: null };
+  }  const [units, areas] = await Promise.all([unitRows(flavor, q, 100), listEntities(flavor, "area", 50, q)]);
   const lower = q.toLowerCase();
   return {
     flavor,
     q,
     zones,
+    world: null,
     continents: [] as Awaited<ReturnType<typeof zoneOverview>>,
-    continentArt: {} as Record<number, Artwork | null>,
+    continent: null,
+    art: null as Artwork | null,
     results: {
       npcs: units.filter((u) => u.kind === "NPC"),
       creatures: units.filter((u) => u.kind === "Creature"),

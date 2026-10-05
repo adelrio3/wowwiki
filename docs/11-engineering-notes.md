@@ -344,3 +344,37 @@ its files.
 Verified: a multipart post with `Origin: http://tauri.localhost` to the upload
 endpoint answers 401 (needs a token) instead of 403, 2026-10-04.
 
+## N-0023: Zone and continent outlines from the client's own map art
+Area: assets / web
+Problem: D-0047 wants each clickable region on the Zones page shaped like the zone
+as the map draws it. The client has no polygon table; it has the explored pieces
+(one picture per discovered area, alpha-masked to the area's drawn border) and,
+per map, a world-coordinate box in `UiMapAssignment`.
+Solution: `tools/assets layouts` (with shapes on, the default) computes a `shape`
+per map and stores it as an SVG path in map units (0-100 across, 0-66.7 down) in
+the layout file:
+- Zone on its continent: decode every explored piece of the zone, union their
+  alpha (> 96) into one mask at half resolution, trace the outer contours with
+  marching squares (`shapes.ts: traceContours`, holes and specks dropped, largest
+  first, at most four), simplify with Ramer-Douglas-Peucker (epsilon 1.2 px), then
+  map each point from the zone's picture into the continent's picture through the
+  two world-coordinate boxes: `continent = zoneBox.origin + p * zoneBox.size`,
+  where both boxes are already expressed as fractions of the continent map (the
+  `bounds` D-0046 introduced). Zones with no explored pieces keep a box.
+- Continent on the world map: the Azeroth art draws land in orange on a teal
+  parchment. Mask pixels with `r > 135`, `r - g >= 36`, `r - b > 70`, `g > 80`
+  inside the inner 92% of the picture (the torn edge is orange too), trace, keep
+  every land mass at least a tenth of the largest, and give each to the continent
+  on its side of the map's centre (Kalimdor west, Eastern Kingdoms east). The
+  `r - g` test matters: the parchment's stains pass the first filter but are
+  duller (red barely above green); Lordaeron is a separate land mass, so "the two
+  largest contours" is wrong.
+- `ZoneMap.svelte` draws the paths in an SVG sized to the picture (`viewBox 0 0
+  100 <height>`), transparent until hovered, each inside an `<a>` with the zone's
+  name as `aria-label` and `<title>`; the page binds the hovered id so the list
+  row lights up too.
+Why: Follows the drawn borders exactly for every zone with no per-build labour,
+and survives patches because it is regenerated with the layout file.
+Verified: Kalimdor, Eastern Kingdoms and Azeroth outlines drawn over the composed
+maps on 2026-10-05 (build 1.15.9.70003); zone outlines follow the drawn borders,
+Lordaeron is part of the Eastern Kingdoms region, no parchment blobs.

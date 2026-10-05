@@ -17,7 +17,7 @@
 
 <svelte:head><title>{data.name} · Classic Era · WoW Compendium</title></svelte:head>
 
-<PageHeader crumbs={[{ href: "/wiki", label: "Zones" }, ...(data.parentName && data.parent !== null ? [{ href: `/wiki/${data.flavor}/zone/${data.parent}`, label: data.parentName }] : []), { label: data.name }]} title={data.name}>
+<PageHeader crumbs={[{ href: "/wiki", label: "Azeroth" }, ...(data.parentName && data.parent !== null ? [{ href: data.mapType === "continent" ? "/wiki" : `/wiki?continent=${data.parent}`, label: data.parentName }] : []), { label: data.name }]} title={data.name}>
   <nav class="flex flex-wrap gap-1.5 pt-2" aria-label="On this page">
     {#each sections as s}
       <a href="#{s.id}" class="rounded-md border border-line bg-surface px-2.5 py-1 text-[13px] text-ink-muted hover:border-line-strong hover:text-ink hover:no-underline">{s.label} <span class="num text-ink-faint">{s.n}</span></a>

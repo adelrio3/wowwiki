@@ -248,6 +248,8 @@ export interface ZoneOverview extends Listed {
   areas: number;
   /** where this map sits on its parent's map, as fractions (D-0046) */
   bounds: { x: number; y: number; w: number; h: number } | null;
+  /** its outline on the parent's map, an SVG path in a 100-wide viewBox (D-0047) */
+  shape: string | null;
 }
 
 /**
@@ -257,10 +259,10 @@ export interface ZoneOverview extends Listed {
  */
 export async function zoneOverview(flavor: string): Promise<ZoneOverview[]> {
   const byId = new Map<number, ZoneOverview>();
-  for (const [id, b] of Object.entries(bootstrapLayouts(flavor))) byId.set(Number(id), { entity_id: Number(id), name: b.name, status: "unrecorded", contributor_count: 0, last_build: 0, parent: b.parent || null, parentName: null, mapType: b.type, units: 0, areas: 0, bounds: b.bounds ?? null });
+  for (const [id, b] of Object.entries(bootstrapLayouts(flavor))) byId.set(Number(id), { entity_id: Number(id), name: b.name, status: "unrecorded", contributor_count: 0, last_build: 0, parent: b.parent || null, parentName: null, mapType: b.type, units: 0, areas: 0, bounds: b.bounds ?? null, shape: b.shape ?? null });
   if (MOCK) {
     const units = (id: number) => Object.values(mockPositions).filter((ps) => ps.some((p) => p.map_id === id)).length;
-    for (const m of mockListed.map) { const z = byId.get(m.entity_id) ?? byId.set(m.entity_id, { ...m, parent: 1414, parentName: null, mapType: 3, units: 0, areas: 0, bounds: null }).get(m.entity_id)!; z.status = m.status; z.contributor_count = m.contributor_count; z.last_build = m.last_build; z.units = units(m.entity_id); z.areas = m.entity_id === 1412 ? 2 : 0; }
+    for (const m of mockListed.map) { const z = byId.get(m.entity_id) ?? byId.set(m.entity_id, { ...m, parent: 1414, parentName: null, mapType: 3, units: 0, areas: 0, bounds: null, shape: null }).get(m.entity_id)!; z.status = m.status; z.contributor_count = m.contributor_count; z.last_build = m.last_build; z.units = units(m.entity_id); z.areas = m.entity_id === 1412 ? 2 : 0; }
   } else {
     const db = serviceClient();
     const [{ data: names }, { data: parents }, { data: types }, { data: pos }, { data: areaMaps }] = await Promise.all([
@@ -271,7 +273,7 @@ export async function zoneOverview(flavor: string): Promise<ZoneOverview[]> {
       db.from("facts").select("entity_id, value_num").eq("flavor", flavor).eq("entity_type", "area").eq("field", "map"),
     ]);
     for (const n of names ?? []) {
-      const z = byId.get(n.entity_id) ?? byId.set(n.entity_id, { entity_id: n.entity_id, name: n.value_text ?? "", status: n.status, contributor_count: n.contributor_count, last_build: n.last_build, parent: null, parentName: null, mapType: null, units: 0, areas: 0, bounds: null }).get(n.entity_id)!;
+      const z = byId.get(n.entity_id) ?? byId.set(n.entity_id, { entity_id: n.entity_id, name: n.value_text ?? "", status: n.status, contributor_count: n.contributor_count, last_build: n.last_build, parent: null, parentName: null, mapType: null, units: 0, areas: 0, bounds: null, shape: null }).get(n.entity_id)!;
       if (n.locale === DEFAULT_LOCALE || z.status === "unrecorded") { z.name = n.value_text ?? z.name; z.status = n.status; z.contributor_count = n.contributor_count; z.last_build = n.last_build; }
     }
     for (const p of parents ?? []) { const z = byId.get(p.entity_id); if (z && z.parent === null) z.parent = p.value_num; }
