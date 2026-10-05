@@ -48,8 +48,9 @@ async function csv(table: string, build: string): Promise<Array<Record<string, s
     writeFileSync(file, await res.text());
   }
   const lines = readFileSync(file, "utf8").split(/\r?\n/).filter(Boolean);
-  const cols = lines[0]!.split(",");
-  return lines.slice(1).map((l) => Object.fromEntries(l.split(",").map((v, i) => [cols[i]!, v])));
+  const split = (l: string) => { const out: string[] = []; let cur = "", q = false; for (const ch of l) { if (ch === '"') q = !q; else if (ch === "," && !q) { out.push(cur); cur = ""; } else cur += ch; } out.push(cur); return out; };
+  const cols = split(lines[0]!);
+  return lines.slice(1).map((l) => Object.fromEntries(split(l).map((v, i) => [cols[i]!, v])));
 }
 
 if (cmd === "layouts") {
@@ -162,6 +163,32 @@ if (cmd === "layouts") {
   mkdirSync(join(outPath, ".."), { recursive: true });
   writeFileSync(outPath, JSON.stringify(out));
   console.error(`wrote ${outPath}: ${Object.keys(out).length} maps, ${Object.values(out).reduce((n, m) => n + m.overlays.length, 0)} explored pieces`);
+} else if (cmd === "areas") {
+  // `areas`: the explorable areas of every zone, from the client's overlay table
+  // (each explored piece names the areas it reveals) with names from AreaTable.
+  // Feeds the Explore achievements (D-0051): the checklist is the client's own.
+  const build = args.build ?? "1.15.9.70003";
+  const flavor = args.flavor ?? "era";
+  const [maps, xart, overlays, areaTable] = await Promise.all(["UiMap", "UiMapXMapArt", "WorldMapOverlay", "AreaTable"].map((t) => csv(t, build)));
+  const areaName = new Map(areaTable.map((a) => [a.ID!, (a.AreaName_lang ?? "").replace(/^"|"$/g, "")]));
+  const out: Record<string, { name: string; parent: number; areas: Array<{ id: number; name: string }> }> = {};
+  for (const x of xart) {
+    const map = maps.find((m) => m.ID === x.UiMapID);
+    if (!map || map.Type !== "3") continue;
+    const seen = new Set<number>();
+    const list: Array<{ id: number; name: string }> = [];
+    for (const o of overlays.filter((o) => o.UiMapArtID === x.UiMapArtID)) {
+      for (const k of ["AreaID_0", "AreaID_1", "AreaID_2", "AreaID_3"]) {
+        const id = Number(o[k]);
+        if (id > 0 && !seen.has(id)) { seen.add(id); list.push({ id, name: areaName.get(String(id)) ?? `Area ${id}` }); }
+      }
+    }
+    if (list.length) out[x.UiMapID!] = { name: (map.Name_lang ?? "").replace(/^"|"$/g, ""), parent: Number(map.ParentUiMapID ?? 0), areas: list.sort((a, b) => a.name.localeCompare(b.name)) };
+  }
+  const outPath = args.out ?? join(process.cwd(), "..", "..", "packages", "achievements", "src", "catalogs", `${flavor}-areas.json`);
+  mkdirSync(join(outPath, ".."), { recursive: true });
+  writeFileSync(outPath, JSON.stringify(out, null, 0));
+  console.error(`wrote ${outPath}: ${Object.keys(out).length} zones, ${Object.values(out).reduce((n, z) => n + z.areas.length, 0)} areas`);
 } else if (cmd === "locator") {
   const product = (args.product ?? "wow_classic_era") as Product;
   const flavor = args.flavor ?? "era";

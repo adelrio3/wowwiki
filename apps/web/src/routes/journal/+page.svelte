@@ -8,7 +8,15 @@
 
 <svelte:head><title>Journal · WoW Compendium</title></svelte:head>
 
-<PageHeader eyebrow="Your record" title="Journal" lede="Your characters and what they have been through. Private unless you choose otherwise." />
+<PageHeader eyebrow="Your record" title="Journal" lede="Your characters and what they have been through. Private unless you choose otherwise.">
+  {#snippet aside()}
+    <a href="/journal/achievements" class="card block px-4 py-3 text-ink hover:border-line-strong hover:no-underline">
+      <span class="eyebrow block">Achievements</span>
+      <span class="num block text-[24px] leading-tight">{data.account.points} <span class="text-[13px] text-ink-muted">points</span></span>
+      <span class="block text-[12px] text-ink-faint">{data.account.earned} earned across your characters →</span>
+    </a>
+  {/snippet}
+</PageHeader>
 
 {#if data.characters.length}
   <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -19,7 +27,7 @@
           <span class="min-w-0">
             <span class="block truncate text-[17px] font-semibold">{c.name}</span>
             <span class="block text-[13px] text-ink-muted">Level <span class="num">{c.level ?? "?"}</span> {c.race ?? ""} {titleCase(c.class)}</span>
-            <span class="block text-[12px] text-ink-faint">{realmName(c)} · last seen {new Date(c.last_seen_at).toLocaleDateString()}</span>
+            <span class="block text-[12px] text-ink-faint">{realmName(c)} · last seen {new Date(c.last_seen_at).toLocaleDateString()}{#if c.achievements.points} · <span class="num">{c.achievements.points}</span> points{/if}</span>
           </span>
         </a>
       </li>

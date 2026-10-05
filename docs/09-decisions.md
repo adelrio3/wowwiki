@@ -741,3 +741,36 @@ inferring prerequisites (not exposed; the spec allows a weak hint later).
 Consequences: Add-on 0.6.0 (`quests.lua`); the log scan selects each entry in
 turn and restores the player's selection, which the client treats as UI state,
 not a setting (D-0036). Quest text is per locale like every text fact.
+
+## D-0051: The first Era achievement catalog measures only what the add-on records
+Date: 2026-10-05  Status: accepted
+Context: D-0032 says the team authors the Era list and the owner reviews it in
+chat. docs/06 sketched a wide catalog, much of it over data the add-on does not
+yet capture (kills, encounters, reputation, professions, PvP). The owner asked
+for achievements now.
+Decision: Catalog version 1 holds only achievements the current captures can
+measure, so nothing on the page is a promise: Level 10 to 60 (10 points each);
+50 to 1500 Quests Completed (10) and 3000 (20); Loremaster of Eastern Kingdoms
+(550 quests), Loremaster of Kalimdor (700) and the Loremaster meta (25); Explore
+<zone> for the forty zones under the two continents (10 each), Explore Kalimdor,
+Explore Eastern Kingdoms (25 each) and World Explorer (50); three Compendium
+originals over flight paths learned (Frequent Flyer 10, Seasoned Traveler 25,
+Wings of Azeroth 45); Stable Keeper (three hunter pets); and the feat Survivor
+(level 60 on a Hardcore realm). Exploration checklists are the client's own: the
+areas each explored piece of a zone's map reveals, from the overlay table
+(`tools/assets areas`), with names from the client's area table. That replaces
+docs/06's authored subzone lists: nothing is written by hand, and the list is
+exactly what the game counts. Quest-to-continent attribution follows docs/06
+(the giver's zone, through the client's map tree). Points follow Wrath. The
+engine is pure (`packages/achievements`); the ingest evaluates every touched
+character after aggregation and stores progress with the date the last piece
+arrived; the Journal shows points, earned, closest, and the whole list by
+category, account-wide by the best result per achievement.
+Alternatives: shipping the full docs/06 sketch with "not yet measurable" rows
+(a page of zeros nobody can act on; rejected); authored subzone lists (team
+knowledge where the client has the exact list; rejected); per-character points
+only (Blizzard rolls up by account; kept).
+Consequences: Later catalog versions add dungeons, reputation, professions, PvP
+and world events as those modules ship, as new entries with new keys. The
+owner's review list is in chat (D-0032); the criteria above are fixed once
+this version is live.

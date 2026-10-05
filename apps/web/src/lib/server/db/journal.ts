@@ -1,6 +1,6 @@
 /** Read helpers for the Journal. Caller must have verified ownership (locals.user). */
 import { serviceClient } from "../supabase";
-import { MOCK, mockCharacterDetail, mockCharacters, mockUploads } from "./mock";
+import { MOCK, mockAchievements, mockCharacterDetail, mockCharacters, mockUploads } from "./mock";
 
 export async function accountFor(userId: string) {
   if (MOCK) return { id: userId, display_name: "Eigan", battletag: null, visibility: {}, role: "owner", trusted: true, link_token: "mock-token", created_at: "2026-10-01T00:00:00.000Z" };
@@ -56,4 +56,14 @@ export async function rotateLinkToken(accountId: string): Promise<string> {
   const token = Array.from(crypto.getRandomValues(new Uint8Array(24)), (b) => b.toString(16).padStart(2, "0")).join("");
   await db.from("accounts").update({ link_token: token }).eq("id", accountId);
   return token;
+}
+
+export interface AchievementRow { character_id: string; achievement_key: string; earned_at: string | null; points: number; criteria_json: { criteria: Array<{ label: string; current: number; required: number; met: boolean }>; fraction: number } }
+
+/** Stored progress for a set of characters. */
+export async function achievementProgress(characterIds: string[]): Promise<AchievementRow[]> {
+  if (!characterIds.length) return [];
+  if (MOCK) return mockAchievements.filter((r) => characterIds.includes(r.character_id));
+  const { data } = await serviceClient().from("achievement_progress").select("character_id, achievement_key, earned_at, points, criteria_json").in("character_id", characterIds).limit(20000);
+  return (data ?? []) as AchievementRow[];
 }

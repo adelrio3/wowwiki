@@ -38,9 +38,10 @@
   </div>
 </PageHeader>
 
-<div class="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+<div class="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
   <StatTile value={played(data.stats.played_total)} label="played" />
   <StatTile value={data.questsCompleted} label="quests completed" />
+  <StatTile value={data.achievements.points} label="achievement points" />
   <StatTile value={data.exploredCount} label="areas explored" />
   <StatTile value={data.flightPaths.length} label="flight paths known" />
   <StatTile value={data.stats.deaths ?? 0} label="deaths" />
@@ -48,6 +49,43 @@
 </div>
 
 <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_17rem]">
+  <div class="min-w-0 space-y-10">
+  <section>
+    <div class="mb-3 flex items-baseline justify-between">
+      <h2 class="text-[17px] font-semibold">Achievements <span class="num text-[13px] font-normal text-ink-faint">{data.achievements.earned.length} of {data.achievements.total}</span></h2>
+      <a href="/journal/achievements" class="text-[13px]">All achievements →</a>
+    </div>
+    {#if data.achievements.earned.length || data.achievements.nextUp.length}
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div>
+          <h3 class="eyebrow mb-1.5 px-1">Earned</h3>
+          {#if data.achievements.earned.length}
+            <ul class="card divide-y divide-line text-[14px]">
+              {#each data.achievements.earned.slice(0, 8) as a (a.key)}
+                <li class="flex items-center justify-between gap-3 px-4 py-2"><span><span class="font-medium">{a.name}</span>{#if a.points}<span class="num ml-1.5 text-[12px] text-gold">{a.points}</span>{/if}</span><span class="num text-[12px] text-ink-faint">{new Date(a.earnedAt ?? "").toLocaleDateString()}</span></li>
+              {/each}
+            </ul>
+          {:else}
+            <p class="px-1 text-[14px] text-ink-muted">None yet.</p>
+          {/if}
+        </div>
+        <div>
+          <h3 class="eyebrow mb-1.5 px-1">Closest</h3>
+          <ul class="card divide-y divide-line text-[14px]">
+            {#each data.achievements.nextUp as a (a.key)}
+              <li class="px-4 py-2">
+                <div class="flex items-center justify-between gap-3"><span class="font-medium">{a.name}</span><span class="num text-[12px] text-ink-faint">{Math.round(a.fraction * 100)}%</span></div>
+                <div class="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-2"><div class="h-full rounded-full bg-gold" style="width: {Math.round(a.fraction * 100)}%"></div></div>
+                {#if a.criteria.length === 1}<div class="num mt-1 text-[12px] text-ink-faint">{a.criteria[0]!.current} / {a.criteria[0]!.required}</div>{/if}
+              </li>
+            {/each}
+          </ul>
+        </div>
+      </div>
+    {:else}
+      <p class="text-[14px] text-ink-muted">Nothing measured yet. Level up, finish quests, explore.</p>
+    {/if}
+  </section>
   <section class="min-w-0">
     <h2 class="mb-3 text-[17px] font-semibold">Timeline</h2>
     {#if byDay.length}
@@ -71,6 +109,7 @@
       <p class="text-[14px] text-ink-muted">Nothing yet. Play, log out, and sync.</p>
     {/if}
   </section>
+  </div>
   <aside class="space-y-4 lg:sticky lg:top-6 lg:self-start">
     <Card title="Zones visited">
       <ul class="space-y-1.5 text-[14px]">

@@ -11,6 +11,7 @@ import { findBuild, guessExpansion } from "@compendium/game-meta";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { serviceClient } from "../supabase";
 import { aggregateEntities, type EntityRef } from "./aggregate";
+import { evaluateCharacter } from "./achievements";
 
 export interface IngestResult {
   uploadId: string;
@@ -75,12 +76,12 @@ export async function ingestUpload(uploadId: string): Promise<IngestResult> {
     let observations = 0;
     let sessionsWritten = 0;
     const touched = new Map<string, EntityRef>();
-    const touchedCharacters = new Set<string>();
+    const touchedCharacters = new Map<string, string>();
 
     for (const [guid, character] of Object.entries(sv.characters)) {
       const realmId = await upsertRealm(db, character.meta.flavor, character.meta.region ?? null, character.meta.realmNormalized ?? character.meta.realm, character.meta.realm, character.meta.realmId ?? null);
       const characterId = await upsertCharacter(db, accountId, guid, character.meta, realmId);
-      touchedCharacters.add(characterId);
+      touchedCharacters.set(characterId, character.meta.flavor);
 
       const seqs = Object.values(character.sessions).sort((a, b) => a.seq - b.seq);
       for (const session of seqs) {
@@ -101,6 +102,8 @@ export async function ingestUpload(uploadId: string): Promise<IngestResult> {
     }
 
     await aggregateEntities(db, [...touched.values()]);
+    // Achievements read quest positions, so they run after aggregation (docs/06).
+    for (const [characterId, flavor] of touchedCharacters) await evaluateCharacter(db, characterId, flavor);
 
     const ack = await currentAck(db, accountId);
     await db
@@ -456,6 +459,7 @@ async function writeJournal(db: SupabaseClient, characterId: string, sessionId: 
   const asOf = iso(s.ctx.ended ?? s.ctx.started);
   const stats: Array<{ stat_key: string; value_num: number }> = [];
   if (st.level !== undefined) stats.push({ stat_key: "level", value_num: st.level });
+  if (s.ctx.hardcore !== undefined) stats.push({ stat_key: "hardcore", value_num: s.ctx.hardcore ? 1 : 0 });
   if (st.playedTotal !== undefined) stats.push({ stat_key: "played_total", value_num: st.playedTotal });
   if (st.playedLevel !== undefined) stats.push({ stat_key: "played_level", value_num: st.playedLevel });
   if (st.money !== undefined) stats.push({ stat_key: "money", value_num: st.money });

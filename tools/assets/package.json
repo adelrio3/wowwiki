@@ -7,7 +7,8 @@
   "scripts": {
     "locator": "tsx src/cli.ts locator",
     "preview": "tsx src/preview.ts",
-    "layouts": "tsx src/cli.ts layouts"
+    "layouts": "tsx src/cli.ts layouts",
+    "areas": "tsx src/cli.ts areas"
   },
   "dependencies": {
     "@compendium/map-art": "workspace:*"

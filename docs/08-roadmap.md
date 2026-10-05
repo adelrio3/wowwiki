@@ -65,9 +65,14 @@ with the site closed.
 ## Phase 3: Progress and achievements
 
 - `packages/achievements` engine and the Classic Era reconstructed catalog.
-- Journal: achievements UI mirroring Blizzard's layout, statistics, Loremaster and
-  exploration progress with freeze markers.
-- Account roll-up.
+  Shipped as catalog version 1 (D-0051): levels, quests and Loremaster,
+  exploration from the client's area lists, flight-path originals, Stable
+  Keeper, Survivor. Later versions follow the capture modules.
+- Journal: achievements UI mirroring Blizzard's layout (shipped: points, earned,
+  closest, the whole list by category), statistics, Loremaster and exploration
+  progress (shipped). Freeze markers are not needed: nothing is measured against
+  a moving target (D-0032).
+- Account roll-up (shipped: best result per achievement across characters).
 
 Exit: the owner's character shows correct Loremaster and exploration progress and
 earns at least one reconstructed achievement from live play.

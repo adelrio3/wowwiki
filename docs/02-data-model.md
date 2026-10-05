@@ -256,6 +256,16 @@ Each device token row also carries what that helper last reported (D-0043):
 game running), `last_seen_at`, and `pending_action` (`sync` or null), which the
 site sets and the helper clears when it collects it.
 
+### Achievement progress
+
+`achievement_progress` holds one row per (character, achievement key) with
+`criteria_json` (`{criteria: [{label, current, required, met, at}], fraction,
+version}`), `earned_at` (the server time the last required piece arrived, or the
+evaluation time when no piece carries a time) and `points`. `character_stats`
+carries `hardcore` (1 or 0) from the session context for the Hardcore feats.
+Account roll-ups are computed at read time: the best result per key across the
+account's characters (D-0051).
+
 ### Character state kinds
 
 `character_state.kind` is `explored` (key: areaID) for discovered areas, `taxi`

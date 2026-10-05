@@ -62,7 +62,7 @@
                   <td class="font-medium">{s.name}</td>
                   <td class="num r">{s.rank ?? ""}</td>
                   <td class="text-ink-muted">
-                    {#each s.beasts as b, i}{#if i > 0}<span class="mx-1.5 text-ink-faint">·</span>{/if}<a class="text-ink hover:text-accent" href="/wiki/{data.flavor}/creature/{b.id}">{b.name}</a> <span class="num text-ink-faint">{levelRange(b.level_min, b.level_max)}</span>{#if b.place}<span class="text-ink-faint"> in </span><a href="/wiki/{data.flavor}/zone/{b.place.map_id}" class="text-ink-muted hover:text-ink">{b.place.name}</a>{/if}{/each}
+                    {#each s.beasts as b, i}{#if i > 0}<span class="mx-1.5 text-ink-faint">·</span>{/if}<a class="text-ink hover:text-accent" href="/wiki/{data.flavor}/creature/{b.id}">{b.name}</a> <span class="num text-ink-faint">{levelRange(b.level_min, b.level_max)}</span>{#if b.place}<span class="text-ink-faint">&nbsp;in&nbsp;</span><a href="/wiki/{data.flavor}/zone/{b.place.map_id}" class="text-ink-muted hover:text-ink">{b.place.name}</a>{/if}{/each}
                   </td>
                 </tr>
               {/each}
@@ -87,7 +87,7 @@
                   <td class="num text-ink-muted">#{f.displayId}</td>
                   <td>{f.family}</td>
                   <td class="text-ink-muted">
-                    {#each f.beasts as b, i}{#if i > 0}<span class="mx-1.5 text-ink-faint">·</span>{/if}<a class="text-ink hover:text-accent" href="/wiki/{data.flavor}/creature/{b.id}">{b.name}</a> <span class="num text-ink-faint">{levelRange(b.level_min, b.level_max)}</span>{#if b.place}<span class="text-ink-faint"> in </span><a href="/wiki/{data.flavor}/zone/{b.place.map_id}" class="text-ink-muted hover:text-ink">{b.place.name}</a>{/if}{/each}
+                    {#each f.beasts as b, i}{#if i > 0}<span class="mx-1.5 text-ink-faint">·</span>{/if}<a class="text-ink hover:text-accent" href="/wiki/{data.flavor}/creature/{b.id}">{b.name}</a> <span class="num text-ink-faint">{levelRange(b.level_min, b.level_max)}</span>{#if b.place}<span class="text-ink-faint">&nbsp;in&nbsp;</span><a href="/wiki/{data.flavor}/zone/{b.place.map_id}" class="text-ink-muted hover:text-ink">{b.place.name}</a>{/if}{/each}
                   </td>
                   <td class="r">{#if f.unique}<span class="text-gold">Unique</span>{/if}</td>
                 </tr>

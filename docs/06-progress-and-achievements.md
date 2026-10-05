@@ -113,6 +113,15 @@ flight path), "Bookworm" (read every lore text in a zone), "Tour Guide" (visit e
 subzone of a zone). These replace nothing; they are extra and marked as Compendium
 originals.
 
+### Version 1, as shipped (D-0051)
+
+The first released catalog holds only what the add-on measures today: the level
+ladder, the quest ladder with Loremaster, Explore <zone> for every zone under a
+continent with the client's own area checklist, the continent and world
+exploration metas, three flight-path originals, Stable Keeper, and the Survivor
+feat. The rest of the sketch above waits for its capture module and arrives as
+new entries in later versions.
+
 ### The Era list is authored content (D-0032)
 
 Era has no achievements in the client. The team writes the Era list as versioned
@@ -134,11 +143,12 @@ list, matching Wrath.
 
 ### Exploration design
 
-"Explore <zone>" lists the subzones of that zone explicitly in the authored catalog,
-as Wrath's did. Progress is the count of listed subzones the character has
-discovered (`area_discovered` events, matched by name per locale, with
-`C_MapExplorationInfo` overlay data as a second signal where available). World
-Explorer and the continent metas are metas over the zone achievements.
+"Explore <zone>" lists the areas the client reveals on that zone's map: the overlay
+table names the area IDs each explored piece uncovers, and `tools/assets areas`
+writes them per zone with names from the client's area table (D-0051). Progress
+is the count of those areas in the character's explored set (`character_state`
+kind `explored`, by area ID, so locale does not matter). World Explorer and the
+continent metas are metas over the zone achievements.
 
 ## Evaluation engine (`packages/achievements`)
 
@@ -157,8 +167,12 @@ standing)`, `reputation_count(standing, n)`, `skill(line, rank)`, `recipe_known(
 `death_to(set, n)`, `rest_in(set)`, `taxi_node_visited(set)`, `lore_read(set)`,
 `achievement(set)` (meta), `event_quest(event, set)`.
 
-The engine runs on ingest for affected characters and can be rerun for all characters
-when the catalog changes. Catalog changes are versioned and audited like overrides.
+The engine runs on ingest for affected characters, after aggregation (quest
+positions feed continent attribution), and can be rerun for all characters when
+the catalog changes. Progress rows carry the catalog version. Catalog changes are
+versioned and audited like overrides. Implemented criteria in version 1: `level`,
+`hardcore_level`, `quest_count`, `quest_count_continent`, `area_explore`,
+`taxi_count`, `pet_count`, `achievement` (meta, with `requireAny` for "n of").
 
 ## Account level
 

@@ -241,3 +241,11 @@ export const mockArtwork: Record<number, { url: string; width: number; height: n
   947: { url: "/mock/map.svg", width: 1002, height: 668, pieces: 0 },
 };
 
+export const mockAchievements = [
+  { character_id: "c1", achievement_key: "level-10", earned_at: null, points: 0, criteria_json: { criteria: [{ label: "Reach level 10", current: 7, required: 10, met: false }], fraction: 0.7 } },
+  { character_id: "c1", achievement_key: "quests-50", earned_at: null, points: 0, criteria_json: { criteria: [{ label: "Complete 50 quests", current: 2, required: 50, met: false }], fraction: 0.04 } },
+  { character_id: "c1", achievement_key: "explore-mulgore", earned_at: "2026-10-04T12:12:00.000Z", points: 10, criteria_json: { criteria: [{ label: "Bloodhoof Village", current: 1, required: 1, met: true }, { label: "Red Cloud Mesa", current: 1, required: 1, met: true }], fraction: 1 } },
+  { character_id: "c1", achievement_key: "explore-the-barrens", earned_at: null, points: 0, criteria_json: { criteria: [{ label: "The Crossroads", current: 1, required: 1, met: true }, { label: "Ratchet", current: 0, required: 1, met: false }, { label: "Camp Taurajo", current: 0, required: 1, met: false }], fraction: 0.33 } },
+  { character_id: "c1", achievement_key: "frequent-flyer-10", earned_at: null, points: 0, criteria_json: { criteria: [{ label: "Learn 10 flight paths", current: 2, required: 10, met: false }], fraction: 0.2 } },
+  { character_id: "c2", achievement_key: "explore-mulgore", earned_at: "2026-10-02T10:00:00.000Z", points: 10, criteria_json: { criteria: [{ label: "Bloodhoof Village", current: 1, required: 1, met: true }, { label: "Red Cloud Mesa", current: 1, required: 1, met: true }], fraction: 1 } },
+];

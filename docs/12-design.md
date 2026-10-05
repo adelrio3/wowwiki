@@ -185,11 +185,19 @@ live in `src/lib/server/wiki-lists.ts` and `category-load.ts`.
   sheet titled NPC or Creature, an "As a hunter pet" card for beasts with a
   family (family, tamable and how we know, diet, skills taught, form), then
   Evidence with the observation count.
-- **Journal index**: character cards with a class-tinted initial, level, race,
-  class, realm, last seen.
+- **Journal index**: an Achievements card in the header (account points, earned
+  count, link), then character cards with a class-tinted initial, level, race,
+  class, realm, last seen and the character's points.
+- **Journal achievements** (`/journal/achievements`): three stat tiles (points,
+  earned, in the list), then one section per category with subcategory groups;
+  each row is a points tile (gold when earned, a star for feats), name and
+  description, and on the right "Earned <date> by <character>" or the best
+  progress percentage and who holds it; the row expands to the criteria
+  checklist with counters. Feats stay hidden until earned (D-0051).
 - **Journal character**: breadcrumbs, class dot and meta line, stat tiles (played,
-  quests completed, areas explored, flight paths known, deaths, sessions),
-  timeline grouped by day with gold glyphs; in the rail: zones visited, recent
+  quests completed, achievement points, areas explored, flight paths known,
+  deaths, sessions), an Achievements section (Earned with dates, Closest with
+  gold progress bars) above the timeline grouped by day with gold glyphs; in the rail: zones visited, recent
   quests, pets (the active one marked "with you", with skills), flight paths
   known, sessions, privacy.
 - **Add-on** (`/sync`): a vertical checklist of four cards (Connect folder, Install,
