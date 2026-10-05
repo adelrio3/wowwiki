@@ -278,6 +278,10 @@ export function observationsFor(s: Session, c: Ctx): ObservationRow[] {
     if (i.diff !== undefined) push("instance", i.id, "", "difficulty", { json: { id: i.diff, name: i.diffName ?? null, max: i.max ?? null } }, i.ft);
   }
   for (const it of Object.values(w.items)) itemObservations(it, push);
+  for (const tm of Object.values(w.tamed)) {
+    push("creature", tm.id, "", "tamed", { bool: true }, tm.ft);
+    if (tm.fam) push("creature", tm.id, "", "creature_family", { text: tm.fam }, tm.ft);
+  }
   // Loot windows and wares are relation inputs (drop rates, prices), not facts of the source (docs/02 "relation").
   for (const l of Object.values(w.loot)) {
     const type = l.k === "c" ? "creature" : l.k === "o" ? "gameobject" : "map";
@@ -324,7 +328,31 @@ function creatureObservations(cr: CreatureRecord, push: Push): void {
   for (const [lvl, hp] of Object.entries(cr.hp ?? {})) push("creature", id, "", "health", { json: { level: Number(lvl), max: hp } }, t);
   for (const [lvl, pw] of Object.entries(cr.pw ?? {})) push("creature", id, "", "power", { json: { level: Number(lvl), max: pw } }, t);
   for (const role of Object.keys(cr.roles ?? {})) push("creature", id, "", `role:${role}`, { bool: true }, t);
+  if (cr.di !== undefined) push("creature", id, "", "display_id", { num: cr.di }, t, undefined, "client_catalog");
+  if (cr.tl?.length) {
+    push("creature", id, "", "tooltip_extra", { json: cr.tl }, t);
+    // Beast Lore (D-0049): "Tameable", "Diet: Meat, Fish", then pet skills with ranks.
+    const lore = beastLore(cr.tl);
+    if (lore.tameable) push("creature", id, "", "tameable", { bool: true }, t);
+    if (lore.diet) push("creature", id, "", "diet", { text: lore.diet }, t);
+    for (const sk of lore.skills) push("creature", id, "", "pet_skill", { json: sk }, t);
+  }
   for (const p of cr.pos ?? []) push("creature", id, "", "position", { json: { k: p.k ?? "target" } }, p.t, p);
+}
+
+/** What Beast Lore adds to a beast's tooltip, in the client's own words. */
+export function beastLore(lines: string[]): { tameable: boolean; diet: string | null; skills: Array<{ name: string; rank: number | null }> } {
+  const out = { tameable: false, diet: null as string | null, skills: [] as Array<{ name: string; rank: number | null }> };
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (/^tameable$/i.test(line)) out.tameable = true;
+    else if (/^diet:\s*/i.test(line)) out.diet = line.replace(/^diet:\s*/i, "");
+    else {
+      const m = /^(.+?)\s*\(Rank\s+(\d+)\)$/i.exec(line);
+      if (m && out.tameable) out.skills.push({ name: m[1]!, rank: Number(m[2]) });
+    }
+  }
+  return out;
 }
 
 function itemObservations(it: ItemRecord, push: Push): void {
@@ -415,6 +443,10 @@ async function writeJournal(db: SupabaseClient, characterId: string, sessionId: 
       { onConflict: "character_id,kind,key" },
     );
   }
+  const petRows: Array<{ character_id: string; kind: string; key: string; value_json: unknown; as_of: string }> = [];
+  if (st.pet) petRows.push({ character_id: characterId, kind: "pet", key: String(st.pet.id), value_json: { name: st.pet.name ?? null, family: st.pet.fam ?? null, level: st.pet.lvl ?? null, skills: st.pet.sk ?? [], active: true }, as_of: asOf });
+  for (const sp of st.stable ?? []) petRows.push({ character_id: characterId, kind: "pet", key: `stable:${sp.name}`, value_json: { name: sp.name, family: sp.fam ?? null, level: sp.lvl ?? null, skills: [], active: false }, as_of: asOf });
+  if (petRows.length) await db.from("character_state").upsert(petRows, { onConflict: "character_id,kind,key" });
   if (st.explored?.length) {
     await db.from("character_state").upsert(
       st.explored.map((areaId) => ({ character_id: characterId, kind: "explored", key: String(areaId), value_json: true, as_of: asOf })),

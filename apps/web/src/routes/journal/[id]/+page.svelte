@@ -76,6 +76,15 @@
         {#if !data.zonesVisited.length}<li class="text-ink-muted">None yet.</li>{/if}
       </ul>
     </Card>
+    {#if data.pets.length}
+      <Card title="Pets">
+        <ul class="space-y-1.5 text-[14px]">
+          {#each data.pets as p (p.id ?? p.name)}
+            <li><span class="font-medium">{p.name ?? "Pet"}</span>{#if p.active}<span class="ml-1.5 text-xs text-gold">with you</span>{/if}<span class="text-ink-muted"> · {p.family ?? "?"}{p.level ? ` · level ${p.level}` : ""}</span>{#if p.id}<a class="ml-1.5 text-[12px]" href="/wiki/{c.flavor}/creature/{p.id}">beast</a>{/if}{#if p.skills.length}<div class="text-[12px] text-ink-faint">{p.skills.map((s) => (s.r ? `${s.n} ${s.r}` : s.n)).join(", ")}</div>{/if}</li>
+          {/each}
+        </ul>
+      </Card>
+    {/if}
     <Card title="Flight paths known">
       <ul class="space-y-1.5 text-[14px]">
         {#each data.flightPaths as f (f.nodeId)}

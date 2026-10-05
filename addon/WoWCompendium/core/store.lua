@@ -164,6 +164,15 @@ function store.vendor(npcID)
   return rec
 end
 
+-- A beast seen as someone's hunter pet, keyed by its creature ID (D-0049).
+function store.tamed(npcID)
+  local b = bucket("tamed")
+  if not b then return nil end
+  local key = tostring(npcID)
+  if not b[key] then b[key] = { id = npcID, ft = NS.now() } end
+  return b[key]
+end
+
 -- Journal event. `withPos` attaches the player's position.
 function store.event(kind, data, withPos)
   local s = NS.session

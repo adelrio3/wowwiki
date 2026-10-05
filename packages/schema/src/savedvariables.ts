@@ -86,6 +86,10 @@ export const CreatureRecordSchema = z.object({
   sub: z.string().optional(),
   /** tooltip faction line, e.g. "Thunder Bluff" */
   tf: z.string().optional(),
+  /** tooltip lines past the subtitle: faction, PvP, and what Beast Lore adds ("Tameable", "Diet: Meat", "Bite (Rank 2)") */
+  tl: luaArray(z.string()).optional(),
+  /** display ID: the unit's look, read through a hidden model frame (D-0049) */
+  di: z.number().int().optional(),
   /** roles observed through interactions: gossip, quest, vendor, trainer, taxi, bank, ... */
   roles: luaRecord(z.boolean()).optional(),
   /** sightings this session */
@@ -253,6 +257,23 @@ export const VendorRecordSchema = z.object({
 });
 export type VendorRecord = z.infer<typeof VendorRecordSchema>;
 
+/** A beast seen as a player's own hunter pet: proof it can be tamed (D-0049). */
+export const TamedRecordSchema = z.object({
+  id: z.number().int(),
+  fam: z.string().optional(),
+  ft: z.number().int(),
+});
+
+export const PetSkillSchema = z.object({ n: z.string(), r: z.number().int().optional() });
+export const PetStateSchema = z.object({
+  /** creature ID of the wild beast */
+  id: z.number().int(),
+  name: z.string().optional(),
+  lvl: z.number().int().optional(),
+  fam: z.string().optional(),
+  sk: luaArray(PetSkillSchema).optional(),
+});
+
 export const WorldSchema = z.object({
   creatures: luaRecord(CreatureRecordSchema).default({}),
   maps: luaRecord(MapRecordSchema).default({}),
@@ -263,6 +284,7 @@ export const WorldSchema = z.object({
   items: luaRecord(ItemRecordSchema).default({}),
   loot: luaRecord(LootRecordSchema).default({}),
   vendors: luaRecord(VendorRecordSchema).default({}),
+  tamed: luaRecord(TamedRecordSchema).default({}),
 });
 export type World = z.infer<typeof WorldSchema>;
 
@@ -325,6 +347,10 @@ export const CharacterStateSchema = z.object({
   /** explored area IDs accumulated this session */
   explored: luaArray(z.number().int()).optional(),
   bind: z.string().optional(),
+  /** the hunter's active pet, as last seen */
+  pet: PetStateSchema.optional(),
+  /** stabled pets, when the stable was opened */
+  stable: luaArray(z.object({ name: z.string(), lvl: z.number().int().optional(), fam: z.string().optional() })).optional(),
 });
 
 export const SessionSchema = z.object({

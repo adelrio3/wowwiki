@@ -28,7 +28,7 @@ The sidebar (`Shell`) is the only navigation. Top to bottom:
 2. Search (`/` focuses it; submits to `/wiki?q=`).
 3. Game version selector (Classic Era now; other versions listed as "soon").
 4. **World**: Zones (`/wiki`), NPCs (`/wiki/npcs`), Creatures (`/wiki/creatures`),
-   Items (`/wiki/items`), Areas (`/wiki/areas`). Every world entity type that people look up by name gets
+   Items (`/wiki/items`), Hunter pets (`/wiki/pets`), Areas (`/wiki/areas`). Every world entity type that people look up by name gets
    a category page here; flight paths do not (D-0045), they live on zone pages.
 5. **You**: Journal (`/journal`), Add-on (`/sync`).
 6. Account (email, sign out, or sign in) and the theme toggle.
@@ -154,6 +154,13 @@ live in `src/lib/server/wiki-lists.ts` and `category-load.ts`.
   level, where, drop rate, seen as "windows with it / windows opened"), Fished in,
   and Sold by (vendor, where, price in g/s/c, stock); "Every recorded fact"
   collapsed. Rail: fact sheet titled Item, then Evidence.
+- **Hunter pets** (`/wiki/pets`): section chips, then Families as cards (name,
+  beast count, levels, diets, looks, skills, confirmed count; the chosen family
+  gets a gold border), Pet skills as a table (skill, rank, beasts that teach it
+  with level and zone), Forms as a table (display ID, family, beasts sharing the
+  look, Unique in gold), and Tamable beasts (name with a green check when Beast
+  Lore or a tamed pet confirmed it, family, level, where, skills, diet, form).
+  `?family=` narrows the last table and marks the family card (D-0049).
 - **NPC / Creature**: breadcrumbs (category / home zone / name), serif name,
   `<subtitle>`, level with Elite/Rare in gold, type and family, role chips. Main:
   "Where to find them/it" (zone, up to six coordinate spots most-seen first,
@@ -163,13 +170,15 @@ live in `src/lib/server/wiki-lists.ts` and `category-load.ts`.
   are drawn (D-0040). After Health: Drops (item with icon, type, drop rate, seen
   over the loot windows players opened) and Sells (item, type, price, stock) when
   there are any. Rail: fact
-  sheet titled NPC or Creature, then Evidence with the observation count.
+  sheet titled NPC or Creature, an "As a hunter pet" card for beasts with a
+  family (family, tamable and how we know, diet, skills taught, form), then
+  Evidence with the observation count.
 - **Journal index**: character cards with a class-tinted initial, level, race,
   class, realm, last seen.
 - **Journal character**: breadcrumbs, class dot and meta line, stat tiles (played,
   areas explored, flight paths known, deaths, sessions), timeline grouped by day
-  with gold glyphs; in the rail: zones visited, flight paths known, sessions,
-  privacy.
+  with gold glyphs; in the rail: zones visited, pets (the active one marked "with
+  you", with skills), flight paths known, sessions, privacy.
 - **Add-on** (`/sync`): a vertical checklist of four cards (Connect folder, Install,
   Play then log out, Sync); the current step has an ink number, done steps a green
   check, later steps are faint. Per-client rows under Install; results under Sync;

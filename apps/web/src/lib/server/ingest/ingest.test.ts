@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { SessionSchema } from "@compendium/schema";
-import { observationsFor } from "./index";
+import { beastLore, observationsFor } from "./index";
 import { computeFacts, computePositions, computeRelations, type Obs } from "./aggregate";
 
 const session = SessionSchema.parse({
@@ -9,6 +9,7 @@ const session = SessionSchema.parse({
   world: {
     creatures: {
       "1555": { id: 1555, gt: "Pet", name: "Happyending", lmin: 7, lmax: 7, ct: "Beast", sub: "Pongping's Pet", n: 1, sp: 1, ft: 1790998620, lt: 1790998620 },
+      "2958": { id: 2958, name: "Prairie Wolf", lmin: 6, lmax: 7, ct: "Beast", cf: "Wolf", di: 1234, tl: ["Tameable", "Diet: Meat", "Bite (Rank 2)", "Dash (Rank 1)"], n: 1, sp: 1, ft: 1790998630, lt: 1790998630 },
       "3063": { id: 3063, name: "Krang Stonehoof", lmin: 14, lmax: 14, cls: "normal", ct: "Humanoid", rx: 5, sub: "Warrior Trainer", tf: "Thunder Bluff", hp: { "14": 500 }, roles: { trainer: true }, n: 2, sp: 1, ft: 1790998610, lt: 1790998700, pos: [{ t: 1790998610, m: 1412, x: 0.5, y: 0.8, i: 1, wx: -351.8, wy: -2357, k: "interact" }] },
     },
     maps: { "1412": { id: 1412, name: "Mulgore", type: 3, parent: 1414, ft: 1790998608, art: { w: 1002, h: 668, tw: 256, th: 256, t: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], aid: 6412 }, ovl: [{ w: 256, h: 256, x: 300, y: 200, t: [272173] }] } },
@@ -16,6 +17,7 @@ const session = SessionSchema.parse({
     taxiNodes: { "22": { id: 22, name: "Thunder Bluff, Mulgore", m: 1412, x: 0.39, y: 0.27, faction: 1, undiscovered: false, known: true, fm: 2995, routes: { "25": true }, ft: 1790998608 } },
     items: { "3184": { id: 3184, name: "Venomstrike", q: 3, il: 20, rl: 15, cls: "Weapon", sub: "Dagger", cid: 2, sid: 15, st: 1, eq: "INVTYPE_WEAPON", ic: 135641, sp: 1800, bt: 2, xp: 0, tip: ["Venomstrike", "Binds when picked up", "One-Hand"], ft: 1790998650, lt: 1790998650 } },
     loot: { "c:2955": { k: "c", id: 2955, w: 4, items: { "2589": { n: 3, min: 1, max: 3 }, "3184": { n: 1, min: 1, max: 1, q: false } }, ft: 1790998640, lt: 1790998700 }, "f:1412": { k: "f", id: 1412, w: 2, items: { "6291": { n: 2, min: 1, max: 1 } }, ft: 1790998640, lt: 1790998700 } },
+    tamed: { "2958": { id: 2958, fam: "Wolf", ft: 1790998670 } },
     vendors: { "3077": { id: 3077, items: { "4540": { p: 25, st: 5 }, "2092": { p: 30, st: 1, lim: 2 } }, rep: true, ft: 1790998660, lt: 1790998660 } },
   },
   events: [{ t: 1790998608, k: "login", d: { level: 5 } }],
@@ -65,6 +67,16 @@ describe("observationsFor", () => {
     expect(wares).toContainEqual({ item: 4540, price: 25, stack: 5, limited: null, ec: null });
     expect(wares).toContainEqual({ item: 2092, price: 30, stack: 1, limited: 2, ec: null });
     expect(rows.find((r) => r.entity_type === "creature" && r.entity_id === 3077 && r.field === "repairs")?.value_num).toBe(1);
+  });
+  it("reads Beast Lore lines, the look and tamed pets into hunter facts", () => {
+    const rows = observationsFor(session, ctx);
+    const wolf = rows.filter((r) => r.entity_type === "creature" && r.entity_id === 2958);
+    expect(wolf.find((r) => r.field === "display_id")).toMatchObject({ value_num: 1234, source: "client_catalog" });
+    expect(wolf.find((r) => r.field === "tameable")?.value_num).toBe(1);
+    expect(wolf.find((r) => r.field === "diet")?.value_text).toBe("Meat");
+    expect(wolf.filter((r) => r.field === "pet_skill").map((r) => r.value_json)).toEqual([{ name: "Bite", rank: 2 }, { name: "Dash", rank: 1 }]);
+    expect(wolf.find((r) => r.field === "tamed")?.value_num).toBe(1);
+    expect(beastLore(["Thunder Bluff", "PvP"])).toEqual({ tameable: false, diet: null, skills: [] });
   });
   it("drops player pets sent by older add-ons", () => {
     const rows = observationsFor(session, ctx);

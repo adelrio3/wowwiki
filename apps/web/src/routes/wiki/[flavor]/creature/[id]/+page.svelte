@@ -151,6 +151,18 @@
       { label: "Seen in", value: data.expansions.length ? `${data.expansions.join(", ")} ${data.patch}` : data.patch },
       { label: "ID", value: data.id, mono: true },
     ]} />
+    {#if data.pet}
+      <section class="card">
+        <h2 class="border-b border-line px-4 py-2.5 text-[13px] font-semibold uppercase tracking-wide text-ink-muted">As a hunter pet</h2>
+        <dl class="px-4 py-2 text-[14px]">
+          <div class="flex items-baseline justify-between gap-4 py-1.5"><dt class="text-ink-muted">Family</dt><dd class="font-medium"><a href="/wiki/pets?family={encodeURIComponent(data.pet.family)}#beasts">{data.pet.family}</a></dd></div>
+          <div class="flex items-baseline justify-between gap-4 py-1.5"><dt class="text-ink-muted">Tamable</dt><dd class="font-medium">{data.pet.tamed ? "Yes, seen as a pet" : data.pet.tameable ? "Yes, by Beast Lore" : "By family"}</dd></div>
+          {#if data.pet.diet}<div class="flex items-baseline justify-between gap-4 py-1.5"><dt class="text-ink-muted">Eats</dt><dd class="font-medium">{data.pet.diet}</dd></div>{/if}
+          {#if data.pet.skills.length}<div class="flex items-baseline justify-between gap-4 py-1.5"><dt class="text-ink-muted">Teaches</dt><dd class="text-right font-medium">{data.pet.skills.map((s) => (s.rank ? `${s.name} ${s.rank}` : s.name)).join(", ")}</dd></div>{/if}
+          {#if data.pet.displayId !== null}<div class="flex items-baseline justify-between gap-4 py-1.5"><dt class="text-ink-muted">Form</dt><dd class="num font-medium"><a href="/wiki/pets#forms">#{data.pet.displayId}</a></dd></div>{/if}
+        </dl>
+      </section>
+    {/if}
     <div class="card px-4 py-3">
       <Evidence status={data.nameStatus} contributors={data.contributors} />
       <p class="mt-2 text-xs text-ink-faint"><span class="num">{data.observations}</span> observation{data.observations === 1 ? "" : "s"} from players' game clients. Nothing is imported.</p>

@@ -243,7 +243,7 @@ export function computeFacts(ref: EntityRef, obs: Obs[], trusted: Set<string>): 
     const total = [...g.values.values()].reduce((n, v) => n + contributorsOf(v.accounts), 0);
     // Multi-valued fields (health by level, roles, reaction) are sets, not disputes.
     // Observer-relative fields (reaction, attackable, civilian) legitimately differ by faction.
-    const multiValued = g.field === "health" || g.field === "power" || g.field.startsWith("role:") || g.field === "reaction" || g.field === "attackable" || g.field === "civilian" || g.field === "art_overlay" || g.field === "taxi_route" || g.field === "flight_master";
+    const multiValued = g.field === "health" || g.field === "power" || g.field.startsWith("role:") || g.field === "reaction" || g.field === "attackable" || g.field === "civilian" || g.field === "art_overlay" || g.field === "taxi_route" || g.field === "flight_master" || g.field === "pet_skill" || g.field === "tooltip_extra";
     for (const [vh, v] of g.values) {
       const contributors = contributorsOf(v.accounts);
       let status: FactRowOut["status"] = contributors >= CONFIRM_THRESHOLD ? "confirmed" : "unconfirmed";

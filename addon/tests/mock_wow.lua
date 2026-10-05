@@ -27,6 +27,10 @@ M.items = {
 M.itemTooltips = { [3184] = { "Venomstrike", "Binds when picked up", "One-Hand", "Dagger", "15 - 29 Damage", "Speed 1.60", "(13.8 damage per second)", "Chance on hit: Poisons target for 7 Nature damage every 3 sec for 15 sec.", "Requires Level 15", "Sell Price: 18 Silver" } }
 M.loot = { slots = {}, fishing = false }   -- slots: { link=, qty=, quest=, type=, sources={guid, qty, ...} }
 M.merchant = { items = {}, repair = false } -- items: { link=, price=, stack=, avail=, extended=, costs={ {value=, link=, name=} } }
+M.pet = nil        -- { guid=, name=, level=, family=, spells={ {name, rank} } }
+M.stable = {}      -- { { name, level, family } }
+M.auras = {}       -- token -> array of spell ids on the unit
+M.displayIds = {}  -- token -> display id
 M.bags = {}        -- bag -> array of links
 M.equipment = {}   -- slot -> link
 
@@ -66,6 +70,11 @@ function M.install()
   _G.CanMerchantRepair = function() return M.merchant.repair end
   _G.C_Container = { GetContainerNumSlots = function(bag) return M.bags[bag] and #M.bags[bag] or 0 end, GetContainerItemLink = function(bag, slot) return M.bags[bag] and M.bags[bag][slot] end }
   _G.GetInventoryItemLink = function(_, slot) return M.equipment[slot] end
+  _G.HasPetSpells = function() return M.pet and M.pet.spells and #M.pet.spells or nil end
+  _G.GetSpellBookItemName = function(i, book) local sp = M.pet and M.pet.spells and M.pet.spells[i] if sp then return sp[1], sp[2] end end
+  _G.GetNumStablePets = function() return #M.stable end
+  _G.GetStablePetInfo = function(i) local p = M.stable[i] return 1, p.name, p.level, p.family end
+  _G.C_UnitAuras = { GetAuraDataByIndex = function(token, i) local list = M.auras[token] or {} local id = list[i] if id then return { spellId = id } end end }
   _G.UIParent = {}
   _G.print = function(...)
     local parts = {}
@@ -130,7 +139,10 @@ function M.install()
   }
   _G.GetTaxiMapID = function() return 1414 end
 
-  local function unit(token) return M.units[token] end
+  local function unit(token)
+    if token == "pet" and M.pet then return { guid = M.pet.guid, name = M.pet.name, level = M.pet.level, creatureFamily = M.pet.family } end
+    return M.units[token]
+  end
   _G.UnitExists = function(t) return unit(t) ~= nil end
   _G.UnitGUID = function(t) local u = unit(t) return u and u.guid end
   _G.UnitName = function(t) local u = unit(t) return u and u.name end
@@ -177,7 +189,7 @@ function M.install()
         _G[name .. "TextLeft" .. i] = { GetText = function() return line end }
       end
     end
-    function f:SetUnit(token)
+    function f:SetUnitTip(token)
       local u = unit(token)
       if not u then error("bad unit") end
       self.lines = M.tooltips[token] or { u.name, "Level " .. tostring(u.level) }
@@ -186,6 +198,9 @@ function M.install()
         _G[name .. "TextLeft" .. i] = { GetText = function() return line end }
       end
     end
+    -- model surface
+    function f:SetUnit(token) if kind == "PlayerModel" then self.modelToken = token return end self:SetUnitTip(token) end
+    function f:GetDisplayInfo() return M.displayIds[self.modelToken] end
     if kind == "Frame" then M.frame = f end
     return f
   end

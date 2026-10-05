@@ -44,6 +44,7 @@ modules/
   trainers.lua    -- trainer services
   loot.lua        -- loot windows, sources, drop counting
   items.lua       -- item info and tooltips
+  pets.lua        -- the player's hunter pet and stable (D-0049)
   spells.lua      -- spellbook, talents, auras, combat-log spells
   combat.lua      -- kills, deaths, encounters
   zones.lua       -- map, area, discovery, exploration
@@ -153,6 +154,11 @@ For each unit with a `Creature` or `Vehicle` GUID (`Pet` is skipped, D-0038):
   at full health (`VERIFIED`: era returns real values for non-party creatures, e.g.
   Plainstrider level 2 = 55), `UnitSex`, `UnitIsCivilian` (`VERIFIED` present),
   `UnitIsPVP`.
+- Look: the unit's display ID, read once per npcID per session through a hidden
+  `PlayerModel` frame (`SetUnit`, `GetDisplayInfo`; `VERIFY` on era). Never shown.
+- Tooltip lines past the subtitle (`tl`, up to twelve): faction, PvP, and what a
+  hunter's Beast Lore adds ("Tameable", "Diet: Meat", "Bite (Rank 2)"). The tooltip
+  is read again once when the Beast Lore aura (spell 1462) is on the unit.
 - Subtitle (`<Weaponsmith>`, `<Flight Master>`): second tooltip line. `VERIFIED`:
   `C_TooltipInfo` does not exist on era 1.15, nor does `TooltipDataProcessor`. A
   hidden `GameTooltip` frame with `SetUnit` works for any unit (N-0001): lines are
@@ -336,6 +342,17 @@ base item per session.
 Container contents (`BAG_UPDATE` → `C_Container.GetContainerItemInfo`; `VERIFIED`
 `C_Container` present on era and legacy `GetContainerItemInfo` absent) feed item
 discovery and Journal inventory snapshots at logout only.
+
+### Hunter pets (`pets.lua`)
+
+Implemented in 0.5.0 (D-0049). `UNIT_PET` (player), `PET_BAR_UPDATE` and eight
+seconds after entering the world, throttled to one read per ten seconds:
+`UnitGUID("pet")` (a `Pet` GUID whose fifth field is the wild beast's creature
+ID; `VERIFY` on era), `UnitName`, `UnitLevel`, `UnitCreatureFamily("pet")`, and
+the pet spellbook (`HasPetSpells`, `GetSpellBookItemName(i, BOOKTYPE_PET)` with
+the rank in the sub-name). Journal state `pet`; world `tamed[npcID]` with the
+family. `PET_STABLE_SHOW` → `GetNumStablePets`, `GetStablePetInfo(i)` (icon,
+name, level, family) → Journal state `stable`. Other players' pets are never read.
 
 ### Spells and auras (`spells.lua`)
 
@@ -687,5 +704,7 @@ Still open, to be settled by the real add-on's debug output during normal play:
    name on era when a flight map is actually opened.
 6. Anniversary client: TOC suffix, project ID, build (run the probe there when a
    character exists).
-7. `GetItemInfo` positions 15 and 16 (`expansionID`, `setID`) on era, and whether
+7. `PlayerModel:GetDisplayInfo()` after `SetUnit("target")` on era, and the
+   creature ID inside a hunter pet's GUID (0.5.0 debug output).
+8. `GetItemInfo` positions 15 and 16 (`expansionID`, `setID`) on era, and whether
    `GET_ITEM_INFO_RECEIVED` fires for an uncached link (0.4.0 debug output).

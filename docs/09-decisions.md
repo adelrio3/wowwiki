@@ -683,3 +683,34 @@ Consequences: Add-on 0.4.0 adds items, loot and vendors modules; schema v1 gains
 `relations.attrs`; until it runs, edges are stored without prices. Trainers,
 the last part of this phase step, are not yet captured. The item quality colours
 are the one place a text colour carries meaning outside links and gold marks.
+
+## D-0049: A hunter pets category built from the client's own signals
+Date: 2026-10-05  Status: accepted
+Context: The owner asked for pet skills, tamable beasts, forms and a list of
+unique tamable forms, under their own category, to help hunters. The client
+exposes all of it without a lookup table: it reports a creature family only for
+beasts of the tamable families; a hunter's Beast Lore adds "Tameable", the diet
+and the pet skills with ranks to the beast's tooltip; a tamed pet keeps the
+creature ID of the wild beast; and a unit's look (its display ID) can be read
+through a hidden model frame.
+Decision: "Hunter pets" is a World category (`/wiki/pets`) with four sections:
+Families (count, levels, diets, skills, looks), Pet skills (each rank and the
+beasts that teach it, with where to find them), Forms (each distinct look, the
+beasts that share it, marked Unique when one beast alone has it) and Tamable
+beasts (filter by family). A beast is tamable by family; Beast Lore or a tamed
+pet confirms it with a mark. Skills come only from Beast Lore lines on the wild
+beast, never from a pet's spellbook, because a pet's book holds what its hunter
+taught it. The add-on keeps every tooltip line past the subtitle, rescans once
+when Beast Lore is on the unit, reads the display ID once per creature per
+session, and records the player's own pet (species, family, level, skills) and
+stable as Journal state; the species also becomes a `tamed` fact. The creature
+page carries an "As a hunter pet" card for any beast with a family.
+Alternatives: a hand-made list of tamable families (would be the only table in
+the wiki not observed; the client already says it); grouping looks by name
+(different names share a look and the same name spans looks); showing a picture
+of each form (the client has no API that exports a model image; the display ID
+is the identity, and the beasts that share it tell the reader what it looks like).
+Consequences: Add-on 0.5.0 (`pets.lua`, tooltip lines, display ID). `VERIFY` on
+era: `PlayerModel:GetDisplayInfo` after `SetUnit`, and that a pet's GUID carries
+the wild creature ID. Beast Lore parsing reads the enUS words "Tameable" and
+"Diet:"; other locales keep the raw lines until their words are added.

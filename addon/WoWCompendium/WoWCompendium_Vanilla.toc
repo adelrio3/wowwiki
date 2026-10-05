@@ -2,7 +2,7 @@
 ## Title: WoW Compendium
 ## Notes: Silent recorder for the WoW Compendium wiki and journal. No in-game interface.
 ## Author: WoW Compendium
-## Version: 0.4.0
+## Version: 0.5.0
 ## SavedVariables: WoWCompendiumDB
 ## X-Toc: Vanilla
 ## X-Website: https://wow-wiki.netlify.app
@@ -23,3 +23,4 @@ modules/zones.lua
 modules/items.lua
 modules/loot.lua
 modules/vendors.lua
+modules/pets.lua

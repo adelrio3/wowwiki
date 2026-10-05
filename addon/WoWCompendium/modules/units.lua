@@ -7,11 +7,18 @@ local store, ids, compat, throttle = NS.store, NS.ids, NS.compat, NS.throttle
 -- scanned per npcID.
 local spawns = {}
 local tipDone = {}
+local loreDone = {}
+local lookDone = {}
 
 NS.on("PLAYER_LOGIN", function()
   spawns = {}
   tipDone = {}
+  loreDone = {}
+  lookDone = {}
 end)
+
+local BEAST_LORE = 1462
+local MAX_EXTRA_LINES = 12
 
 -- Sight (N-0016, D-0036): the client exposes nearby units only through
 -- nameplates, and the add-on never changes the player's nameplate or any other
@@ -36,6 +43,15 @@ local function scanTooltip(rec, unit)
   elseif l3 and l3 ~= "" and l3 ~= (PVP or "PvP") then
     rec.tf = l3
   end
+  -- Everything past the subtitle: faction, PvP, and what Beast Lore adds
+  -- ("Tameable", "Diet: ...", pet skills with ranks). Kept as lines; the
+  -- site reads them (D-0049).
+  local extra = {}
+  for i = 3, math.min(#lines, 2 + MAX_EXTRA_LINES) do
+    local l = lines[i]
+    if l and l ~= "" then extra[#extra + 1] = string.sub(l, 1, 120) end
+  end
+  if #extra > 0 and (not rec.tl or #extra > #rec.tl) then rec.tl = extra end
 end
 
 -- Full snapshot of a unit token; `kind` is how we came to see it.
@@ -101,10 +117,22 @@ local function snapshot(unit, kind)
     store.addPos(rec, store.pos(kind))
   end
 
-  -- Tooltip once per npcID per session, never for nameplates.
-  if kind ~= "nameplate" and not tipDone[p.id] then
-    tipDone[p.id] = true
-    scanTooltip(rec, unit)
+  -- Tooltip once per npcID per session, never for nameplates; again once
+  -- when Beast Lore is on the unit, since it adds lines.
+  if kind ~= "nameplate" then
+    if not tipDone[p.id] then
+      tipDone[p.id] = true
+      scanTooltip(rec, unit)
+    elseif not loreDone[p.id] and compat.unitHasAura(unit, BEAST_LORE) then
+      loreDone[p.id] = true
+      scanTooltip(rec, unit)
+    end
+    -- The unit's look, once per npcID per session.
+    if not lookDone[p.id] then
+      lookDone[p.id] = true
+      local di = compat.displayId(unit)
+      if di then rec.di = di end
+    end
   end
   return rec
 end
@@ -117,6 +145,16 @@ NS.on("UPDATE_MOUSEOVER_UNIT", function()
   if UnitExists("mouseover") and not UnitIsUnit("mouseover", "player") then
     if throttle.allow("mouseover:" .. (UnitGUID("mouseover") or "?"), 5) then
       snapshot("mouseover", "mouseover")
+    end
+  end
+end)
+
+-- Beast Lore lands after the first look at the unit; rescan then.
+NS.on("UNIT_AURA", function(unit)
+  if unit == "target" and UnitExists("target") then
+    local p = ids.parse(UnitGUID("target"))
+    if ids.isCreature(p) and not loreDone[p.id] and compat.unitHasAura("target", BEAST_LORE) then
+      snapshot("target", "target")
     end
   end
 end)

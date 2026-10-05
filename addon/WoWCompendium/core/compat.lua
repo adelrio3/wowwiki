@@ -37,6 +37,76 @@ function compat.unitTooltip(unit)
   return compat.tooltipLines("SetUnit", unit)
 end
 
+-- The look of a unit: its display ID, read through a hidden model frame
+-- (never shown; D-0049). VERIFY on era: PlayerModel:GetDisplayInfo after SetUnit.
+local model
+function compat.displayId(unit)
+  if not model then
+    local ok, f = pcall(CreateFrame, "PlayerModel", "WoWCompendiumModel", UIParent)
+    if not ok or not f then return nil end
+    model = f
+    if model.Hide then model:Hide() end
+  end
+  if type(model.SetUnit) ~= "function" or type(model.GetDisplayInfo) ~= "function" then return nil end
+  local ok = pcall(model.SetUnit, model, unit)
+  if not ok then return nil end
+  local ok2, id = pcall(model.GetDisplayInfo, model)
+  if ok2 and type(id) == "number" and id > 0 then return id end
+  return nil
+end
+
+-- True when the unit carries the aura with this spell ID (Beast Lore is 1462).
+function compat.unitHasAura(unit, spellID)
+  if C_UnitAuras and C_UnitAuras.GetAuraDataByIndex then
+    for i = 1, 40 do
+      local ok, a = pcall(C_UnitAuras.GetAuraDataByIndex, unit, i, "HARMFUL")
+      if not ok or not a then break end
+      if a.spellId == spellID then return true end
+    end
+    return false
+  end
+  if UnitAura then
+    for i = 1, 40 do
+      local name, _, _, _, _, _, _, _, _, id = UnitAura(unit, i, "HARMFUL")
+      if not name then break end
+      if id == spellID then return true end
+    end
+  end
+  return false
+end
+
+-- The player's pet's spellbook: { { n = name, r = rank number or nil }, ... } or nil.
+function compat.petSpells()
+  if not HasPetSpells then return nil end
+  local n = HasPetSpells()
+  if not n or n == 0 then return nil end
+  local book = BOOKTYPE_PET or "pet"
+  local out = {}
+  for i = 1, n do
+    local name, sub
+    if GetSpellBookItemName then name, sub = GetSpellBookItemName(i, book) end
+    if name then
+      local entry = { n = name }
+      local rank = sub and tonumber(string.match(sub, "(%d+)"))
+      if rank then entry.r = rank end
+      out[#out + 1] = entry
+    end
+  end
+  return out
+end
+
+-- Stabled pets: { { name, lvl, fam }, ... } or nil.
+function compat.stablePets()
+  if not (GetNumStablePets and GetStablePetInfo) then return nil end
+  local n = GetNumStablePets() or 0
+  local out = {}
+  for i = 1, n do
+    local _, name, level, family = GetStablePetInfo(i)
+    if name then out[#out + 1] = { name = name, lvl = level, fam = family } end
+  end
+  return out
+end
+
 -- Item tooltip from a link (verified on era: SetHyperlink works, docs/03).
 function compat.itemTooltip(link)
   return compat.tooltipLines("SetHyperlink", link)

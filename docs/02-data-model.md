@@ -65,7 +65,7 @@ ID across flavors may describe different things, so every entity key is `(flavor
 
 | Entity | ID source | Notes |
 |--------|-----------|-------|
-| creature | npcID from GUID `Creature-0-...-<npcID>-...` | Also `Vehicle`. `Pet` GUIDs and player-controlled units are never recorded (D-0038); ingest drops any that arrive. The wiki presents the type as two categories, NPCs and Creatures, derived at read time. |
+| creature | npcID from GUID `Creature-0-...-<npcID>-...` | Also `Vehicle`. `Pet` GUIDs and player-controlled units are never recorded (D-0038); ingest drops any that arrive. The wiki presents the type as two categories, NPCs and Creatures, derived at read time. Hunter-pet fields (D-0049): `display_id` (`client_catalog`), `tooltip_extra` (lines), `tameable`, `diet`, `pet_skill` (`{name, rank}`, a set), `tamed` (seen as someone's pet), plus `loot_window`, `drops`, `sells` as relation inputs. |
 | gameobject | objectID from GUID `GameObject-0-...-<objectID>-...` | Seen via loot source and some interactions only. |
 | item | itemID from item link | Fields: `name`, `quality`, `item_level`, `required_level`, `class`, `subclass`, `class_id`, `subclass_id`, `max_stack`, `equip_loc`, `sell_price`, `bind_type`, `expansion`, `set`, `reagent`, `tooltip` (one JSON array of the left-column lines per locale), `icon` (FileDataID, `client_catalog`). Variants (suffix, bonus IDs, enchants) are attributes of an observed item instance, not yet captured. |
 | quest | questID | |
@@ -258,6 +258,8 @@ site sets and the helper clears when it collects it.
 
 ### Character state kinds
 
-`character_state.kind` is `explored` (key: areaID) for discovered areas and `taxi`
-(key: nodeID, value: name and map) for flight paths the character can use.
+`character_state.kind` is `explored` (key: areaID) for discovered areas, `taxi`
+(key: nodeID, value: name and map) for flight paths the character can use, and
+`pet` (key: the wild beast's creature ID, or `stable:<name>` for a stabled pet;
+value: name, family, level, skills, active) for a hunter's pets (D-0049).
 

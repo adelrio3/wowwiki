@@ -71,6 +71,15 @@ export const load: PageServerLoad = async ({ params }) => {
     lootWindows,
     sells,
     repairs: pickNum(facts, "repairs")?.value_num === 1,
+    // Hunter pet card (D-0049): the family alone marks a tamable beast; Beast Lore and tamed pets confirm.
+    pet: pickText(facts, "creature_family") ? {
+      family: pickText(facts, "creature_family")!.value_text!,
+      tameable: pickNum(facts, "tameable")?.value_num === 1,
+      tamed: pickNum(facts, "tamed")?.value_num === 1,
+      diet: pickText(facts, "diet")?.value_text ?? null,
+      skills: allOf(facts, "pet_skill").map((f) => f.value_json as { name: string; rank: number | null }).sort((a, b) => a.name.localeCompare(b.name) || (a.rank ?? 0) - (b.rank ?? 0)),
+      displayId: pickNum(facts, "display_id")?.value_num ?? null,
+    } : null,
     facts,
   };
 };

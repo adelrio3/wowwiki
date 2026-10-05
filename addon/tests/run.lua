@@ -10,7 +10,7 @@ local FILES = {
   "Compendium_Link.lua", "Compendium_Ack.lua",
   "core/init.lua", "core/compat.lua", "core/ids.lua", "core/throttle.lua", "core/store.lua",
   "core/session.lua", "core/link.lua", "core/ack.lua", "core/login.lua",
-  "modules/units.lua", "modules/zones.lua", "modules/items.lua", "modules/loot.lua", "modules/vendors.lua",
+  "modules/units.lua", "modules/zones.lua", "modules/items.lua", "modules/loot.lua", "modules/vendors.lua", "modules/pets.lua",
 }
 
 local NS
@@ -330,6 +330,35 @@ test("a merchant's wares are recorded with prices, stock and extended costs", fu
   eq(v.items["2092"].lim, 2); eq(v.items["3184"].ec[1].i, 2589); eq(v.items["3184"].ec[1].n, 5); eq(v.items["3184"].ec[2].name, "Honor")
   assert(NS.session.world.creatures["3077"].roles.vendor, "vendor role from the merchant window")
   mock.merchant = { items = {}, repair = false }; mock.units.npc = nil
+end)
+
+test("the look, the faction line and Beast Lore lines are kept on the creature", function()
+  loadAddon(); player(); login()
+  mock.units.target = { guid = "Creature-0-5162-1-56-2958-00003DC5F3", name = "Prairie Wolf", level = 6, classification = "normal", creatureType = "Beast", creatureFamily = "Wolf", reaction = 2, health = 100, healthMax = 100 }
+  mock.tooltips.target = { "Prairie Wolf", "Level 6 (Beast)" }
+  mock.displayIds.target = 1234
+  mock.fire("PLAYER_TARGET_CHANGED")
+  local c = NS.session.world.creatures["2958"]
+  eq(c.di, 1234); eq(c.cf, "Wolf"); eq(c.tl, nil)
+  -- the hunter casts Beast Lore: the tooltip grows and is read once more
+  mock.auras.target = { 1462 }
+  mock.tooltips.target = { "Prairie Wolf", "Level 6 (Beast)", "Tameable", "Diet: Meat", "Bite (Rank 2)", "Dash (Rank 1)" }
+  mock.fire("UNIT_AURA", "target")
+  eq(#c.tl, 4); eq(c.tl[1], "Tameable"); eq(c.tl[3], "Bite (Rank 2)")
+  mock.auras.target = nil; mock.displayIds.target = nil
+end)
+
+test("the player's pet is journal state and proof the beast is tamable", function()
+  loadAddon(); player(); login()
+  mock.pet = { guid = "Pet-0-5162-1-56-2958-00003DC5F9", name = "Fang", level = 7, family = "Wolf", spells = { { "Bite", "Rank 2" }, { "Growl", "Rank 1" }, { "Great Stamina", "Rank 1" } } }
+  mock.fire("UNIT_PET", "player")
+  local pet = NS.session.state.pet
+  assert(pet, "pet state"); eq(pet.id, 2958); eq(pet.name, "Fang"); eq(pet.fam, "Wolf"); eq(pet.lvl, 7); eq(#pet.sk, 3); eq(pet.sk[1].n, "Bite"); eq(pet.sk[1].r, 2)
+  eq(NS.session.world.tamed["2958"].fam, "Wolf")
+  mock.stable = { { name = "Shadow", level = 12, family = "Cat" } }
+  mock.fire("PET_STABLE_SHOW")
+  eq(NS.session.state.stable[1].name, "Shadow"); eq(NS.session.state.stable[1].fam, "Cat")
+  mock.pet = nil; mock.stable = {}
 end)
 
 test("the add-on never changes client settings", function()

@@ -35,6 +35,44 @@ export const mockCreatureFacts: Record<number, FactRow[]> = {
     fact("reaction", { value_kind: "json", value_json: { reaction: 4 } }),
     fact("health", { value_kind: "json", value_json: { level: 1, max: 42 } }),
     fact("health", { value_kind: "json", value_json: { level: 2, max: 55 } }),
+    fact("display_id", { value_kind: "num", value_num: 2020, source: "client_catalog" }),
+  ],
+  2958: [
+    fact("name", { value_text: "Prairie Wolf", status: "disputed", contributor_count: 3 }),
+    fact("level_min", { value_kind: "num", value_num: 6 }),
+    fact("level_max", { value_kind: "num", value_num: 7 }),
+    fact("classification", { value_text: "normal" }),
+    fact("creature_type", { value_text: "Beast" }),
+    fact("creature_family", { value_text: "Wolf" }),
+    fact("reaction", { value_kind: "json", value_json: { reaction: 2 } }),
+    fact("tameable", { value_kind: "bool", value_num: 1 }),
+    fact("tamed", { value_kind: "bool", value_num: 1 }),
+    fact("diet", { value_text: "Meat" }),
+    fact("pet_skill", { value_kind: "json", value_json: { name: "Bite", rank: 2 } }),
+    fact("pet_skill", { value_kind: "json", value_json: { name: "Dash", rank: 1 } }),
+    fact("display_id", { value_kind: "num", value_num: 1234, source: "client_catalog" }),
+    fact("tooltip_extra", { value_kind: "json", value_json: ["Tameable", "Diet: Meat", "Bite (Rank 2)", "Dash (Rank 1)"] }),
+  ],
+  2959: [
+    fact("name", { value_text: "Prairie Wolf Alpha", status: "unconfirmed" }),
+    fact("level_min", { value_kind: "num", value_num: 8 }),
+    fact("level_max", { value_kind: "num", value_num: 9 }),
+    fact("classification", { value_text: "normal" }),
+    fact("creature_type", { value_text: "Beast" }),
+    fact("creature_family", { value_text: "Wolf" }),
+    fact("display_id", { value_kind: "num", value_num: 1234, source: "client_catalog" }),
+  ],
+  2949: [
+    fact("name", { value_text: "Flatland Cougar", status: "unconfirmed" }),
+    fact("level_min", { value_kind: "num", value_num: 7 }),
+    fact("level_max", { value_kind: "num", value_num: 8 }),
+    fact("classification", { value_text: "normal" }),
+    fact("creature_type", { value_text: "Beast" }),
+    fact("creature_family", { value_text: "Cat" }),
+    fact("diet", { value_text: "Meat, Fish" }),
+    fact("tameable", { value_kind: "bool", value_num: 1 }),
+    fact("pet_skill", { value_kind: "json", value_json: { name: "Claw", rank: 2 } }),
+    fact("display_id", { value_kind: "num", value_num: 5678, source: "client_catalog" }),
   ],
 };
 
@@ -91,6 +129,9 @@ export const mockPositions: Record<number, PositionRow[]> = {
     { map_id: 1412, cluster_x: 0.52, cluster_y: 0.86, observation_count: 9, contributor_count: 1 },
     { map_id: 1412, cluster_x: 0.49, cluster_y: 0.81, observation_count: 3, contributor_count: 1 },
   ],
+  2958: [{ map_id: 1412, cluster_x: 0.4, cluster_y: 0.55, observation_count: 5, contributor_count: 2 }],
+  2959: [{ map_id: 1412, cluster_x: 0.36, cluster_y: 0.42, observation_count: 1, contributor_count: 1 }],
+  2949: [{ map_id: 1412, cluster_x: 0.6, cluster_y: 0.3, observation_count: 2, contributor_count: 1 }],
 };
 
 export const mockMaps: Record<number, string> = { 1412: "Mulgore", 1456: "Thunder Bluff", 1414: "Kalimdor" };
@@ -144,6 +185,7 @@ export const mockCharacterDetail = {
     { seq: 2, started_at: "2026-10-03T21:00:00.000Z", ended_at: "2026-10-03T22:30:00.000Z", build: 70003, level_start: 5, level_end: 6 },
   ],
   exploredCount: 4,
+  pets: [{ id: 2958, name: "Fang", family: "Wolf", level: 7, skills: [{ n: "Bite", r: 2 }, { n: "Growl", r: 1 }], active: true }, { id: null, name: "Shadow", family: "Cat", level: 12, skills: [], active: false }],
   flightPaths: [{ nodeId: 22, name: "Thunder Bluff, Mulgore", mapId: 1412, since: t }, { nodeId: 25, name: "The Crossroads, The Barrens", mapId: 1413, since: t }],
   zonesVisited: [{ mapId: 1412, at: "2026-10-03T21:00:00.000Z" }, { mapId: 1456, at: "2026-10-04T12:30:00.000Z" }],
 };

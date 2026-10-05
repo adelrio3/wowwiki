@@ -441,3 +441,59 @@ export async function objectNames(flavor: string, ids: number[]): Promise<Record
   for (const r of data ?? []) if (r.locale === DEFAULT_LOCALE || !out[r.entity_id]) out[r.entity_id] = r.value_text ?? "";
   return out;
 }
+
+export interface HunterBeast {
+  entity_id: number;
+  name: string;
+  status: string;
+  family: string;
+  level_min: number | null;
+  level_max: number | null;
+  classification: string | null;
+  /** Beast Lore said "Tameable" */
+  tameable: boolean;
+  /** seen as someone's pet */
+  tamed: boolean;
+  diet: string | null;
+  skills: Array<{ name: string; rank: number | null }>;
+  displayId: number | null;
+  places: UnitPlace[];
+}
+
+/**
+ * Every beast with a pet family, as the client reports it (D-0049). The
+ * client gives a family only to beasts of the tamable families, so the family
+ * alone marks a beast as tamable; Beast Lore and a tamed pet confirm it.
+ */
+export async function hunterBeasts(flavor: string): Promise<HunterBeast[]> {
+  type Row = { entity_id: number; field: string; locale: string; value_text: string | null; value_num: number | null; value_json: unknown; status: string };
+  let rows: Row[];
+  if (MOCK) rows = Object.entries(mockCreatureFacts).flatMap(([id, facts]) => facts.map((f) => ({ entity_id: Number(id), field: f.field, locale: f.locale, value_text: f.value_text, value_num: f.value_num, value_json: f.value_json, status: f.status })));
+  else {
+    const db = serviceClient();
+    const { data: fam } = await db.from("facts").select("entity_id").eq("flavor", flavor).eq("entity_type", "creature").eq("field", "creature_family").limit(5000);
+    const ids = [...new Set((fam ?? []).map((r) => r.entity_id))];
+    if (!ids.length) return [];
+    const { data } = await db.from("facts").select("entity_id, field, locale, value_text, value_num, value_json, status").eq("flavor", flavor).eq("entity_type", "creature").in("field", ["name", "creature_family", "creature_type", "level_min", "level_max", "classification", "tameable", "tamed", "diet", "pet_skill", "display_id"]).in("entity_id", ids).limit(20000);
+    rows = (data ?? []) as Row[];
+  }
+  const byId = new Map<number, HunterBeast>();
+  for (const r of rows) {
+    const b = byId.get(r.entity_id) ?? byId.set(r.entity_id, { entity_id: r.entity_id, name: `#${r.entity_id}`, status: "unconfirmed", family: "", level_min: null, level_max: null, classification: null, tameable: false, tamed: false, diet: null, skills: [], displayId: null, places: [] }).get(r.entity_id)!;
+    const text = r.locale === DEFAULT_LOCALE;
+    if (r.field === "name" && (text || b.name.startsWith("#"))) { b.name = r.value_text ?? b.name; b.status = r.status; }
+    else if (r.field === "creature_family" && (text || !b.family)) b.family = r.value_text ?? "";
+    else if (r.field === "level_min") b.level_min = r.value_num;
+    else if (r.field === "level_max") b.level_max = r.value_num;
+    else if (r.field === "classification") b.classification = r.value_text;
+    else if (r.field === "tameable" && r.value_num === 1) b.tameable = true;
+    else if (r.field === "tamed" && r.value_num === 1) b.tamed = true;
+    else if (r.field === "diet" && (text || !b.diet)) b.diet = r.value_text;
+    else if (r.field === "pet_skill") { const v = r.value_json as { name: string; rank: number | null }; if (v?.name && !b.skills.some((x) => x.name === v.name && x.rank === v.rank)) b.skills.push(v); }
+    else if (r.field === "display_id") b.displayId = r.value_num;
+  }
+  const beasts = [...byId.values()].filter((b) => b.family);
+  const places = await unitPlaces(flavor, beasts.map((b) => b.entity_id));
+  for (const b of beasts) b.places = places.get(b.entity_id) ?? [];
+  return beasts.sort((a, b) => a.family.localeCompare(b.family) || (a.level_min ?? 999) - (b.level_min ?? 999) || a.name.localeCompare(b.name));
+}
