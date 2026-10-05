@@ -53,10 +53,25 @@ async function csv(table: string, build: string): Promise<Array<Record<string, s
 if (cmd === "layouts") {
   const build = args.build ?? "1.15.9.70003";
   const flavor = args.flavor ?? "era";
-  const [maps, xart, arts, styles, tiles, overlays, otiles] = await Promise.all(["UiMap", "UiMapXMapArt", "UiMapArt", "UiMapArtStyleLayer", "UiMapArtTile", "WorldMapOverlay", "WorldMapOverlayTile"].map((t) => csv(t, build)));
+  const [maps, xart, arts, styles, tiles, overlays, otiles, assignments] = await Promise.all(["UiMap", "UiMapXMapArt", "UiMapArt", "UiMapArtStyleLayer", "UiMapArtTile", "WorldMapOverlay", "WorldMapOverlayTile", "UiMapAssignment"].map((t) => csv(t, build)));
+  // World-coordinate box per map (WoW's first axis runs north, the second west), used
+  // to place a zone's rectangle on its parent's map.
+  const box = new Map<string, { n0: number; w0: number; n1: number; w1: number; area: number }>();
+  for (const a of assignments) {
+    if (a.OrderIndex !== "0" || box.has(a.UiMapID!)) continue;
+    box.set(a.UiMapID!, { n0: Number(a.Region_0), w0: Number(a.Region_1), n1: Number(a.Region_3), w1: Number(a.Region_4), area: Number(a.AreaID) });
+  }
+  const boundsOn = (mapId: string, parentId: string) => {
+    const z = box.get(mapId), p = box.get(parentId);
+    if (!z || !p) return undefined;
+    const left = (p.w1 - z.w1) / (p.w1 - p.w0), right = (p.w1 - z.w0) / (p.w1 - p.w0);
+    const top = (p.n1 - z.n1) / (p.n1 - p.n0), bottom = (p.n1 - z.n0) / (p.n1 - p.n0);
+    const r = (v: number) => Math.round(v * 10000) / 10000;
+    return { x: r(left), y: r(top), w: r(right - left), h: r(bottom - top) };
+  };
   const styleOf = new Map(arts.map((a) => [a.ID!, a.UiMapArtStyleID!]));
   const layerOf = new Map(styles.filter((l) => l.LayerIndex === "0").map((l) => [l.UiMapArtStyleID!, l]));
-  const out: Record<string, { layer: { w: number; h: number; tw: number; th: number; t: number[]; aid: number }; overlays: Array<{ w: number; h: number; x: number; y: number; t: number[] }>; name: string; parent: number; type: number }> = {};
+  const out: Record<string, { layer: { w: number; h: number; tw: number; th: number; t: number[]; aid: number }; overlays: Array<{ w: number; h: number; x: number; y: number; t: number[] }>; name: string; parent: number; type: number; area?: number; bounds?: { x: number; y: number; w: number; h: number } }> = {};
   for (const x of xart) {
     if (x.PhaseID !== "0") continue;
     const artId = x.UiMapArtID!, mapId = x.UiMapID!;
@@ -68,7 +83,7 @@ if (cmd === "layouts") {
       t: otiles.filter((t) => t.WorldMapOverlayID === o.ID && t.LayerIndex === "0").sort((a, b) => Number(a.RowIndex) - Number(b.RowIndex) || Number(a.ColIndex) - Number(b.ColIndex)).map((t) => Number(t.FileDataID)),
     })).filter((o) => o.t.length);
     const row = maps.find((m) => m.ID === mapId);
-    out[mapId] = { name: (row?.Name_lang ?? "").replace(/^"|"$/g, ""), parent: Number(row?.ParentUiMapID ?? 0), type: Number(row?.Type ?? 3), layer: { w: Number(style.LayerWidth), h: Number(style.LayerHeight), tw: Number(style.TileWidth), th: Number(style.TileHeight), t: base.map((t) => Number(t.FileDataID)), aid: Number(artId) }, overlays: ov };
+    out[mapId] = { name: (row?.Name_lang ?? "").replace(/^"|"$/g, ""), parent: Number(row?.ParentUiMapID ?? 0), type: Number(row?.Type ?? 3), area: box.get(mapId)?.area || undefined, bounds: boundsOn(mapId, row?.ParentUiMapID ?? "0"), layer: { w: Number(style.LayerWidth), h: Number(style.LayerHeight), tw: Number(style.TileWidth), th: Number(style.TileHeight), t: base.map((t) => Number(t.FileDataID)), aid: Number(artId) }, overlays: ov };
   }
   const buildId = build.split(".").pop();
   const outPath = args.out ?? join(process.cwd(), "..", "..", "apps", "web", "src", "lib", "server", "map-art", "layouts", `${flavor}-${buildId}.json`);

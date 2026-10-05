@@ -109,5 +109,7 @@ export const mockUploads = [
 export const mockArtwork: Record<number, { url: string; width: number; height: number; pieces: number }> = {
   1412: { url: "/mock/map.svg", width: 1002, height: 668, pieces: 9 },
   1456: { url: "/mock/map.svg", width: 1002, height: 668, pieces: 1 },
+  1414: { url: "/mock/map.svg", width: 1002, height: 668, pieces: 0 },
+  1415: { url: "/mock/map.svg", width: 1002, height: 668, pieces: 0 },
 };
 
