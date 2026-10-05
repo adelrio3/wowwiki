@@ -10,7 +10,8 @@ import { mkdirSync, writeFileSync, existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Casc, type Product } from "./tact.js";
 import { composeMap, decodeBlp, type Locator } from "@compendium/map-art";
-import { simplify, toPath, traceContours, type Pt } from "./shapes.js";
+import { simplify, toPath, traceContours } from "./shapes.js";
+import { erode, growRegions, lineMask, seaMask } from "./regions.js";
 
 const args = Object.fromEntries(process.argv.slice(3).map((a, i, all) => (a.startsWith("--") ? [a.slice(2), all[i + 1] ?? "true"] : [])).filter((p) => p.length));
 const cmd = process.argv[2];
@@ -86,36 +87,53 @@ if (cmd === "layouts") {
     const row = maps.find((m) => m.ID === mapId);
     out[mapId] = { name: (row?.Name_lang ?? "").replace(/^"|"$/g, ""), parent: Number(row?.ParentUiMapID ?? 0), type: Number(row?.Type ?? 3), area: box.get(mapId)?.area || undefined, bounds: boundsOn(mapId, row?.ParentUiMapID ?? "0"), layer: { w: Number(style.LayerWidth), h: Number(style.LayerHeight), tw: Number(style.TileWidth), th: Number(style.TileHeight), t: base.map((t) => Number(t.FileDataID)), aid: Number(artId) }, overlays: ov };
   }
-  // Shapes (D-0047). A zone's shape is the union of its own explored pieces,
-  // carried onto its continent through its world-coordinate box; a continent's
-  // shape on the world map is its drawn landmass, found by colour.
+  // Shapes (D-0047, N-0023). A zone's shape on its continent comes from the
+  // continent picture itself: regions grown from each zone's explored pieces
+  // (placed through its world-coordinate box) across the drawn land, never
+  // across a drawn border. A continent's shape on the world map is its drawn
+  // landmass, found by colour.
   if (args.shapes !== "false") {
     const product = (args.product ?? "wow_classic_era") as Product;
     const casc = await Casc.open(product);
-    const SCALE = 2;
-    const unitsOf = (poly: Pt[], W: number, H: number, b: { x: number; y: number; w: number; h: number }) => poly.map((q) => ({ x: (b.x + (q.x * SCALE / W) * b.w) * 100, y: (b.y + (q.y * SCALE / H) * b.h) * (100 * 668 / 1002) }));
-    for (const [id, m] of Object.entries(out)) {
-      if (!m.bounds || m.type !== 3) continue;
-      const W = m.layer.w, H = m.layer.h, w = Math.ceil(W / SCALE), h = Math.ceil(H / SCALE);
-      const mask = new Uint8Array(w * h);
-      for (const o of m.overlays) {
-        const cols = Math.max(1, Math.ceil(o.w / 256));
-        for (let i = 0; i < o.t.length; i++) {
-          const img = decodeBlp(await casc.file(o.t[i]!));
-          const ox = o.x + (i % cols) * 256, oy = o.y + Math.floor(i / cols) * 256;
-          for (let y = 0; y < img.height; y++) for (let x = 0; x < img.width; x++) {
-            if (img.data[(y * img.width + x) * 4 + 3]! > 96) { const mx = Math.floor((ox + x) / SCALE), my = Math.floor((oy + y) / SCALE); if (mx >= 0 && my >= 0 && mx < w && my < h) mask[my * w + mx] = 1; }
+    const unit = 100 * 668 / 1002;
+    const boxPath = (b: { x: number; y: number; w: number; h: number }) => toPath([[{ x: b.x * 100, y: b.y * unit }, { x: (b.x + b.w) * 100, y: b.y * unit }, { x: (b.x + b.w) * 100, y: (b.y + b.h) * unit }, { x: b.x * 100, y: (b.y + b.h) * unit }]]);
+    for (const [id, m] of Object.entries(out)) if (m.bounds && m.type === 3) m.shape = boxPath(m.bounds), void id;
+    for (const [cid, cont] of Object.entries(out)) {
+      if (cont.type !== 2) continue;
+      const canvas = await composeMap({ layer: cont.layer, overlays: [] }, (f) => casc.file(f));
+      const W = canvas.width, H = canvas.height;
+      const lines = lineMask(canvas), sea = seaMask(canvas, lines);
+      const zones = Object.entries(out).filter(([, z]) => z.parent === Number(cid) && z.type === 3 && z.bounds && z.overlays.length);
+      const seeds: Uint8Array[] = [];
+      for (const [, z] of zones) {
+        const seed = new Uint8Array(W * H), b = z.bounds!;
+        for (const o of z.overlays) {
+          const cols = Math.max(1, Math.ceil(o.w / 256));
+          for (let i = 0; i < o.t.length; i++) {
+            const img = decodeBlp(await casc.file(o.t[i]!));
+            const ox = o.x + (i % cols) * 256, oy = o.y + Math.floor(i / cols) * 256;
+            for (let y = 0; y < img.height; y++) for (let x = 0; x < img.width; x++) {
+              if (img.data[(y * img.width + x) * 4 + 3]! <= 96) continue;
+              const X = Math.floor((b.x + (ox + x) / z.layer.w * b.w) * W), Y = Math.floor((b.y + (oy + y) / z.layer.h * b.h) * H);
+              if (X >= 0 && Y >= 0 && X < W && Y < H) seed[Y * W + X] = 1;
+            }
           }
         }
+        seeds.push(erode(seed, W, H, 4));
       }
-      const contours = traceContours(mask, w, h, 60).slice(0, 4);
-      if (contours.length) m.shape = toPath(contours.map((c) => unitsOf(simplify(c, 1.2), W, H, m.bounds!)));
-      else { const b = m.bounds, hh = 100 * 668 / 1002; m.shape = toPath([[{ x: b.x * 100, y: b.y * hh }, { x: (b.x + b.w) * 100, y: b.y * hh }, { x: (b.x + b.w) * 100, y: (b.y + b.h) * hh }, { x: b.x * 100, y: (b.y + b.h) * hh }]]); }
-      console.error(`${m.name}: ${contours.length ? contours.length + " outline(s)" : "box"}`);
+      const label = growRegions(W, H, lines, sea, seeds);
+      zones.forEach(([, z], k) => {
+        const mask = new Uint8Array(W * H);
+        for (let i = 0; i < W * H; i++) if (label[i] === k + 1) mask[i] = 1;
+        const contours = traceContours(mask, W, H, 60).slice(0, 4);
+        if (contours.length) z.shape = toPath(contours.map((c) => simplify(c, 1.2).map((p) => ({ x: (p.x / W) * 100, y: (p.y / W) * 100 }))));
+        console.error(`${z.name}: ${contours.length ? contours.length + " region(s) on " + cont.name : "box"}`);
+      });
     }
     // continents on the world map: the drawn land is orange (red well above green) on a teal parchment whose stains are duller
     const world = Object.entries(out).find(([, m]) => m.type === 1);
     if (world) {
+      const SCALE = 2;
       const canvas = await composeMap({ layer: world[1].layer, overlays: [] }, (fdid) => casc.file(fdid));
       const W = canvas.width, H = canvas.height, w = Math.ceil(W / SCALE), h = Math.ceil(H / SCALE);
       const mask = new Uint8Array(w * h);

@@ -634,14 +634,18 @@ clickable region per zone, shaped like the zone, and the zones listed to the
 right in map order (top to bottom, then left to right). Hovering a region or a
 row highlights both; nothing is drawn or written on the map otherwise. Shapes are
 build-specific artwork plumbing kept in the layout file beside the art layout:
-a zone's shape is the outline of the union of its explored pieces, placed on the
-continent through the world-coordinate boxes of both; a continent's shape on the
-world map is traced from the drawn land colour. A zone without explored pieces
-(cities, most battlegrounds) falls back to its box. How: N-0023.
+a zone's shape is its drawn patch on the continent picture, found by growing a
+region from its explored pieces across the land and never across a drawn
+border; a continent's shape on the world map is traced from the drawn land
+colour. A zone without explored pieces (the capital cities) falls back to its
+box. How: N-0023.
 Alternatives: rectangles with labels (D-0046; overlapping edges, text on the map);
 a single page of every continent (busy, and no world map to start from); drawing
 zone names on the map (owner: no text over the map; the list carries the names);
-hand-drawn shapes (labour per build, and the client already draws the borders).
+hand-drawn shapes (labour per build, and the client already draws the borders);
+the outline of each zone's explored pieces alone (gaps where nothing can be
+explored, spill over the neighbours, and the art does not follow the world
+coordinates closely; rejected after the owner reviewed the result).
 Consequences: Three clicks from the index to a zone (world, continent, zone), with
 the breadcrumb and the right-hand list as the shortcut. The zone page's breadcrumb
 reads Azeroth / continent / zone. Shapes are regenerated with the layout file at

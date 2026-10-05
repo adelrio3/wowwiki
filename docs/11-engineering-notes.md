@@ -347,34 +347,60 @@ endpoint answers 401 (needs a token) instead of 403, 2026-10-04.
 ## N-0023: Zone and continent outlines from the client's own map art
 Area: assets / web
 Problem: D-0047 wants each clickable region on the Zones page shaped like the zone
-as the map draws it. The client has no polygon table; it has the explored pieces
-(one picture per discovered area, alpha-masked to the area's drawn border) and,
-per map, a world-coordinate box in `UiMapAssignment`.
+as the map draws it. The client has no polygon table. Its explored pieces (one
+picture per discovered area) are the wrong shape on their own: they leave gaps
+where a zone has terrain nobody can explore, spill a little over the neighbours,
+and sit on the continent only as accurately as the hand-drawn art follows the
+world coordinates, which is not very.
 Solution: `tools/assets layouts` (with shapes on, the default) computes a `shape`
 per map and stores it as an SVG path in map units (0-100 across, 0-66.7 down) in
-the layout file:
-- Zone on its continent: decode every explored piece of the zone, union their
-  alpha (> 96) into one mask at half resolution, trace the outer contours with
-  marching squares (`shapes.ts: traceContours`, holes and specks dropped, largest
-  first, at most four), simplify with Ramer-Douglas-Peucker (epsilon 1.2 px), then
-  map each point from the zone's picture into the continent's picture through the
-  two world-coordinate boxes: `continent = zoneBox.origin + p * zoneBox.size`,
-  where both boxes are already expressed as fractions of the continent map (the
-  `bounds` D-0046 introduced). Zones with no explored pieces keep a box.
+the layout file. The continent picture itself draws every zone border as a dark
+line, so the regions come from the picture (`regions.ts`):
+- Lines: a pixel whose luminance is 14 below the mean of its 11 x 11
+  surroundings (`lineMask`). Borders, coastlines and the hatching of the sea all
+  come through; so do specks, which do no harm.
+- Sea (`seaMask`): everything reachable from the picture's edge without crossing
+  a line (the lines fattened by one pixel so a one-pixel gap in a coastline does
+  not let the sea in), plus the hatched band along every coast, which the edge
+  flood cannot reach because the hatching walls it off. The band is pale (mean
+  saturation under 0.48 in a 5 x 5 window) and dense with line pixels (over 15%
+  in a 15 x 15 window) at once, or, where the parchment's orange glow near the
+  torn edges colours it, striped: four or more line/gap changes down a 13-pixel
+  column with a more sensitive line test, averaged over 11 x 11 above 0.65. The
+  band is fattened by two pixels. Colour alone is never a sign of sea: the
+  forests (Silverpine, Stranglethorn) are as green as the sea is teal.
+- Seeds: each zone's explored pieces, placed on the continent through the
+  world-coordinate boxes of zone and continent (the `bounds` from D-0046), then
+  eroded by four pixels so a piece that spills over a border does not seed the
+  neighbour.
+- Growth (`growRegions`): every seed grows across pixels that are neither line
+  nor sea, up to 90 pixels from its seed, first come first served. Grown pieces
+  too thin to hold a 5 x 5 block are dropped (strips between hatch lines,
+  slivers between doubled borders). Then every region closes over the lines and
+  specks beside it by four pixels, never over the sea, so neighbours meet on the
+  border.
+- Each zone's labelled pixels become its mask; outer contours by marching
+  squares (`shapes.ts: traceContours`, holes and specks dropped, at most four),
+  simplified with Ramer-Douglas-Peucker (epsilon 1.2 px). A zone with no
+  explored pieces (the capital cities) keeps its box; so does a zone whose parent
+  is not a continent (the battlegrounds), which no map shows.
 - Continent on the world map: the Azeroth art draws land in orange on a teal
   parchment. Mask pixels with `r > 135`, `r - g >= 36`, `r - b > 70`, `g > 80`
   inside the inner 92% of the picture (the torn edge is orange too), trace, keep
   every land mass at least a tenth of the largest, and give each to the continent
   on its side of the map's centre (Kalimdor west, Eastern Kingdoms east). The
   `r - g` test matters: the parchment's stains pass the first filter but are
-  duller (red barely above green); Lordaeron is a separate land mass, so "the two
-  largest contours" is wrong.
+  duller; Lordaeron is a separate land mass, so "the two largest contours" is
+  wrong.
 - `ZoneMap.svelte` draws the paths in an SVG sized to the picture (`viewBox 0 0
   100 <height>`), transparent until hovered, each inside an `<a>` with the zone's
   name as `aria-label` and `<title>`; the page binds the hovered id so the list
   row lights up too.
 Why: Follows the drawn borders exactly for every zone with no per-build labour,
-and survives patches because it is regenerated with the layout file.
-Verified: Kalimdor, Eastern Kingdoms and Azeroth outlines drawn over the composed
-maps on 2026-10-05 (build 1.15.9.70003); zone outlines follow the drawn borders,
-Lordaeron is part of the Eastern Kingdoms region, no parchment blobs.
+and survives patches because it is regenerated with the layout file. Tracing the
+explored pieces directly (the first attempt) was wrong at a third of the zones.
+Verified: every zone region drawn over the composed Kalimdor and Eastern Kingdoms
+maps and the continent outlines over Azeroth on 2026-10-05 (build 1.15.9.70003);
+each region fills its drawn patch and stops at the border, the coasts and the
+sea, including Silverpine with the Gilneas peninsula, Stranglethorn to its tip,
+Feralas with its islands and Lordaeron as part of the Eastern Kingdoms.
